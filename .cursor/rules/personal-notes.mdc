@@ -1,0 +1,11 @@
+---
+description: Personal notes conventions
+globs: notes/**
+alwaysApply: false
+---
+
+# personal notes
+
+- Keep each note focused on a single topic.
+- Prefer small, incremental changes over large restructures.
+- Avoid storing secrets, API keys, or credentials in notes.
