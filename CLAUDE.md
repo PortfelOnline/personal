@@ -9,3 +9,6 @@
 ## How to work
 - Add new notes as markdown files in `notes/`
 - Keep files focused on one topic each
+
+## Cursor scoped rules
+Path-scoped guidance for `notes/` lives in `.cursor/rules/`.
