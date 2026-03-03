@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import ContentGenerator from "./pages/ContentGenerator";
 import ContentLibrary from "./pages/ContentLibrary";
 import MetaAccounts from "./pages/MetaAccounts";
+import ContentCalendar from "@/pages/ContentCalendar";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/generator" component={ContentGenerator} />
       <Route path="/library" component={ContentLibrary} />
       <Route path="/accounts" component={MetaAccounts} />
+      <Route path="/calendar" component={ContentCalendar} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

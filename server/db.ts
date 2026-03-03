@@ -139,4 +139,23 @@ export async function createContentTemplate(
   });
 }
 
+export async function updateContentPost(
+  userId: number,
+  postId: number,
+  updates: Partial<Omit<InsertContentPost, 'userId'>>
+) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  return db.update(contentPosts)
+    .set(updates)
+    .where(and(eq(contentPosts.id, postId), eq(contentPosts.userId, userId)));
+}
+
+export async function deleteContentPost(userId: number, postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  return db.delete(contentPosts)
+    .where(and(eq(contentPosts.id, postId), eq(contentPosts.userId, userId)));
+}
+
 // TODO: add more feature queries here as your schema grows.

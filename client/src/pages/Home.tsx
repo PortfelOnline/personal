@@ -76,6 +76,12 @@ export default function Home() {
                 >
                   Connected Accounts
                 </Button>
+                <Button
+                  onClick={() => navigate('/calendar')}
+                  className="bg-white text-blue-600 hover:bg-blue-50 font-semibold"
+                >
+                  Calendar
+                </Button>
               </div>
             )}
           </div>

@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
-import { createContentPost, getUserContentPosts, getContentTemplates, createContentTemplate } from "./db";
+import { createContentPost, getUserContentPosts, getContentTemplates, createContentTemplate, updateContentPost, deleteContentPost } from "./db";
 import { metaRouter } from "./routers/meta";
 
 export const appRouter = router({
@@ -120,6 +120,76 @@ export const appRouter = router({
           description: input.description,
         });
         return result;
+      }),
+
+    updatePost: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().optional(),
+        content: z.string().optional(),
+        hashtags: z.string().optional(),
+        status: z.enum(["draft", "scheduled", "published", "archived"]).optional(),
+        scheduledAt: z.date().optional().nullable(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...updates } = input;
+        await updateContentPost(ctx.user.id, id, updates);
+        return { success: true };
+      }),
+
+    deletePost: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteContentPost(ctx.user.id, input.id);
+        return { success: true };
+      }),
+
+    schedulePost: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        scheduledAt: z.date(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateContentPost(ctx.user.id, input.id, {
+          scheduledAt: input.scheduledAt,
+          status: 'scheduled',
+        });
+        return { success: true };
+      }),
+
+    generateVariation: protectedProcedure
+      .input(z.object({
+        content: z.string(),
+        platform: z.enum(["facebook", "instagram", "whatsapp"]),
+        language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]).default("hinglish"),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a social media content expert for the Indian market. Create a variation of the given post that feels fresh but conveys the same message. Keep it engaging with emojis and hashtags." },
+            { role: "user", content: `Create a variation of this ${input.platform} post in ${input.language}:\n\n${input.content}` },
+          ],
+        });
+        const variation = typeof response.choices[0]?.message.content === 'string'
+          ? response.choices[0].message.content : "";
+        return { variation };
+      }),
+
+    suggestHashtags: protectedProcedure
+      .input(z.object({
+        content: z.string(),
+        platform: z.enum(["facebook", "instagram", "whatsapp"]),
+      }))
+      .mutation(async ({ input }) => {
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a social media hashtag expert for the Indian market. Suggest relevant, trending hashtags." },
+            { role: "user", content: `Suggest 10 relevant hashtags for this ${input.platform} post. Return ONLY the hashtags separated by spaces, no explanations:\n\n${input.content}` },
+          ],
+        });
+        const hashtags = typeof response.choices[0]?.message.content === 'string'
+          ? response.choices[0].message.content.trim() : "";
+        return { hashtags };
       }),
   }),
 });
