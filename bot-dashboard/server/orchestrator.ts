@@ -1,6 +1,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { getBotDir, startBot, getRunningBots, getBotState } from './bots';
+
+// RAM per bot: ~500MB Firefox + ~80MB Python
+const RAM_PER_BOT_BYTES = 580 * 1024 * 1024;
+// Reserve: 2GB on Linux, 4GB on macOS (heavier OS overhead)
+const OS_RESERVE_BYTES = os.platform() === 'darwin'
+  ? 4 * 1024 * 1024 * 1024
+  : 2 * 1024 * 1024 * 1024;
+
+export function detectMaxConcurrent(): number {
+  const totalRam = os.totalmem();
+  const cpuCount = os.cpus().length;
+  const ramBased = Math.floor((totalRam - OS_RESERVE_BYTES) / RAM_PER_BOT_BYTES);
+  // On macOS cap at cpuCount/4 — multiple Firefox instances are heavy
+  const cpuBased = os.platform() === 'darwin'
+    ? Math.max(1, Math.floor(cpuCount / 4))
+    : Math.max(1, Math.floor(cpuCount / 2));
+  return Math.max(1, Math.min(ramBased, cpuBased));
+}
 
 export interface BotEntry {
   botId: number;
@@ -32,10 +51,10 @@ export interface OrchestratorStatus {
 
 const DEFAULT_CONFIG: OrchestratorConfig = {
   enabled: false,
-  maxConcurrent: 3,
+  maxConcurrent: detectMaxConcurrent(),
   restartDelayMin: 30,
-  dailyStartHour: 8,
-  dailyEndHour: 22,
+  dailyStartHour: 0,
+  dailyEndHour: 24,
   bots: [],
 };
 
@@ -147,6 +166,19 @@ export function initOrchestrator(): void {
   if (tickTimer) return;
   tickTimer = setInterval(tick, TICK_INTERVAL_MS);
   tick();
+}
+
+export function getDetectedResources() {
+  const totalRam = os.totalmem();
+  const cpuCount = os.cpus().length;
+  const platform = os.platform();
+  const recommended = detectMaxConcurrent();
+  return {
+    cpuCount,
+    totalRamGb: Math.round(totalRam / (1024 ** 3) * 10) / 10,
+    platform,
+    recommended,
+  };
 }
 
 export function getOrchestratorStatus(): OrchestratorStatus {

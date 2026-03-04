@@ -101,6 +101,7 @@ export const botsRouter = t.router({
   // --- Orchestrator ---
   orchestratorConfig: procedure.query(() => orch.getOrchestratorConfig()),
   orchestratorStatus: procedure.query(() => orch.getOrchestratorStatus()),
+  detectedResources: procedure.query(() => orch.getDetectedResources()),
 
   setOrchestratorConfig: procedure
     .input(orchestratorConfigSchema)

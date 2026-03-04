@@ -102,7 +102,7 @@ var require_main = __commonJS({
   "node_modules/.pnpm/dotenv@17.3.1/node_modules/dotenv/lib/main.js"(exports2, module2) {
     var fs3 = require("fs");
     var path4 = require("path");
-    var os2 = require("os");
+    var os3 = require("os");
     var crypto = require("crypto");
     var packageJson = require_package();
     var version2 = packageJson.version;
@@ -255,7 +255,7 @@ var require_main = __commonJS({
       return null;
     }
     function _resolveHome(envPath) {
-      return envPath[0] === "~" ? path4.join(os2.homedir(), envPath.slice(1)) : envPath;
+      return envPath[0] === "~" ? path4.join(os3.homedir(), envPath.slice(1)) : envPath;
     }
     function _configVault(options) {
       const debug = parseBoolean(process.env.DOTENV_CONFIG_DEBUG || options && options.debug);
@@ -39780,12 +39780,22 @@ function setGoogleDocs(config2) {
 // server/orchestrator.ts
 var fs2 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
+var os2 = __toESM(require("os"), 1);
+var RAM_PER_BOT_BYTES = 580 * 1024 * 1024;
+var OS_RESERVE_BYTES = os2.platform() === "darwin" ? 4 * 1024 * 1024 * 1024 : 2 * 1024 * 1024 * 1024;
+function detectMaxConcurrent() {
+  const totalRam = os2.totalmem();
+  const cpuCount = os2.cpus().length;
+  const ramBased = Math.floor((totalRam - OS_RESERVE_BYTES) / RAM_PER_BOT_BYTES);
+  const cpuBased = os2.platform() === "darwin" ? Math.max(1, Math.floor(cpuCount / 4)) : Math.max(1, Math.floor(cpuCount / 2));
+  return Math.max(1, Math.min(ramBased, cpuBased));
+}
 var DEFAULT_CONFIG = {
   enabled: false,
-  maxConcurrent: 3,
+  maxConcurrent: detectMaxConcurrent(),
   restartDelayMin: 30,
-  dailyStartHour: 8,
-  dailyEndHour: 22,
+  dailyStartHour: 0,
+  dailyEndHour: 24,
   bots: []
 };
 var WARMUP_DAYS_THRESHOLD = 14;
@@ -39877,6 +39887,18 @@ function initOrchestrator() {
   tickTimer = setInterval(tick, TICK_INTERVAL_MS);
   tick();
 }
+function getDetectedResources() {
+  const totalRam = os2.totalmem();
+  const cpuCount = os2.cpus().length;
+  const platform2 = os2.platform();
+  const recommended = detectMaxConcurrent();
+  return {
+    cpuCount,
+    totalRamGb: Math.round(totalRam / 1024 ** 3 * 10) / 10,
+    platform: platform2,
+    recommended
+  };
+}
 function getOrchestratorStatus() {
   return {
     active: tickTimer !== null && getOrchestratorConfig().enabled,
@@ -39964,6 +39986,7 @@ var botsRouter = t.router({
   // --- Orchestrator ---
   orchestratorConfig: procedure.query(() => getOrchestratorConfig()),
   orchestratorStatus: procedure.query(() => getOrchestratorStatus()),
+  detectedResources: procedure.query(() => getDetectedResources()),
   setOrchestratorConfig: procedure.input(orchestratorConfigSchema).mutation(({ input }) => {
     saveOrchestratorConfig(input);
     return { success: true };
