@@ -618,12 +618,29 @@ export default function Bots() {
 
                       <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-slate-700">Макс. одновременно</label>
-                        <Input
-                          type="number" min={1} max={20} className="mt-1"
-                          value={orchEdits.maxConcurrent}
-                          onChange={e => setOrchEdits(o => o ? { ...o, maxConcurrent: parseInt(e.target.value) || 1 } : o)}
-                        />
+                        <label className="text-sm font-medium text-slate-700">
+                          Макс. одновременно
+                          {detectedResources && orchEdits.maxConcurrent !== detectedResources.recommended && (
+                            <span className="ml-2 text-xs text-slate-400">
+                              (рекомендовано {detectedResources.recommended > orchEdits.maxConcurrent ? '+' : ''}{detectedResources.recommended - orchEdits.maxConcurrent} от рек.)
+                            </span>
+                          )}
+                        </label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <button
+                            onClick={() => setOrchEdits(o => o ? { ...o, maxConcurrent: Math.max(1, o.maxConcurrent - 1) } : o)}
+                            className="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-md border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-lg font-bold transition-colors"
+                          >−</button>
+                          <Input
+                            type="number" min={1} max={20} className="text-center"
+                            value={orchEdits.maxConcurrent}
+                            onChange={e => setOrchEdits(o => o ? { ...o, maxConcurrent: Math.max(1, parseInt(e.target.value) || 1) } : o)}
+                          />
+                          <button
+                            onClick={() => setOrchEdits(o => o ? { ...o, maxConcurrent: Math.min(20, o.maxConcurrent + 1) } : o)}
+                            className="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-md border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-lg font-bold transition-colors"
+                          >+</button>
+                        </div>
                       </div>
                       <div>
                         <label className="text-sm font-medium text-slate-700">Задержка перезапуска (мин)</label>
