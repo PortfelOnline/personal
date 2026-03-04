@@ -39872,7 +39872,10 @@ function tick() {
   }
   for (const b of config2.bots) {
     if (!b.enabled) continue;
-    if (runningIds.has(b.botId)) continue;
+    if (runningIds.has(b.botId)) {
+      if (!managedBots.has(b.botId)) managedBots.add(b.botId);
+      continue;
+    }
     if (managedBots.has(b.botId)) continue;
     if (pendingRestart.has(b.botId)) continue;
     if (queue.some((q) => q.botId === b.botId)) continue;

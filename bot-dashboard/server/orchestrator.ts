@@ -148,10 +148,14 @@ function tick(): void {
     }
   }
 
-  // 3. Add enabled bots not yet anywhere → initial population
+  // 3. Handle enabled bots
   for (const b of config.bots) {
     if (!b.enabled) continue;
-    if (runningIds.has(b.botId)) continue;
+    if (runningIds.has(b.botId)) {
+      // Adopt externally-started bots so we track them for restart
+      if (!managedBots.has(b.botId)) managedBots.add(b.botId);
+      continue;
+    }
     if (managedBots.has(b.botId)) continue;
     if (pendingRestart.has(b.botId)) continue;
     if (queue.some(q => q.botId === b.botId)) continue;

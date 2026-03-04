@@ -621,8 +621,10 @@ export default function Bots() {
                         <label className="text-sm font-medium text-slate-700">
                           Макс. одновременно
                           {detectedResources && orchEdits.maxConcurrent !== detectedResources.recommended && (
-                            <span className="ml-2 text-xs text-slate-400">
-                              (рекомендовано {detectedResources.recommended > orchEdits.maxConcurrent ? '+' : ''}{detectedResources.recommended - orchEdits.maxConcurrent} от рек.)
+                            <span className={`ml-2 text-xs ${orchEdits.maxConcurrent < detectedResources.recommended ? 'text-amber-500' : 'text-blue-500'}`}>
+                              {orchEdits.maxConcurrent < detectedResources.recommended
+                                ? `на ${detectedResources.recommended - orchEdits.maxConcurrent} ниже рекомендации`
+                                : `на ${orchEdits.maxConcurrent - detectedResources.recommended} выше рекомендации`}
                             </span>
                           )}
                         </label>
