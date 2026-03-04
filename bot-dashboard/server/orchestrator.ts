@@ -71,6 +71,16 @@ function configFile(): string {
   return path.join(getBotDir(), 'outputs', 'orchestrator.json');
 }
 
+function makeDefaultConfig(): OrchestratorConfig {
+  const n = detectMaxConcurrent();
+  const bots: BotEntry[] = Array.from({ length: n }, (_, i) => ({
+    botId: i + 1,
+    website: 'https://kadastrmap.info',
+    enabled: true,
+  }));
+  return { ...DEFAULT_CONFIG, maxConcurrent: n, bots };
+}
+
 export function getOrchestratorConfig(): OrchestratorConfig {
   try {
     const f = configFile();
@@ -78,7 +88,10 @@ export function getOrchestratorConfig(): OrchestratorConfig {
       return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(f, 'utf8')) };
     }
   } catch {}
-  return { ...DEFAULT_CONFIG };
+  // First run: auto-initialize and save
+  const cfg = makeDefaultConfig();
+  saveOrchestratorConfig(cfg);
+  return cfg;
 }
 
 export function saveOrchestratorConfig(config: OrchestratorConfig): void {

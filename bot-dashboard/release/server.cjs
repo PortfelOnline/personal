@@ -39807,6 +39807,15 @@ var tickTimer = null;
 function configFile() {
   return path2.join(getBotDir(), "outputs", "orchestrator.json");
 }
+function makeDefaultConfig() {
+  const n = detectMaxConcurrent();
+  const bots = Array.from({ length: n }, (_, i) => ({
+    botId: i + 1,
+    website: "https://kadastrmap.info",
+    enabled: true
+  }));
+  return { ...DEFAULT_CONFIG, maxConcurrent: n, bots };
+}
 function getOrchestratorConfig() {
   try {
     const f = configFile();
@@ -39815,7 +39824,9 @@ function getOrchestratorConfig() {
     }
   } catch {
   }
-  return { ...DEFAULT_CONFIG };
+  const cfg = makeDefaultConfig();
+  saveOrchestratorConfig(cfg);
+  return cfg;
 }
 function saveOrchestratorConfig(config2) {
   const dir = path2.join(getBotDir(), "outputs");
