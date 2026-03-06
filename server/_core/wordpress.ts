@@ -123,6 +123,64 @@ export async function updatePost(
 }
 
 /**
+ * Create a 301 redirect via the Redirection plugin REST API
+ * Plugin: https://wordpress.org/plugins/redirection/
+ */
+export async function createRedirect(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  sourceUrl: string,  // relative path, e.g. "/old-article/"
+  targetUrl: string,  // full URL
+): Promise<{ id: number }> {
+  const base = siteUrl.replace(/\/$/, '');
+  try {
+    const response = await axios.post(
+      `${base}/wp-json/redirection/v1/redirect`,
+      {
+        source_url: sourceUrl,
+        target_url: targetUrl,
+        code: 301,
+        match_url: 'url',
+        action_type: 'url',
+        action_code: 301,
+        status: 'enabled',
+      },
+      {
+        headers: {
+          Authorization: basicAuth(username, appPassword),
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    return { id: response.data.id };
+  } catch (error: any) {
+    const msg = error?.response?.data?.message || error?.message || 'Redirect creation failed';
+    console.error('[WordPress API] createRedirect error:', msg);
+    throw new Error(`WordPress redirect failed: ${msg}`);
+  }
+}
+
+/**
+ * Delete a WP post (move to trash)
+ */
+export async function deletePost(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  postId: number,
+): Promise<void> {
+  try {
+    await axios.delete(`${apiBase(siteUrl)}/posts/${postId}`, {
+      headers: { Authorization: basicAuth(username, appPassword) },
+    });
+  } catch (error: any) {
+    const msg = error?.response?.data?.message || error?.message || 'Delete failed';
+    throw new Error(`WordPress delete failed: ${msg}`);
+  }
+}
+
+/**
  * Publish a post via /wp-json/wp/v2/posts
  */
 export async function publishPost(

@@ -124,6 +124,9 @@ export const articleAnalyses = mysqlTable("articleAnalyses", {
   generalSuggestions:  text("generalSuggestions"), // JSON array string
   headings:            text("headings"),           // JSON array string
   seoScore:            int("seoScore").default(0).notNull(),
+  serpKeyword:         varchar("serpKeyword", { length: 255 }),
+  googlePos:           int("googlePos"),           // null = not in top-100
+  yandexPos:           int("yandexPos"),           // null = not in top-100
   createdAt:           timestamp("createdAt").defaultNow().notNull(),
 });
 

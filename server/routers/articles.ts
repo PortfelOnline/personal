@@ -31,6 +31,138 @@ export interface ArticleAnalysisResult {
   seo: SeoAnalysis;
 }
 
+// ── Server-side Batch Analysis ───────────────────────────────────────────────
+
+interface BatchJobState {
+  total: number;
+  done: number;
+  errors: number;
+  running: boolean;
+  stop: () => void;
+}
+
+const batchJobs = new Map<number, BatchJobState>();
+
+/** Extract short keyword from title (same logic as frontend extractKeyword) */
+function extractKeywordFromTitle(title: string): string {
+  if (!title) return '';
+  const short = title.split(/[,–—:?]|(?:\s+-\s+)/)[0].trim();
+  return short.split(/\s+/).slice(0, 5).join(' ');
+}
+
+async function analyzeAndSaveArticle(userId: number, url: string): Promise<void> {
+  const parsed = await parseArticleFromUrl(url);
+  const contentForLLM = parsed.content.slice(0, 6000);
+  const serpKeyword = extractKeywordFromTitle(parsed.title);
+
+  const seoPrompt = `Ты SEO-эксперт. Проанализируй статью и верни JSON.
+
+Заголовок: ${parsed.title}
+Мета-описание: ${parsed.metaDescription || '(отсутствует)'}
+Структура заголовков: ${parsed.headings.map(h => `${h.level}: ${h.text}`).join('; ')}
+Текст статьи (фрагмент):
+${contentForLLM}
+
+Верни ТОЛЬКО валидный JSON без markdown-блоков:
+{
+  "metaTitle": "оптимизированный title (до 60 символов)",
+  "metaDescription": "оптимизированное мета-описание (до 160 символов)",
+  "keywords": ["ключевое1", "ключевое2", ...до 8 штук],
+  "headingsSuggestions": [{ "level": "H1", "current": "текущий", "suggested": "улучшенный" }],
+  "generalSuggestions": ["совет1", "совет2", ...до 5 советов],
+  "score": 75
+}`;
+
+  const improvePrompt = `Ты редактор-копирайтер. Улучши статью: сделай текст более читаемым, информативным, добавь структуру если нужно. Сохрани смысл и язык оригинала. Верни ТОЛЬКО улучшенный текст без комментариев.
+
+Оригинальный заголовок: ${parsed.title}
+Текст:
+${contentForLLM}`;
+
+  // Run LLM (SEO + improve) and SERP checks all in parallel
+  const ourDomain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
+
+  const [seoResponse, improvedResponse, googleSerp, yandexSerp] = await Promise.all([
+    invokeLLM({ messages: [{ role: 'system', content: 'Ты SEO-эксперт. Отвечай только валидным JSON.' }, { role: 'user', content: seoPrompt }] }),
+    invokeLLM({ messages: [{ role: 'system', content: 'Ты редактор-копирайтер. Улучшай тексты.' }, { role: 'user', content: improvePrompt }] }),
+    fetchGoogleSerp(serpKeyword).catch(() => ({ results: [], error: 'fetch failed' })),
+    fetchYandexSerp(serpKeyword).catch(() => ({ results: [], error: 'fetch failed' })),
+  ]);
+
+  let seo: SeoAnalysis;
+  try {
+    const seoRaw = typeof seoResponse.choices[0]?.message.content === 'string'
+      ? seoResponse.choices[0].message.content.trim() : '{}';
+    seo = JSON.parse(seoRaw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim());
+  } catch {
+    seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
+  }
+
+  const improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
+    ? improvedResponse.choices[0].message.content.trim() : parsed.content;
+
+  // Find our position in each SERP
+  const findPos = (results: { domain: string }[]) => {
+    if (!ourDomain) return null;
+    const idx = results.findIndex(r => r.domain.includes(ourDomain) || ourDomain.includes(r.domain));
+    return idx >= 0 ? idx + 1 : null;
+  };
+  const googlePos = findPos(googleSerp.results);
+  const yandexPos = findPos(yandexSerp.results);
+
+  await articlesDb.saveArticleAnalysis(userId, {
+    url,
+    originalTitle: parsed.title,
+    originalContent: parsed.content,
+    wordCount: parsed.wordCount,
+    improvedTitle: seo.metaTitle || parsed.title,
+    improvedContent,
+    metaTitle: seo.metaTitle || null,
+    metaDescription: seo.metaDescription || null,
+    keywords: JSON.stringify(seo.keywords || []),
+    generalSuggestions: JSON.stringify(seo.generalSuggestions || []),
+    headings: JSON.stringify(parsed.headings || []),
+    seoScore: seo.score || 0,
+    serpKeyword: serpKeyword || null,
+    googlePos,
+    yandexPos,
+  });
+}
+
+async function runBatchJob(userId: number, urls: string[]): Promise<void> {
+  let stopped = false;
+  const queue = [...urls];
+  const state: BatchJobState = {
+    total: urls.length,
+    done: 0,
+    errors: 0,
+    running: true,
+    stop: () => { stopped = true; },
+  };
+  batchJobs.set(userId, state);
+
+  const CONCURRENCY = 3;
+  async function worker(): Promise<void> {
+    while (!stopped) {
+      const url = queue.shift();
+      if (!url) break;
+      try {
+        await analyzeAndSaveArticle(userId, url);
+      } catch (err) {
+        console.error(`[Batch] Failed: ${url}`, err);
+        state.errors++;
+      }
+      state.done++;
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+  state.running = false;
+  setTimeout(() => { if (!batchJobs.get(userId)?.running) batchJobs.delete(userId); }, 30 * 60 * 1000);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const articlesRouter = router({
   /**
    * Scan a catalog listing page and return article links (no AI, just parsing)
@@ -184,6 +316,9 @@ ${contentForLLM}`;
         improvedTitle: r.improvedTitle,
         seoScore: r.seoScore,
         wordCount: r.wordCount,
+        serpKeyword: r.serpKeyword ?? null,
+        googlePos: r.googlePos ?? null,
+        yandexPos: r.yandexPos ?? null,
         createdAt: r.createdAt,
       }));
     }),
@@ -718,6 +853,178 @@ ${competitorSection}
       const postId = (result as any)?.[0]?.insertId ?? (result as any)?.insertId ?? null;
 
       return { title: input.title, content, postId: postId as number | null };
+    }),
+
+  /**
+   * AI recommendations for duplicate article groups:
+   * which to keep (canonical), which to 301-redirect/merge/delete.
+   */
+  recommendDuplicates: protectedProcedure
+    .input(z.object({
+      groups: z.array(z.object({
+        articles: z.array(z.object({
+          url:       z.string(),
+          title:     z.string(),
+          seoScore:  z.number().nullable().optional(),
+          wordCount: z.number().nullable().optional(),
+        })),
+      })).max(50),
+    }))
+    .mutation(async ({ input }) => {
+      const groupsSummary = input.groups.map((g, i) => {
+        const items = g.articles.map((a, j) =>
+          `  ${j + 1}. "${a.title}" | ${a.url}${a.seoScore != null ? ` | SEO: ${a.seoScore}` : ''}${a.wordCount != null ? ` | ${a.wordCount} сл.` : ''}`
+        ).join('\n');
+        return `Группа ${i + 1}:\n${items}`;
+      }).join('\n\n');
+
+      const prompt = `Ты SEO-эксперт. На сайте kadastrmap.info найдены группы дублирующихся статей (похожие заголовки, разные URL).
+
+${groupsSummary}
+
+Для каждой группы определи стратегию:
+1. Какую статью оставить как основную (canonical) — выбери ту что лучше (если есть SEO-оценка или больше слов)
+2. Что делать с остальными: "301_redirect" (лучший вариант для SEO) | "merge" (объединить контент) | "delete"
+3. Одна строка обоснования
+
+Верни ТОЛЬКО валидный JSON-массив без markdown:
+[
+  {
+    "group": 1,
+    "keepUrl": "URL статьи которую оставляем",
+    "keepTitle": "её заголовок",
+    "others": [{"url": "...", "action": "301_redirect"|"merge"|"delete"}],
+    "reason": "краткое обоснование"
+  }
+]`;
+
+      const response = await invokeLLM({
+        messages: [
+          { role: 'system', content: 'Ты SEO-эксперт. Отвечай только валидным JSON.' },
+          { role: 'user', content: prompt },
+        ],
+      });
+
+      let recommendations: any[] = [];
+      try {
+        const raw = typeof response.choices[0]?.message.content === 'string'
+          ? response.choices[0].message.content.trim().replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
+          : '[]';
+        recommendations = JSON.parse(raw);
+        if (!Array.isArray(recommendations)) recommendations = [];
+      } catch {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Не удалось разобрать рекомендации AI' });
+      }
+
+      return { recommendations };
+    }),
+
+  /**
+   * Start background batch analysis on the server — browser can close.
+   * Processes articles with concurrency=3, saves each to history automatically.
+   */
+  startBatchAnalysis: protectedProcedure
+    .input(z.object({
+      urls:          z.array(z.string().url()).max(2000),
+      skipAnalyzed:  z.boolean().default(true),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.user.id;
+      const existing = batchJobs.get(userId);
+      if (existing?.running) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Серверный анализ уже запущен' });
+      }
+
+      let urls = input.urls;
+      if (input.skipAnalyzed) {
+        const history = await articlesDb.getUserAnalysisHistory(userId, 5000);
+        const done = new Set(history.map(h => h.url));
+        urls = urls.filter(u => !done.has(u));
+      }
+
+      if (urls.length === 0) {
+        return { started: false, total: 0, message: 'Все статьи уже проанализированы' };
+      }
+
+      // Fire and forget — runs on server after response is sent
+      runBatchJob(userId, urls).catch(err => {
+        console.error('[Batch] Fatal error:', err);
+        const job = batchJobs.get(userId);
+        if (job) job.running = false;
+      });
+
+      return { started: true, total: urls.length, message: `Запущен серверный анализ ${urls.length} статей` };
+    }),
+
+  /**
+   * Poll server-side batch job status
+   */
+  getBatchStatus: protectedProcedure
+    .query(async ({ ctx }) => {
+      const job = batchJobs.get(ctx.user.id);
+      if (!job) return { running: false, done: 0, total: 0, errors: 0 };
+      return { running: job.running, done: job.done, total: job.total, errors: job.errors };
+    }),
+
+  /**
+   * Stop the running server-side batch job
+   */
+  stopBatchAnalysis: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const job = batchJobs.get(ctx.user.id);
+      if (job) {
+        job.stop();
+        job.running = false;
+      }
+      return { stopped: true };
+    }),
+
+  /**
+   * Apply a 301 redirect recommendation via the Redirection WP plugin.
+   * Optionally also deletes the source post from WordPress.
+   */
+  applyRedirect: protectedProcedure
+    .input(z.object({
+      accountId:  z.number(),
+      fromUrl:    z.string().url(),  // article to redirect away from
+      toUrl:      z.string().url(),  // canonical destination
+      deletePost: z.boolean().default(false),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const account = await wordpressDb.getWordpressAccountById(ctx.user.id, input.accountId);
+      if (!account) throw new TRPCError({ code: 'NOT_FOUND', message: 'WordPress аккаунт не найден' });
+
+      // Extract relative path for the Redirection plugin
+      const sourcePath = (() => {
+        try {
+          const u = new URL(input.fromUrl);
+          return u.pathname + (u.search || '');
+        } catch { return input.fromUrl; }
+      })();
+
+      // Create redirect
+      const redirect = await wp.createRedirect(
+        account.siteUrl,
+        account.username,
+        account.appPassword,
+        sourcePath,
+        input.toUrl,
+      );
+
+      // Optionally delete source post from WP
+      let postDeleted = false;
+      if (input.deletePost) {
+        const slug = sourcePath.replace(/\/$/, '').split('/').pop() || '';
+        if (slug) {
+          const post = await wp.findPostBySlug(account.siteUrl, account.username, account.appPassword, slug);
+          if (post) {
+            await wp.deletePost(account.siteUrl, account.username, account.appPassword, post.id);
+            postDeleted = true;
+          }
+        }
+      }
+
+      return { success: true, redirectId: redirect.id, postDeleted };
     }),
 });
 

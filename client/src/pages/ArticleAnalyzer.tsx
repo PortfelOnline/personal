@@ -980,6 +980,7 @@ function saveCachedArticles(articles: CatalogArticle[]) {
 
 function CatalogScanner({
   onAnalyze, onBatchAnalyze, analyzedUrls, isBatching, batchDone, batchTotal, onStopBatch,
+  onServerBatch, serverBatch, onStopServerBatch,
 }: {
   onAnalyze: (url: string) => void;
   onBatchAnalyze: (urls: string[]) => void;
@@ -988,6 +989,9 @@ function CatalogScanner({
   batchDone: number;
   batchTotal: number;
   onStopBatch: () => void;
+  onServerBatch: (urls: string[]) => void;
+  serverBatch?: { running: boolean; done: number; total: number; errors: number } | null;
+  onStopServerBatch: () => void;
 }) {
   const [catalogUrl, setCatalogUrl] = useState('https://kadastrmap.info/kadastr/');
   const [articles, setArticles]     = useState<CatalogArticle[]>(() => loadCachedArticles());
@@ -1123,7 +1127,31 @@ function CatalogScanner({
         </CardContent>
       </Card>
 
-      {/* Batch progress bar */}
+      {/* Server batch progress bar */}
+      {serverBatch && (serverBatch.running || serverBatch.total > 0) && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-green-800 font-medium">
+                🖥 Сервер: {serverBatch.done} / {serverBatch.total}
+                {serverBatch.errors > 0 && <span className="text-orange-600 ml-2">({serverBatch.errors} ошибок)</span>}
+                {!serverBatch.running && serverBatch.done > 0 && <span className="text-green-700 ml-2">✓ Готово</span>}
+              </span>
+              {serverBatch.running && (
+                <Button size="sm" variant="outline" onClick={onStopServerBatch} className="gap-1 h-7 text-xs border-green-300 text-green-700 hover:bg-green-100">
+                  <Square className="w-3 h-3" />Стоп
+                </Button>
+              )}
+            </div>
+            <div className="w-full bg-green-200 rounded-full h-2">
+              <div className="bg-green-500 h-2 rounded-full transition-all duration-300" style={{ width: `${serverBatch.total > 0 ? Math.round((serverBatch.done / serverBatch.total) * 100) : 0}%` }} />
+            </div>
+            <p className="text-xs text-green-600">Вкладку можно закрыть — анализ продолжается на сервере</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Browser batch progress bar */}
       {isBatching && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="pt-4 space-y-2">
@@ -1167,21 +1195,38 @@ function CatalogScanner({
               />
               {(() => {
                 const unanalyzed = filtered.filter(a => !analyzedUrls.has(a.url));
-                return unanalyzed.length > 0 ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isBatching}
-                    onClick={() => {
-                      if (!confirm(`Будет проанализировано ${unanalyzed.length} статей (по ~20 сек каждая). Продолжить?`)) return;
-                      onBatchAnalyze(unanalyzed.map(a => a.url));
-                    }}
-                    className="gap-1 shrink-0 h-8 text-xs"
-                  >
-                    <Play className="w-3 h-3" />
-                    Анализировать непроверенные ({unanalyzed.length})
-                  </Button>
-                ) : null;
+                if (unanalyzed.length === 0) return null;
+                return (
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isBatching || serverBatch?.running}
+                      onClick={() => {
+                        if (!confirm(`Серверный анализ: ${unanalyzed.length} статей (concurrency=3, ~${Math.round(unanalyzed.length * 7 / 60)} мин). Вкладку можно закрыть. Продолжить?`)) return;
+                        onServerBatch(unanalyzed.map(a => a.url));
+                      }}
+                      className="gap-1 h-8 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      title="Анализ запускается на сервере — вкладку можно закрыть"
+                    >
+                      <Play className="w-3 h-3" />
+                      На сервере ({unanalyzed.length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isBatching || serverBatch?.running}
+                      onClick={() => {
+                        if (!confirm(`Браузерный анализ: ${unanalyzed.length} статей. Вкладку нельзя закрывать! Продолжить?`)) return;
+                        onBatchAnalyze(unanalyzed.map(a => a.url));
+                      }}
+                      className="gap-1 h-8 text-xs"
+                    >
+                      <Play className="w-3 h-3" />
+                      В браузере ({unanalyzed.length})
+                    </Button>
+                  </div>
+                );
               })()}
             </div>
           </CardHeader>
@@ -1606,6 +1651,370 @@ function SerpMonitor({ onAnalyze }: { onAnalyze: (url: string) => void }) {
   );
 }
 
+// ── Duplicate Scanner ───────────────────────────────────────────────────────
+
+function normalizeTitleKey(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^а-яёa-z0-9\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 6)
+    .join(' ');
+}
+
+type DuplicateGroup = { key: string; articles: CatalogArticle[] };
+
+function findTitleDuplicates(articles: CatalogArticle[]): DuplicateGroup[] {
+  const groups = new Map<string, CatalogArticle[]>();
+  for (const art of articles) {
+    const key = normalizeTitleKey(art.title);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(art);
+  }
+  return Array.from(groups.entries())
+    .filter(([, arts]) => arts.length > 1)
+    .map(([key, arts]) => ({ key, articles: arts }))
+    .sort((a, b) => b.articles.length - a.articles.length);
+}
+
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  '301_redirect': { label: '301 редирект', color: 'bg-blue-100 text-blue-700' },
+  merge:          { label: 'Объединить',   color: 'bg-yellow-100 text-yellow-700' },
+  delete:         { label: 'Удалить',      color: 'bg-red-100 text-red-700' },
+};
+
+type DupRec = {
+  group: number;
+  keepUrl: string;
+  keepTitle: string;
+  others: { url: string; action: string }[];
+  reason: string;
+};
+
+function DuplicateScanner({
+  onAnalyze, history = [], onServerBatch,
+}: {
+  onAnalyze: (url: string) => void;
+  history?: { url: string; seoScore: number; wordCount: number }[];
+  onServerBatch?: (urls: string[]) => void;
+}) {
+  const articles = loadCachedArticles().filter(a => a.title.length >= 5);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [recommendations, setRecommendations] = useState<DupRec[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [appliedUrls, setAppliedUrls] = useState<Set<string>>(new Set());
+  const [applyingUrl, setApplyingUrl] = useState<string | null>(null);
+
+  const { data: wpAccounts = [] } = trpc.wordpress.getAccounts.useQuery();
+  const [applyAllProgress, setApplyAllProgress] = useState<{ done: number; total: number } | null>(null);
+
+  // Auto-select first account when it loads
+  useEffect(() => {
+    if (wpAccounts.length > 0 && !selectedAccountId) {
+      setSelectedAccountId((wpAccounts as any[])[0].id);
+    }
+  }, [wpAccounts, selectedAccountId]);
+
+  const { mutate: applyRedirect, mutateAsync: applyRedirectAsync } = trpc.articles.applyRedirect.useMutation({
+    onSuccess: (_: any, vars: any) => {
+      setAppliedUrls(prev => new Set(Array.from(prev).concat(vars.fromUrl)));
+      setApplyingUrl(null);
+      toast.success('301 редирект создан');
+    },
+    onError: (e: any) => {
+      setApplyingUrl(null);
+      toast.error(e?.message || 'Ошибка создания редиректа');
+    },
+  });
+
+  const historyMap = new Map(history.map(h => [h.url, h]));
+
+  const { mutate: getRecommendations, isPending: isRecommending } =
+    trpc.articles.recommendDuplicates.useMutation({
+      onSuccess: (d) => {
+        setRecommendations(d.recommendations);
+        toast.success('AI-рекомендации готовы');
+      },
+      onError: (e: any) => toast.error(e?.message || 'Ошибка AI'),
+    });
+
+  if (articles.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-slate-400 text-sm">
+          Сначала загрузите каталог на вкладке «Каталог»
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const groups = findTitleDuplicates(articles);
+  const filtered = search
+    ? groups.filter(g => g.articles.some(a => a.title.toLowerCase().includes(search.toLowerCase())))
+    : groups;
+
+  const totalDuplicateArticles = groups.reduce((sum, g) => sum + g.articles.length, 0);
+  const allDupUrls = groups.flatMap(g => g.articles.map(a => a.url));
+
+  function handleAiRecommend() {
+    const groupsInput = groups.map(g => ({
+      articles: g.articles.map(a => {
+        const h = historyMap.get(a.url);
+        return { url: a.url, title: a.title, seoScore: h?.seoScore ?? null, wordCount: h?.wordCount ?? null };
+      }),
+    }));
+    getRecommendations({ groups: groupsInput });
+  }
+
+  function downloadRedirectsJson() {
+    const redirects: { url: string; action_code: number; action_type: string; action_data: { url: string }; match_type: string; group_id: number; enabled: boolean }[] = [];
+    for (const rec of recommendations) {
+      for (const other of rec.others) {
+        if (other.action === '301_redirect') {
+          try {
+            const u = new URL(other.url);
+            redirects.push({
+              url: u.pathname,
+              action_code: 301,
+              action_type: 'url',
+              action_data: { url: rec.keepUrl },
+              match_type: 'url',
+              group_id: 1,
+              enabled: true,
+            });
+          } catch {}
+        }
+      }
+    }
+    if (redirects.length === 0) { toast.error('Нет 301-редиректов в рекомендациях'); return; }
+    const json = JSON.stringify({ redirects }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'redirects-import.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Скачан файл с ${redirects.length} редиректами`);
+  }
+
+  async function handleApplyAll() {
+    const accountId = selectedAccountId ?? ((wpAccounts as any[])[0]?.id ?? null);
+    if (!accountId) { toast.error('Нет подключённых WordPress сайтов'); return; }
+    const toApply: { fromUrl: string; toUrl: string }[] = [];
+    for (const rec of recommendations) {
+      for (const other of rec.others) {
+        if (other.action === '301_redirect' && !appliedUrls.has(other.url)) {
+          toApply.push({ fromUrl: other.url, toUrl: rec.keepUrl });
+        }
+      }
+    }
+    if (toApply.length === 0) { toast.error('Нет 301-редиректов для применения (все уже применены?)'); return; }
+    if (!confirm(`Создать ${toApply.length} редиректов на WordPress?\nЭто действие необратимо.`)) return;
+
+    setApplyAllProgress({ done: 0, total: toApply.length });
+    for (const item of toApply) {
+      try {
+        await applyRedirectAsync({ accountId: accountId!, fromUrl: item.fromUrl, toUrl: item.toUrl, deletePost: false });
+        setAppliedUrls(prev => new Set(Array.from(prev).concat(item.fromUrl)));
+      } catch (e: any) {
+        toast.error(`Ошибка: ${item.fromUrl.split('/').pop()}`);
+      }
+      setApplyAllProgress(prev => prev ? { ...prev, done: prev.done + 1 } : null);
+    }
+    setApplyAllProgress(null);
+    toast.success('Все редиректы применены!');
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="pt-4 pb-3 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="font-medium text-slate-800">
+                Найдено <span className="text-pink-700 font-bold">{groups.length}</span> групп дублей
+                <span className="text-slate-400 font-normal ml-1">({totalDuplicateArticles} статей)</span>
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Из {articles.length} статей · группировка по первым 6 словам заголовка
+              </p>
+            </div>
+            <Input placeholder="Поиск..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-40 h-8 text-sm" />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm" variant="outline"
+              disabled={isRecommending}
+              onClick={handleAiRecommend}
+              className="gap-1.5 text-purple-700 border-purple-200 hover:bg-purple-50"
+            >
+              {isRecommending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5" />}
+              {isRecommending ? 'AI анализирует...' : 'AI-рекомендации для всех групп'}
+            </Button>
+            {onServerBatch && (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => {
+                  if (!confirm(`Проанализировать все ${allDupUrls.length} дублей на сервере?`)) return;
+                  onServerBatch(allDupUrls);
+                }}
+                className="gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50"
+              >
+                <Play className="w-3.5 h-3.5" />Анализировать все дубли ({allDupUrls.length})
+              </Button>
+            )}
+            {wpAccounts.length > 0 && (
+              <select
+                className="h-8 border border-slate-200 rounded text-xs px-2 text-slate-600 bg-white"
+                value={selectedAccountId ?? ''}
+                onChange={e => setSelectedAccountId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">WP сайт для редиректов...</option>
+                {wpAccounts.map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.siteName}</option>
+                ))}
+              </select>
+            )}
+            {recommendations.length > 0 && (wpAccounts.length > 0 || selectedAccountId) && (
+              <Button
+                size="sm"
+                disabled={!!applyAllProgress}
+                onClick={handleApplyAll}
+                className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white border-0"
+              >
+                {applyAllProgress
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />{applyAllProgress.done}/{applyAllProgress.total}</>
+                  : <><Play className="w-3.5 h-3.5" />Применить все 301</>
+                }
+              </Button>
+            )}
+            {recommendations.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={downloadRedirectsJson}
+                className="gap-1.5 text-slate-600 border-slate-200 hover:bg-slate-50"
+              >
+                ↓ JSON для Redirection
+              </Button>
+            )}
+          </div>
+          {applyAllProgress && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Применяю редиректы...</span>
+                <span>{applyAllProgress.done} / {applyAllProgress.total}</span>
+              </div>
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  style={{ width: `${(applyAllProgress.done / applyAllProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {filtered.length === 0 && (
+        <Card>
+          <CardContent className="py-8 text-center text-slate-400 text-sm">
+            {search ? 'Не найдено' : 'Дублей не обнаружено — отлично!'}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-2">
+        {filtered.map((group, gi) => {
+          const rec = recommendations.find(r => r.group === gi + 1);
+          return (
+            <Card key={group.key} className={rec ? 'border-purple-200' : 'border-pink-100'}>
+              <CardContent className="pt-3 pb-3">
+                <button className="w-full text-left" onClick={() => setExpanded(expanded === group.key ? null : group.key)}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-800 truncate">{group.articles[0].title}</p>
+                      <p className="text-xs text-pink-600 mt-0.5">{group.articles.length} похожих статей</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {rec && <Badge className="bg-purple-100 text-purple-700 text-xs">✓ AI</Badge>}
+                      <Badge className="bg-pink-100 text-pink-700 text-xs">{group.articles.length}×</Badge>
+                      {expanded === group.key ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </div>
+                  </div>
+                </button>
+
+                {rec && (
+                  <div className="mt-2 p-2.5 rounded-lg bg-purple-50 border border-purple-100 text-xs text-purple-800">
+                    <span className="font-semibold">AI: </span>{rec.reason}
+                    <span className="ml-2 text-purple-600">Оставить: <a href={rec.keepUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-purple-900">{rec.keepTitle || rec.keepUrl}</a></span>
+                  </div>
+                )}
+
+                {expanded === group.key && (
+                  <div className="mt-3 divide-y border rounded-lg overflow-hidden">
+                    {group.articles.map((art, i) => {
+                      const h = historyMap.get(art.url);
+                      const artAction = rec?.others.find(o => o.url === art.url)?.action;
+                      const isKeep = rec?.keepUrl === art.url;
+                      return (
+                        <div key={i} className={`flex items-center justify-between gap-3 px-3 py-2.5 ${isKeep ? 'bg-green-50' : 'hover:bg-slate-50'}`}>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-slate-700 truncate">{art.title}</p>
+                              {isKeep && <Badge className="bg-green-100 text-green-700 text-xs shrink-0">оставить</Badge>}
+                              {artAction && ACTION_LABELS[artAction] && (
+                                <Badge className={`text-xs shrink-0 ${ACTION_LABELS[artAction].color}`}>{ACTION_LABELS[artAction].label}</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-slate-400 truncate">{art.url}</p>
+                              {h && <span className={`text-xs font-medium shrink-0 ${h.seoScore >= 80 ? 'text-green-600' : h.seoScore >= 60 ? 'text-yellow-600' : 'text-red-500'}`}>SEO {h.seoScore}</span>}
+                              {h && <span className="text-xs text-slate-400 shrink-0">{h.wordCount} сл.</span>}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 shrink-0 items-center">
+                            {artAction === '301_redirect' && rec && (wpAccounts.length > 0 || selectedAccountId) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!!applyingUrl || appliedUrls.has(art.url)}
+                                className={`h-7 px-2 text-xs gap-1 ${appliedUrls.has(art.url) ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}`}
+                                onClick={() => {
+                                  if (!confirm(`Создать 301 редирект:\n${art.url}\n→ ${rec.keepUrl}`)) return;
+                                  setApplyingUrl(art.url);
+                                  applyRedirect({ accountId: selectedAccountId ?? (wpAccounts as any[])[0]?.id ?? 0, fromUrl: art.url, toUrl: rec.keepUrl, deletePost: false });
+                                }}
+                              >
+                                {applyingUrl === art.url ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                {appliedUrls.has(art.url) ? '✓ Готово' : '→ 301'}
+                              </Button>
+                            )}
+                            <a href={art.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded hover:bg-slate-200">
+                              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                            </a>
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1" onClick={() => onAnalyze(art.url)}>
+                              <ArrowRight className="w-3 h-3" />Анализ
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── CatalogAudit ────────────────────────────────────────────────────────────
 
 type AuditIssueFilter = 'all' | 'issues' | 'ok' | 'tooShort' | 'noMeta' | 'noH1' | 'multiH1' | 'duplicates' | 'errors';
@@ -1682,9 +2091,11 @@ function StatCard({ label, value, color, filter, active, onClick }: {
   );
 }
 
-function CatalogAudit({ onAnalyze, onBatchAnalyze }: {
+function CatalogAudit({ onAnalyze, onBatchAnalyze, history, onServerBatch }: {
   onAnalyze: (url: string) => void;
   onBatchAnalyze: (urls: string[]) => void;
+  history?: { url: string; seoScore: number; wordCount: number }[];
+  onServerBatch?: (urls: string[]) => void;
 }) {
   const [filter, setFilter] = useState<AuditIssueFilter>('all');
   const [sectionFilter, setSectionFilter] = useState<string>('all');
@@ -1702,13 +2113,51 @@ function CatalogAudit({ onAnalyze, onBatchAnalyze }: {
   // Derive unique sections from cached articles
   const sections = Array.from(new Set(articles.map(a => getSection(a.url)))).sort();
 
-  const { mutate: runAudit, isPending, data } = trpc.articles.auditArticles.useMutation({
-    onError: (e) => toast.error(`Ошибка аудита: ${e.message}`),
-  });
+  const { mutateAsync: auditChunk } = trpc.articles.auditArticles.useMutation();
+  const [auditRunning, setAuditRunning] = useState(false);
+  const [auditDone, setAuditDone] = useState(0);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [allRows, setAllRows] = useState<AuditRow[]>([]);
+  const stopAuditRef = useRef(false);
 
-  const stats: AuditStats | null = data?.stats ?? null;
-  const rows: AuditRow[] = data?.results ?? [];
+  const isPending = auditRunning;
+  const rows: AuditRow[] = allRows;
   const multiH1Count = rows.filter(r => r.h1Count > 1).length;
+
+  const stats: AuditStats | null = rows.length > 0 ? {
+    total: rows.length,
+    tooShort: rows.filter(r => r.wordCount > 0 && r.wordCount < 500).length,
+    noMeta: rows.filter(r => r.wordCount > 0 && !r.hasMeta).length,
+    noH1: rows.filter(r => r.wordCount > 0 && r.h1Count === 0).length,
+    duplicates: rows.filter(r => r.issues.includes('Дубликат заголовка')).length,
+    errors: rows.filter(r => r.issues.includes('Ошибка загрузки')).length,
+    ok: rows.filter(r => r.issues.length === 0).length,
+  } : null;
+
+  async function startChunkedAudit() {
+    stopAuditRef.current = false;
+    setAuditRunning(true);
+    setAllRows([]);
+    setAuditDone(0);
+    setAuditTotal(articles.length);
+    const CHUNK = 100;
+    const accumulated: AuditRow[] = [];
+    for (let i = 0; i < articles.length; i += CHUNK) {
+      if (stopAuditRef.current) break;
+      const chunk = articles.slice(i, i + CHUNK);
+      try {
+        const result = await auditChunk({ articles: chunk });
+        accumulated.push(...result.results);
+        setAllRows([...accumulated]);
+      } catch (e: any) {
+        toast.error(`Ошибка блока ${i + 1}–${Math.min(i + CHUNK, articles.length)}: ${e?.message || 'неизвестная ошибка'}`);
+      }
+      setAuditDone(Math.min(i + CHUNK, articles.length));
+    }
+    setAuditRunning(false);
+    if (!stopAuditRef.current) toast.success(`Аудит завершён: ${accumulated.length} статей`);
+    else toast.info('Аудит остановлен');
+  }
 
   const filtered = rows.filter(r => {
     if (sectionFilter !== 'all' && getSection(r.url) !== sectionFilter) return false;
@@ -1759,8 +2208,26 @@ function CatalogAudit({ onAnalyze, onBatchAnalyze }: {
     );
   }
 
+  const [auditTab, setAuditTab] = useState<'duplicates' | 'audit'>('duplicates');
+
   return (
     <div className="space-y-4">
+      {/* Sub-tab switcher */}
+      <div className="flex gap-2">
+        <Button variant={auditTab === 'duplicates' ? 'default' : 'outline'} size="sm" onClick={() => setAuditTab('duplicates')} className="gap-1.5">
+          Дубли по заголовкам
+        </Button>
+        <Button variant={auditTab === 'audit' ? 'default' : 'outline'} size="sm" onClick={() => {
+          setAuditTab('audit');
+          if (rows.length === 0 && !auditRunning) setTimeout(() => startChunkedAudit(), 100);
+        }} className="gap-1.5">
+          Полный аудит {auditRunning ? `(${auditDone}/${auditTotal})` : rows.length > 0 ? `(${rows.length})` : ''}
+        </Button>
+      </div>
+
+      {auditTab === 'duplicates' && <DuplicateScanner onAnalyze={onAnalyze} history={history} onServerBatch={onServerBatch} />}
+
+      {auditTab === 'audit' && <div className="space-y-4">
       {/* Header */}
       <Card>
         <CardContent className="pt-4 pb-3">
@@ -1773,23 +2240,35 @@ function CatalogAudit({ onAnalyze, onBatchAnalyze }: {
                 ))}
               </p>
             </div>
-            <Button
-              onClick={() => runAudit({ articles })}
-              disabled={isPending}
-              className="gap-2 shrink-0"
-            >
-              {isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Проверяю...</>
-              ) : (
-                <><ClipboardList className="w-4 h-4" />{rows.length > 0 ? 'Перезапустить аудит' : 'Запустить аудит'}</>
+            <div className="flex gap-2 shrink-0">
+              <Button
+                onClick={startChunkedAudit}
+                disabled={auditRunning}
+                className="gap-2"
+              >
+                {auditRunning ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />Аудит {auditDone}/{auditTotal}</>
+                ) : (
+                  <><ClipboardList className="w-4 h-4" />{rows.length > 0 ? 'Перезапустить' : 'Запустить аудит'}</>
+                )}
+              </Button>
+              {auditRunning && (
+                <Button variant="outline" size="sm" onClick={() => { stopAuditRef.current = true; }} className="gap-1 text-red-600 border-red-200 hover:bg-red-50">
+                  <Square className="w-3.5 h-3.5" />Стоп
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
 
-          {isPending && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-blue-600">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Загружаю и анализирую статьи пачками... Это займёт несколько минут.
+          {auditRunning && (
+            <div className="mt-3 space-y-1.5">
+              <div className="w-full bg-slate-200 rounded-full h-2">
+                <div className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${auditTotal > 0 ? Math.round((auditDone / auditTotal) * 100) : 0}%` }} />
+              </div>
+              <p className="text-xs text-slate-500">
+                Проверено <strong>{auditDone}</strong> из <strong>{auditTotal}</strong> статей · {auditTotal > 0 ? Math.round((auditDone / auditTotal) * 100) : 0}%
+              </p>
             </div>
           )}
         </CardContent>
@@ -1964,6 +2443,7 @@ function CatalogAudit({ onAnalyze, onBatchAnalyze }: {
           </CardContent>
         </Card>
       )}
+      </div>}
     </div>
   );
 }
@@ -1988,6 +2468,23 @@ export default function ArticleAnalyzer() {
 
   const { data: history = [], isLoading: historyLoading } = trpc.articles.getHistory.useQuery();
   const analyzedUrls = new Set(history.map(h => h.url));
+
+  // Server-side batch (runs on server, browser tab can be closed)
+  const { data: serverBatch } = trpc.articles.getBatchStatus.useQuery(undefined, {
+    refetchInterval: (query) => query.state.data?.running ? 3000 : false,
+  });
+  const { mutate: startServerBatch } = trpc.articles.startBatchAnalysis.useMutation({
+    onSuccess: (d) => {
+      if (d.started) toast.success('Серверный анализ запущен: ' + d.total + ' статей. Можно закрыть вкладку.');
+      else toast.info(d.message || 'Нечего анализировать');
+      utils.articles.getBatchStatus.invalidate();
+      utils.articles.getHistory.invalidate();
+    },
+    onError: (e) => toast.error(e?.message || 'Ошибка запуска'),
+  });
+  const { mutate: stopServerBatch } = trpc.articles.stopBatchAnalysis.useMutation({
+    onSuccess: () => { toast.info('Серверный анализ остановлен'); utils.articles.getBatchStatus.invalidate(); },
+  });
 
   const { mutate: analyze, isPending: isAnalyzing } = trpc.articles.analyzeUrl.useMutation({
     onSuccess: (data) => {
@@ -2123,6 +2620,9 @@ export default function ArticleAnalyzer() {
                   batchDone={batchDone}
                   batchTotal={batchTotal}
                   onStopBatch={stopBatch}
+                  onServerBatch={(urls) => startServerBatch({ urls, skipAnalyzed: false })}
+                  serverBatch={serverBatch}
+                  onStopServerBatch={() => stopServerBatch()}
                 />
               </TabsContent>
 
@@ -2141,6 +2641,8 @@ export default function ArticleAnalyzer() {
                 <CatalogAudit
                   onAnalyze={(url) => { setUrl(url); setActiveTab('analyze'); }}
                   onBatchAnalyze={(urls) => { handleBatchAnalyze(urls); setActiveTab('analyze'); }}
+                  history={history}
+                  onServerBatch={(urls) => { startServerBatch({ urls, skipAnalyzed: false }); }}
                 />
               </TabsContent>
 
@@ -2250,9 +2752,19 @@ export default function ArticleAnalyzer() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-slate-800 line-clamp-2 leading-tight">{item.originalTitle}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <ScoreBadge score={item.seoScore} />
                             <span className="text-xs text-slate-400">{item.wordCount} сл.</span>
+                            {item.googlePos != null && (
+                              <span className={`text-xs font-medium ${item.googlePos <= 3 ? 'text-green-600' : item.googlePos <= 10 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                G#{item.googlePos}
+                              </span>
+                            )}
+                            {item.yandexPos != null && (
+                              <span className={`text-xs font-medium ${item.yandexPos <= 3 ? 'text-green-600' : item.yandexPos <= 10 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                Я#{item.yandexPos}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-slate-400 mt-1">
                             {new Date(item.createdAt).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}

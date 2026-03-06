@@ -29,7 +29,7 @@ export async function saveArticleAnalysis(
 
 export async function getUserAnalysisHistory(
   userId: number,
-  limit = 50
+  limit = 5000
 ): Promise<ArticleAnalysis[]> {
   const db = await getDb();
   if (!db) return [];

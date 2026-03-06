@@ -1,0 +1,169 @@
+{
+  "redirects": [
+    {
+      "url": "/kadastr/kak-najti-uchastok-po-kadastrovomu-nomeru-onlajn-besplatno/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-najti-uchastok-po-kadastrovomu-nomeru/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-zakazat-vypisku-iz-egrn-dlya-fizicheskih-lits-na-kvartiru/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrn-dlya-fizicheskih-lits/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/gde-vzyat-vypisku-egrn-na-kvartiru-v-moskve/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/gde-vzyat-vypisku-iz-egrn-na-kvartiru/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-uznat-kadastrovuyu-stoimost-obekta-nedvizhimosti-po-adresuu/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-uznat-kadastrovuyu-stoimost-obekta-nedvizhimosti-po-adresu/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-oformit-kadastrovyj-pasport-na-dachnyj-uchastok/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-oformit-kadastrovyj-pasport-na-dachnyj-dom/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-zakazat-vypisku-iz-egrp-cherez-gosuslugi/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrp-cherez-mfts/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-zakazat-vypisku-iz-egrp-cherez-internet/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrp-cherez-mfts/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-oformit-kadastrovyj-pasport-na-kvartiru-v-novostrojke/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-oformit-kadastrovyj-pasport-na-kvartiru/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/zakazat-kadastrovyj-pasport-na-zemelnyj-uchastok-onlajn-v-rosreestre/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-na-zemelnyj-uchastok/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/gde-zakazat-kadastrovyj-pasport-na-kvartiru-v-ekaterinburge/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/gde-zakazat-kadastrovyj-pasport-na-kvartiru/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/skolko-stoit-zakazat-kadastrovyj-pasport-na-kvartiru/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/skolko-stoit-zakazat-kadastrovyj-pasport-na-dom/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-poluchit-kadastrovyj-pasport-na-zdanie-yuridicheskomu-litsu/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-poluchit-kadastrovyj-pasport-na-zdanie/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/zakazat-kadastrovuyu-vypisku-na-zemelnyj-uchastok-v-elektronnom-vide/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/zakazat-kadastrovuyu-vypisku-na-zemelnyj-uchastok/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/chto-takoe-kadastrovyj-pasport-na-kvartiru-gde-poluchat/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/chto-takoe-kadastrovyj-pasport-na-kvartiru/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    },
+    {
+      "url": "/kadastr/kak-poluchit-kadastrovyj-pasport-na-garazh-v-gsk/",
+      "action_code": 301,
+      "action_type": "url",
+      "action_data": {
+        "url": "https://kadastrmap.info/kadastr/kak-poluchit-kadastrovyj-pasport-na-garazh/"
+      },
+      "match_type": "url",
+      "group_id": 1,
+      "enabled": true
+    }
+  ]
+}

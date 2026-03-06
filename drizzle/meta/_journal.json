@@ -36,6 +36,13 @@
       "when": 1772609958799,
       "tag": "0004_short_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1772773068533,
+      "tag": "0005_foamy_virginia_dare",
+      "breakpoints": true
     }
   ]
 }
