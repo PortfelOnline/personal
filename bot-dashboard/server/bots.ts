@@ -35,8 +35,12 @@ export function startBot(botId: number, mode: 'warmup' | 'target', website: stri
   if (runningBots.has(botId)) {
     throw new Error(`Bot ${botId} is already running`);
   }
-  const proc = spawn('python3', [
-    path.join(BOT_DIR, 'yandex_bot.py'),
+  const container = process.env.BOT_CONTAINER;
+  const [spawnCmd, spawnPrefix] = container
+    ? ['docker', ['exec', container, 'python3', '/app/yandex_bot.py']]
+    : ['python3', [path.join(BOT_DIR, 'yandex_bot.py')]];
+  const proc = spawn(spawnCmd, [
+    ...spawnPrefix,
     '--bot-id', String(botId),
     '--mode', mode,
     '--website', website,

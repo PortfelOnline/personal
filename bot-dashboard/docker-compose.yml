@@ -27,6 +27,7 @@ services:
     environment:
       - AUTH_PASSWORD=${AUTH_PASSWORD:-admin}
       - BOT_DIR=/bot_work
+      - BOT_CONTAINER=yandex_bot
       - PORT=4000
     volumes:
       - bot_work:/bot_work           # доступ к профилям/состоянию ботов
