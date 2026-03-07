@@ -6,6 +6,17 @@ import { getBotDir, startBot, getRunningBots, getBotState } from './bots';
 // RAM per bot: ~500MB Firefox + ~80MB Python
 const RAM_PER_BOT_BYTES = 580 * 1024 * 1024;
 
+
+// Dynamic limit: use 50% of currently free RAM + 50% of CPU cores
+export function dynamicMaxConcurrent(): number {
+  const freeMem = os.freemem();
+  const cpuCount = os.cpus().length;
+  const ramBased = Math.floor(freeMem * 0.5 / RAM_PER_BOT_BYTES);
+  // Each bot uses ~2 threads; cap at 50% of CPU cores
+  const cpuBased = Math.max(1, Math.floor(cpuCount * 0.5 / 2));
+  return Math.max(1, Math.min(ramBased, cpuBased));
+}
+
 export function detectMaxConcurrent(): number {
   const totalRam = os.totalmem();
   const cpuCount = os.cpus().length;
@@ -168,9 +179,10 @@ function tick(): void {
     if (!enabledIds.has(queue[i].botId)) queue.splice(i, 1);
   }
 
-  // 5. Start from queue up to maxConcurrent
+  // 5. Start from queue up to min(config.maxConcurrent, dynamic 50% free resources)
+  const effectiveMax = Math.min(config.maxConcurrent, dynamicMaxConcurrent());
   let runningCount = runningIds.size;
-  while (runningCount < config.maxConcurrent && queue.length > 0) {
+  while (runningCount < effectiveMax && queue.length > 0) {
     const next = queue.shift()!;
     if (runningIds.has(next.botId) || managedBots.has(next.botId)) continue;
     const mode = autoMode(next.botId);
@@ -193,14 +205,19 @@ export function initOrchestrator(): void {
 
 export function getDetectedResources() {
   const totalRam = os.totalmem();
+  const freeMem = os.freemem();
   const cpuCount = os.cpus().length;
   const platform = os.platform();
   const recommended = detectMaxConcurrent();
+  const dynamic = dynamicMaxConcurrent();
   return {
     cpuCount,
     totalRamGb: Math.round(totalRam / (1024 ** 3) * 10) / 10,
+    freeRamGb: Math.round(freeMem / (1024 ** 3) * 10) / 10,
+    freeRamPct: Math.round(freeMem / totalRam * 100),
     platform,
     recommended,
+    dynamicMax: dynamic,
   };
 }
 

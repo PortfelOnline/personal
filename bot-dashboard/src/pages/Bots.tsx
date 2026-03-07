@@ -107,11 +107,10 @@ export default function Bots() {
     enabled: tab === 'autopilot',
   });
   const { data: orchStatus, refetch: refetchOrchStatus } = trpc.orchestratorStatus.useQuery(undefined, {
-    enabled: tab === 'autopilot',
-    refetchInterval: tab === 'autopilot' ? 10_000 : false,
+    refetchInterval: 15_000,
   });
   const { data: detectedResources } = trpc.detectedResources.useQuery(undefined, {
-    enabled: tab === 'autopilot',
+    refetchInterval: 30_000,
   });
   useEffect(() => {
     if (orchConfig && !orchEdits) setOrchEdits(orchConfig);
@@ -212,9 +211,13 @@ export default function Bots() {
             </h1>
             <p className="text-slate-600">Управление поисковыми ботами</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Button variant="outline" size="sm" onClick={() => { refetch(); refetchProxies(); }}>
               <RefreshCw className="w-4 h-4 mr-1" /> Refresh
+            </Button>
+            <Button variant="ghost" size="sm" className="text-slate-400 text-xs"
+              onClick={async () => { await fetch('/api/auth/logout', {method:'POST'}); window.location.reload(); }}>
+              Выйти
             </Button>
             {tab === 'bots' && (
               <Button onClick={() => setStartOpen(true)}>
@@ -310,9 +313,16 @@ export default function Bots() {
                         <CardTitle className="text-lg flex items-center gap-2">
                           <Bot className="w-5 h-5" /> Bot #{bot.botId}
                         </CardTitle>
+                        <div className="flex items-center gap-1.5">
                         <Badge className={bot.status === 'running' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}>
                           {bot.status === 'running' ? '● Running' : '○ Stopped'}
                         </Badge>
+                        {orchStatus?.managedBots.includes(bot.botId) && (
+                          <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                            <Zap className="w-3 h-3 mr-0.5" />Авто
+                          </Badge>
+                        )}
+                        </div>
                       </div>
                       {bot.status === 'running' && (
                         <CardDescription className="text-xs space-y-0.5 mt-1">
@@ -603,10 +613,12 @@ export default function Bots() {
                             </div>
                             <div className="bg-white rounded border border-slate-200 p-2 text-center">
                               <div className="text-lg font-bold text-slate-800">{detectedResources.totalRamGb} GB</div>
+                              <div className="text-xs text-slate-400">свободно: {detectedResources.freeRamGb} GB ({detectedResources.freeRamPct}%)</div>
                               <div className="text-xs text-slate-500">RAM всего</div>
                             </div>
                             <div className="bg-white rounded border border-slate-200 p-2 text-center">
                               <div className="text-lg font-bold text-blue-600">{detectedResources.recommended}</div>
+                              <div className="text-xs text-slate-400">сейчас лимит: {detectedResources.dynamicMax}</div>
                               <div className="text-xs text-slate-500">Рекомендовано</div>
                             </div>
                           </div>
