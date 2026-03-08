@@ -20,6 +20,27 @@ const WEBSITES = [
   'https://мцск.рф',
 ];
 
+function AddSiteRow({ onAdd }: { onAdd: (site: string, url: string) => void }) {
+  const [site, setSite] = useState('');
+  const [url, setUrl] = useState('');
+  return (
+    <div className="pt-2 border-t border-slate-100">
+      <p className="text-xs text-slate-500 mb-2">Добавить сайт</p>
+      <div className="flex gap-2">
+        <Input placeholder="https://example.ru" className="text-xs" value={site} onChange={e => setSite(e.target.value)} />
+        <Input placeholder="https://docs.google.com/..." className="font-mono text-xs flex-[2]" value={url} onChange={e => setUrl(e.target.value)} />
+        <Button size="sm" className="shrink-0" onClick={() => {
+          if (!site.trim() || !url.trim()) return;
+          onAdd(site.trim(), url.trim());
+          setSite(''); setUrl('');
+        }}>
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 interface BotEntry {
   botId: number;
   status: 'running' | 'stopped';
@@ -501,10 +522,10 @@ export default function Bots() {
                     <CardDescription>Общие для всех сайтов</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {(['proxies', 'queries', 'warmup_queries'] as const).map(key => (
+                    {(['warmup_queries'] as const).map(key => (
                       <div key={key}>
                         <label className="text-sm font-medium text-slate-700 capitalize">
-                          {key === 'proxies' ? 'Прокси' : key === 'queries' ? 'Запросы' : 'Warmup запросы'}
+                          {'Warmup запросы'}
                         </label>
                         <div className="flex gap-2 mt-1">
                           <Input
@@ -550,9 +571,24 @@ export default function Bots() {
                               <ExternalLink className="w-4 h-4" />
                             </a>
                           </Button>
+                          <Button
+                            variant="ghost" size="sm" className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => setDocsEdits(d => {
+                              if (!d) return d;
+                              const w = { ...d.websites };
+                              delete w[site];
+                              return { ...d, websites: w };
+                            })}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
+                    {/* Add new site */}
+                    <AddSiteRow onAdd={(site, url) => setDocsEdits(d => d ? {
+                      ...d, websites: { ...d.websites, [site]: url }
+                    } : d)} />
                   </CardContent>
                 </Card>
 
