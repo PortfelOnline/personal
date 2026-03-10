@@ -1,0 +1,15 @@
+How to Check Real Estate Objects Using Russia's Cadastral Map
+
+Before purchasing property in Russia, it's essential to verify its legal status. The public cadastral map is one of the key tools for this.
+
+KadastrMap (kadastrmap.info) provides access to Rosreestr data in a convenient format: an interactive map, search by address or cadastral number, and satellite imagery. The database contains over 50 million objects across Russia, updated in 2025.
+
+Key features:
+- Find property boundaries on an interactive map
+- Check cadastral value of land or apartment
+- Order official EGRN extracts online in 5 minutes
+- Verify encumbrances and legal restrictions
+
+The service is used by property buyers, real estate agents, cadastral engineers, lawyers and researchers.
+
+Visit: https://kadastrmap.info
