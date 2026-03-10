@@ -7,20 +7,38 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import requests
+import time
 import tracker
 from config import SITE_URL, DISPLAY_NAME
 
 TELEGRAPH_API = "https://api.telegra.ph"
 
+SESSION = requests.Session()
+SESSION.headers.update({
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+    "Accept": "application/json",
+})
+
+
+def api_post(endpoint, data, retries=3):
+    for i in range(retries):
+        try:
+            resp = SESSION.post(f"{TELEGRAPH_API}/{endpoint}", data=data, timeout=15)
+            return resp.json()
+        except Exception as e:
+            if i < retries - 1:
+                time.sleep(2)
+            else:
+                raise e
+
 
 def create_account():
     """Создать анонимный аккаунт Telegraph."""
-    resp = requests.post(f"{TELEGRAPH_API}/createAccount", data={
+    data = api_post("createAccount", {
         "short_name": "KadastrMap",
         "author_name": DISPLAY_NAME,
         "author_url": SITE_URL,
     })
-    data = resp.json()
     if not data.get("ok"):
         raise Exception(f"Ошибка создания аккаунта: {data}")
     return data["result"]["access_token"]
@@ -71,7 +89,7 @@ def publish_article(access_token: str, title: str, content_file: str) -> str:
                 content.append({"tag": "p", "children": [para]})
 
     import json
-    resp = requests.post(f"{TELEGRAPH_API}/createPage", data={
+    data = api_post("createPage", {
         "access_token": access_token,
         "title": title,
         "author_name": DISPLAY_NAME,
@@ -79,7 +97,6 @@ def publish_article(access_token: str, title: str, content_file: str) -> str:
         "content": json.dumps(content),
         "return_content": False,
     })
-    data = resp.json()
     if not data.get("ok"):
         raise Exception(f"Ошибка публикации: {data}")
     return "https://telegra.ph/" + data["result"]["path"]

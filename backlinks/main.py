@@ -12,6 +12,8 @@ import tracker
 
 SITES = {
     "telegra_ph": ("sites.telegra_ph", "run"),
+    "neocities":  ("sites.neocities",  "run"),
+    "wikidot":    ("sites.wikidot",    "run"),
     # следующие добавляем по мере написания
 }
 
