@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { fetchPageHtml } from './browser';
+import { getRandomWorkingProxy, banProxy } from '../bots';
 
 export interface SerpResult {
   position: number;
@@ -59,21 +60,64 @@ async function fetchHtml(url: string): Promise<string> {
   }
 }
 
+function parseProxy(proxy: string): { host: string; port: number; username: string; password: string } | null {
+  const m = proxy.match(/^([^:]+):([^@]+)@([^:]+):(\d+)$/);
+  if (!m) return null;
+  return { username: m[1], password: m[2], host: m[3], port: parseInt(m[4], 10) };
+}
+
+async function fetchHtmlViaProxy(url: string, proxy: string): Promise<string> {
+  const p = parseProxy(proxy);
+  if (!p) throw new Error('Invalid proxy format');
+  const response = await axios.get(url, {
+    headers: BROWSER_HEADERS,
+    timeout: 20000,
+    maxRedirects: 5,
+    decompress: true,
+    responseType: 'text',
+    proxy: { protocol: 'http', host: p.host, port: p.port, auth: { username: p.username, password: p.password } },
+  });
+  return response.data as string;
+}
+
+async function fetchSerpHtml(url: string, isCaptcha: (html: string) => boolean): Promise<string> {
+  for (let i = 0; i < 3; i++) {
+    const proxy = getRandomWorkingProxy();
+    if (!proxy) break;
+    try {
+      const html = await fetchHtmlViaProxy(url, proxy);
+      if (isCaptcha(html)) {
+        banProxy(proxy);
+        console.warn(`[SERP] CAPTCHA via proxy ${proxy.split('@')[1]} — banned, retrying`);
+        continue;
+      }
+      return html;
+    } catch (err: any) {
+      console.warn(`[SERP] Proxy ${proxy.split('@')[1]} failed: ${err?.message}`);
+    }
+  }
+  // No working proxies — fall back to direct request
+  return fetchHtml(url);
+}
+
 /**
  * Parse Google search results
  */
 export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
   const url = `https://www.google.ru/search?q=${encodeURIComponent(keyword)}&num=10&hl=ru&gl=ru`;
 
+  const googleCaptcha = (h: string) =>
+    h.includes('recaptcha') || h.includes('detected unusual traffic') || h.includes('captcha');
+
   let html: string;
   try {
-    html = await fetchHtml(url);
+    html = await fetchSerpHtml(url, googleCaptcha);
   } catch (error: any) {
     return { engine: 'google', keyword, results: [], error: `Ошибка загрузки: ${error?.message}` };
   }
 
-  if (html.includes('recaptcha') || html.includes('detected unusual traffic') || html.includes('captcha')) {
-    return { engine: 'google', keyword, results: [], error: 'Google заблокировал запрос (CAPTCHA). Попробуйте позже.' };
+  if (googleCaptcha(html)) {
+    return { engine: 'google', keyword, results: [], error: 'Google заблокировал запрос (CAPTCHA). Все доступные прокси заблокированы.' };
   }
 
   const $ = cheerio.load(html);
@@ -140,15 +184,18 @@ export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
 export async function fetchYandexSerp(keyword: string): Promise<SerpData> {
   const url = `https://yandex.ru/search/?text=${encodeURIComponent(keyword)}&lr=213&numdoc=10`;
 
+  const yandexCaptcha = (h: string) =>
+    h.includes('showcaptcha') || h.includes('captcha') || h.includes('Проверка браузера');
+
   let html: string;
   try {
-    html = await fetchHtml(url);
+    html = await fetchSerpHtml(url, yandexCaptcha);
   } catch (error: any) {
     return { engine: 'yandex', keyword, results: [], error: `Ошибка загрузки: ${error?.message}` };
   }
 
-  if (html.includes('showcaptcha') || html.includes('captcha') || html.includes('Проверка браузера')) {
-    return { engine: 'yandex', keyword, results: [], error: 'Яндекс заблокировал запрос (CAPTCHA). Попробуйте позже.' };
+  if (yandexCaptcha(html)) {
+    return { engine: 'yandex', keyword, results: [], error: 'Яндекс заблокировал запрос (CAPTCHA). Все доступные прокси заблокированы.' };
   }
 
   const $ = cheerio.load(html);

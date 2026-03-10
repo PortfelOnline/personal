@@ -164,6 +164,30 @@ export function getProxyBlacklist(): Record<string, string> {
   return {};
 }
 
+export function getRandomWorkingProxy(): string | null {
+  const { proxies } = getProxies();
+  if (proxies.length === 0) return null;
+  const blacklist = getProxyBlacklist();
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const working = proxies.filter(p => {
+    const bannedAt = blacklist[p];
+    return !bannedAt || new Date(bannedAt).getTime() < cutoff;
+  });
+  if (working.length === 0) return null;
+  return working[Math.floor(Math.random() * working.length)];
+}
+
+export function banProxy(proxy: string): void {
+  const blFile = path.join(BOT_DIR, 'outputs', 'proxy_blacklist.json');
+  const bl = getProxyBlacklist();
+  bl[proxy] = new Date().toISOString();
+  try {
+    const dir = path.dirname(blFile);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(blFile, JSON.stringify(bl, null, 2));
+  } catch {}
+}
+
 // --- Google Docs config ---
 export interface GoogleDocsConfig {
   global: { proxies: string; queries: string; warmup_queries: string };

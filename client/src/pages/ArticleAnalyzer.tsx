@@ -2479,8 +2479,16 @@ type ConversionKeyword = {
   difficulty: number;
   combinedScore: number;
   intent: 'transactional' | 'informational' | 'commercial';
+  source?: 'competitor' | 'gap' | 'expansion';
   articleTitle: string;
   reason: string;
+};
+
+type SerpStats = {
+  seedsSearched: number;
+  competitorTitles: number;
+  competitorDomains: string[];
+  ourTitlesAnalyzed: number;
 };
 
 const INTENT_BADGE: Record<string, { label: string; color: string }> = {
@@ -2500,24 +2508,47 @@ function ScoreBar({ value, max = 10, color }: { value: number; max?: number; col
   );
 }
 
-function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void }) {
-  const [keywords, setKeywords]     = useState<ConversionKeyword[]>([]);
-  const [seedInput, setSeedInput]   = useState('');
-  const [count, setCount]           = useState(60);
-  const [filterIntent, setFilterIntent] = useState<'all' | 'transactional' | 'informational' | 'commercial'>('all');
-  const [filterConv, setFilterConv] = useState(0); // min conversionScore
-  const [search, setSearch]         = useState('');
-  const [sortBy, setSortBy]         = useState<'combinedScore' | 'trafficScore' | 'conversionScore' | 'difficulty'>('combinedScore');
+const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
+  competitor: { label: 'у конкурентов', color: 'bg-orange-100 text-orange-700' },
+  gap:        { label: 'пробел',        color: 'bg-red-100 text-red-700' },
+  expansion:  { label: 'расширение',   color: 'bg-blue-100 text-blue-700' },
+};
 
-  // Load cached article titles for deduplication
-  const ourTitles = loadCachedArticles().map(a => a.title);
+function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void }) {
+  const [keywords, setKeywords]   = useState<ConversionKeyword[]>([]);
+  const [serpStats, setSerpStats] = useState<SerpStats | null>(null);
+  const [seedInput, setSeedInput] = useState('');
+  const [count, setCount]         = useState(60);
+  const [filterIntent, setFilterIntent] = useState<'all' | 'transactional' | 'informational' | 'commercial'>('all');
+  const [filterSource, setFilterSource] = useState<'all' | 'competitor' | 'gap' | 'expansion'>('all');
+  const [filterConv, setFilterConv]     = useState(0);
+  const [search, setSearch]             = useState('');
+  const [sortBy, setSortBy]             = useState<'combinedScore' | 'trafficScore' | 'conversionScore' | 'difficulty'>('combinedScore');
+
+  // Our catalog titles for gap analysis
+  const [ourTitles, setOurTitles] = useState<string[]>(() => loadCachedArticles().map(a => a.title));
+  const { mutateAsync: scanCatalog, isPending: isScanning } = trpc.articles.scanCatalog.useMutation();
+
+  async function handleScanSite() {
+    try {
+      const result = await scanCatalog({ url: 'https://kadastrmap.info/kadastr/', maxPages: 150, startPage: 1 });
+      const titles = result.articles.map((a: any) => a.title);
+      setOurTitles(titles);
+      toast.success(`Сайт отсканирован: ${titles.length} статей`);
+    } catch (e: any) {
+      toast.error(e?.message || 'Ошибка сканирования');
+    }
+  }
 
   const { mutate: suggest, isPending } = trpc.articles.suggestConversionKeywords.useMutation({
     onSuccess: (d) => {
       setKeywords(d.keywords as ConversionKeyword[]);
-      toast.success(`Найдено ${d.count} ключевых запросов`);
+      setSerpStats(d.serpStats as SerpStats);
+      toast.success(
+        `Готово: ${d.count} запросов · ${d.serpStats.competitorTitles} заголовков конкурентов из ${d.serpStats.competitorDomains.length} сайтов`
+      );
     },
-    onError: (e: any) => toast.error(e?.message || 'Ошибка генерации'),
+    onError: (e: any) => toast.error(e?.message || 'Ошибка анализа'),
   });
 
   const handleSuggest = () => {
@@ -2528,6 +2559,7 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
   const filtered = keywords
     .filter(k => {
       if (filterIntent !== 'all' && k.intent !== filterIntent) return false;
+      if (filterSource !== 'all' && k.source !== filterSource) return false;
       if (k.conversionScore < filterConv) return false;
       if (search && !k.keyword.toLowerCase().includes(search.toLowerCase()) && !k.articleTitle.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -2538,47 +2570,105 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
     });
 
   const top5 = keywords.filter(k => k.conversionScore >= 8).slice(0, 5);
+  const isLoading = isPending || isScanning;
 
   return (
     <div className="space-y-4">
-      {/* Form */}
+
+      {/* Step 1: Sources */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Our site */}
+        <Card className={ourTitles.length > 0 ? 'border-green-200' : ''}>
+          <CardContent className="pt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-700">📂 Наш сайт</p>
+                <p className="text-xs text-slate-400">kadastrmap.info — чтобы найти пробелы</p>
+              </div>
+              {ourTitles.length > 0
+                ? <Badge className="bg-green-100 text-green-700">{ourTitles.length} статей</Badge>
+                : <Badge variant="outline" className="text-slate-400">не загружен</Badge>}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleScanSite}
+              disabled={isScanning}
+              className="w-full gap-1.5"
+            >
+              {isScanning
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Сканирую...</>
+                : <><RotateCcw className="w-3.5 h-3.5" />{ourTitles.length > 0 ? 'Обновить каталог' : 'Сканировать kadastrmap.info'}</>}
+            </Button>
+            {ourTitles.length > 0 && (
+              <p className="text-xs text-green-600">✓ AI не будет предлагать уже существующие темы</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Competitors from SERP */}
+        <Card className={serpStats ? 'border-orange-200' : ''}>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-sm font-medium text-slate-700">🔍 Конкуренты из поиска</p>
+                <p className="text-xs text-slate-400">Google + Яндекс через прокси</p>
+              </div>
+              {serpStats
+                ? <Badge className="bg-orange-100 text-orange-700">{serpStats.competitorTitles} заголовков</Badge>
+                : <Badge variant="outline" className="text-slate-400">запустится при анализе</Badge>}
+            </div>
+            {serpStats && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {serpStats.competitorDomains.slice(0, 8).map(d => (
+                  <span key={d} className="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded border border-orange-100">{d}</span>
+                ))}
+              </div>
+            )}
+            {!serpStats && (
+              <p className="text-xs text-slate-400">Будет спарсено автоматически при нажатии «Анализировать»</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Step 2: Optional seeds + run */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-purple-600" />
-            Анализ ключевых запросов по конверсии
-          </CardTitle>
-          <p className="text-sm text-slate-500">
-            AI подбирает запросы с максимальным трафиком и вероятностью заказа справки
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="pt-4 space-y-3">
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">Стартовые ключевые слова (необязательно)</label>
+            <label className="text-xs text-slate-500 mb-1 block">
+              Дополнительные стартовые запросы <span className="text-slate-300">(необязательно — если пусто, используются базовые)</span>
+            </label>
             <Textarea
-              placeholder={"кадастровая стоимость\nвыписка ЕГРН\nпроверить квартиру"}
+              placeholder={"кадастровая стоимость\nвыписка ЕГРН\nпроверить квартиру перед покупкой"}
               value={seedInput}
               onChange={(e) => setSeedInput(e.target.value)}
-              className="text-sm min-h-[80px] resize-none"
+              className="text-sm min-h-[60px] resize-none"
             />
-            <p className="text-xs text-slate-400 mt-1">По одному на строку или через запятую. Оставьте пустым для автоматического подбора.</p>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-xs text-slate-500 whitespace-nowrap">Количество запросов:</label>
+            <label className="text-xs text-slate-500 whitespace-nowrap">Запросов в результате:</label>
             <Input
               type="number" min={10} max={150} value={count}
               onChange={(e) => setCount(Math.min(150, Math.max(10, parseInt(e.target.value) || 60)))}
-              className="w-24"
+              className="w-20"
             />
             <Button
               onClick={handleSuggest}
-              disabled={isPending}
-              className="gap-2 flex-1 bg-purple-600 hover:bg-purple-700"
+              disabled={isLoading}
+              className="gap-2 flex-1 bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isPending
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Анализирую...</>
-                : <><Search className="w-4 h-4" />Найти прибыльные запросы</>}
+                : <><Search className="w-4 h-4" />Анализировать сайт + конкурентов</>}
             </Button>
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs text-slate-400">
+            <span>1. Сканирует наш каталог ({ourTitles.length} статей)</span>
+            <span>→</span>
+            <span>2. Парсит Google + Яндекс по 6 запросам</span>
+            <span>→</span>
+            <span>3. AI анализирует пробелы + скорит конверсию</span>
           </div>
         </CardContent>
       </Card>
@@ -2588,8 +2678,13 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
         <Card>
           <CardContent className="flex flex-col items-center py-12 gap-3">
             <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
-            <p className="font-medium text-slate-700">Анализирую запросы по трафику и конверсии...</p>
-            <p className="text-sm text-slate-400">AI оценивает каждый запрос по двум метрикам. Обычно 20–40 сек.</p>
+            <p className="font-medium text-slate-700">Анализирую сайт + конкурентов...</p>
+            <div className="text-sm text-slate-400 space-y-1 text-center">
+              <p>· Парсинг Google + Яндекс по 6 базовым запросам через прокси</p>
+              <p>· Сбор заголовков конкурентов из топ-10</p>
+              <p>· AI ищет пробелы и оценивает конверсию</p>
+            </div>
+            <p className="text-xs text-slate-300">Обычно 30–60 сек</p>
           </CardContent>
         </Card>
       )}
@@ -2598,35 +2693,41 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
       {top5.length > 0 && !isPending && (
         <Card className="border-green-200 bg-green-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-green-800 flex items-center gap-2">
-              🏆 ТОП-5 по конверсии в заказ справки
-            </CardTitle>
+            <CardTitle className="text-base text-green-800">🏆 ТОП-5 по конверсии в заказ справки</CardTitle>
             <p className="text-xs text-green-600">Эти запросы приводят людей, которые почти наверняка закажут документ</p>
           </CardHeader>
           <CardContent className="space-y-2">
-            {top5.map((k, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-green-100">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-800 truncate">{k.keyword}</p>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">{k.reason}</p>
+            {top5.map((k, i) => {
+              const srcBadge = k.source ? SOURCE_BADGE[k.source] : null;
+              return (
+                <div key={i} className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-green-100">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {srcBadge && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${srcBadge.color}`}>{srcBadge.label}</span>
+                      )}
+                      <span className="text-sm font-medium text-slate-800 truncate">{k.keyword}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 truncate mt-0.5">{k.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className="bg-green-100 text-green-800 text-xs">конв. {k.conversionScore}/10</Badge>
+                    <Button
+                      size="sm"
+                      className="h-7 px-2 text-xs gap-1 bg-green-600 hover:bg-green-700"
+                      onClick={() => onGenerate(k.keyword)}
+                    >
+                      <ArrowRight className="w-3 h-3" />Написать статью
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge className="bg-green-100 text-green-800 text-xs">{k.conversionScore}/10</Badge>
-                  <Button
-                    size="sm"
-                    className="h-7 px-2 text-xs gap-1 bg-green-600 hover:bg-green-700"
-                    onClick={() => onGenerate(k.keyword)}
-                  >
-                    <ArrowRight className="w-3 h-3" />Написать статью
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}
 
-      {/* Full results */}
+      {/* Full results table */}
       {keywords.length > 0 && !isPending && (
         <Card>
           <CardHeader className="pb-3">
@@ -2635,39 +2736,36 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
                 Все запросы ({filtered.length} / {keywords.length})
               </CardTitle>
             </div>
-            {/* Filters */}
             <div className="flex flex-wrap gap-2 mt-2">
               <Input
                 placeholder="Поиск..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-7 text-xs w-36"
+                className="h-7 text-xs w-32"
               />
-              <select
-                value={filterIntent}
-                onChange={(e) => setFilterIntent(e.target.value as any)}
-                className="h-7 border rounded px-2 text-xs text-slate-600"
-              >
-                <option value="all">Все типы</option>
-                <option value="transactional">Заказ (transactional)</option>
-                <option value="informational">Информационные</option>
-                <option value="commercial">Коммерческие</option>
+              <select value={filterSource} onChange={(e) => setFilterSource(e.target.value as any)}
+                className="h-7 border rounded px-2 text-xs text-slate-600">
+                <option value="all">Все источники</option>
+                <option value="competitor">У конкурентов</option>
+                <option value="gap">Пробелы</option>
+                <option value="expansion">Расширение</option>
               </select>
-              <select
-                value={filterConv}
-                onChange={(e) => setFilterConv(Number(e.target.value))}
-                className="h-7 border rounded px-2 text-xs text-slate-600"
-              >
+              <select value={filterIntent} onChange={(e) => setFilterIntent(e.target.value as any)}
+                className="h-7 border rounded px-2 text-xs text-slate-600">
+                <option value="all">Все типы</option>
+                <option value="transactional">Заказ</option>
+                <option value="informational">Информация</option>
+                <option value="commercial">Сравнение</option>
+              </select>
+              <select value={filterConv} onChange={(e) => setFilterConv(Number(e.target.value))}
+                className="h-7 border rounded px-2 text-xs text-slate-600">
                 <option value={0}>Любая конверсия</option>
                 <option value={7}>Конверсия ≥ 7</option>
                 <option value={8}>Конверсия ≥ 8</option>
                 <option value={9}>Конверсия ≥ 9</option>
               </select>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-7 border rounded px-2 text-xs text-slate-600"
-              >
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+                className="h-7 border rounded px-2 text-xs text-slate-600">
                 <option value="combinedScore">По рейтингу</option>
                 <option value="conversionScore">По конверсии</option>
                 <option value="trafficScore">По трафику</option>
@@ -2676,53 +2774,44 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
             </div>
           </CardHeader>
 
-          {/* Header row */}
-          <div className="grid grid-cols-[1fr_80px_80px_60px_50px_120px] gap-2 px-4 py-2 border-b bg-slate-50 text-xs text-slate-400 font-medium">
-            <span>Запрос / Заголовок статьи</span>
+          <div className="grid grid-cols-[1fr_70px_70px_50px_50px_110px] gap-2 px-4 py-2 border-b bg-slate-50 text-xs text-slate-400 font-medium">
+            <span>Запрос / Статья</span>
             <span>Трафик</span>
             <span>Конверсия</span>
             <span>Слож.</span>
-            <span>Рейтинг</span>
+            <span>Рейт.</span>
             <span></span>
           </div>
 
           <CardContent className="p-0">
-            <div className="divide-y max-h-[600px] overflow-y-auto">
+            <div className="divide-y max-h-[620px] overflow-y-auto">
               {filtered.map((k, i) => {
                 const intentBadge = INTENT_BADGE[k.intent] || INTENT_BADGE.informational;
+                const srcBadge = k.source ? SOURCE_BADGE[k.source] : null;
                 return (
-                  <div key={i} className="grid grid-cols-[1fr_80px_80px_60px_50px_120px] gap-2 px-4 py-3 hover:bg-slate-50 items-center group">
-                    {/* Keyword + title */}
+                  <div key={i} className="grid grid-cols-[1fr_70px_70px_50px_50px_110px] gap-2 px-4 py-2.5 hover:bg-slate-50 items-center group">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${intentBadge.color}`}>
-                          {intentBadge.label}
-                        </span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className={`text-[9px] px-1 py-0.5 rounded font-medium shrink-0 ${intentBadge.color}`}>{intentBadge.label}</span>
+                        {srcBadge && <span className={`text-[9px] px-1 py-0.5 rounded font-medium shrink-0 ${srcBadge.color}`}>{srcBadge.label}</span>}
                         <span className="text-sm font-medium text-slate-800 truncate">{k.keyword}</span>
                       </div>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">{k.articleTitle}</p>
-                      <p className="text-xs text-slate-300 truncate mt-0.5 italic group-hover:text-slate-500 transition-colors">{k.reason}</p>
+                      <p className="text-xs text-slate-400 truncate">{k.articleTitle}</p>
+                      <p className="text-[10px] text-slate-300 truncate italic group-hover:text-slate-400 transition-colors">{k.reason}</p>
                     </div>
-                    {/* Traffic */}
                     <ScoreBar value={k.trafficScore} color="bg-blue-400" />
-                    {/* Conversion */}
-                    <ScoreBar
-                      value={k.conversionScore}
-                      color={k.conversionScore >= 8 ? 'bg-green-500' : k.conversionScore >= 6 ? 'bg-yellow-400' : 'bg-slate-300'}
-                    />
-                    {/* Difficulty */}
+                    <ScoreBar value={k.conversionScore}
+                      color={k.conversionScore >= 8 ? 'bg-green-500' : k.conversionScore >= 6 ? 'bg-yellow-400' : 'bg-slate-300'} />
                     <div className="text-xs text-center">
                       <span className={`font-semibold ${k.difficulty <= 2 ? 'text-green-600' : k.difficulty <= 3 ? 'text-yellow-600' : 'text-red-500'}`}>
                         {k.difficulty}/5
                       </span>
                     </div>
-                    {/* Combined */}
                     <div className="text-xs font-bold text-center">
                       <span className={k.combinedScore >= 15 ? 'text-green-600' : k.combinedScore >= 10 ? 'text-blue-600' : 'text-slate-400'}>
                         {k.combinedScore}
                       </span>
                     </div>
-                    {/* Actions */}
                     <div className="flex gap-1 justify-end">
                       <Button
                         size="sm"
@@ -2744,10 +2833,10 @@ function KeywordResearch({ onGenerate }: { onGenerate: (keyword: string) => void
         <Card>
           <CardContent className="flex flex-col items-center py-14 text-center gap-3">
             <Search className="w-12 h-12 text-slate-200" />
-            <p className="text-slate-500 font-medium">Нажмите «Найти прибыльные запросы»</p>
+            <p className="text-slate-500 font-medium">Нажмите «Анализировать сайт + конкурентов»</p>
             <p className="text-sm text-slate-400 max-w-md">
-              AI проанализирует тематику kadastrmap.info и предложит {count} ключевых запросов,
-              отсортированных по сочетанию трафика и вероятности заказа справки
+              Система просканирует kadastrmap.info, спарсит конкурентов из Google и Яндекс,
+              и предложит {count} запросов отсортированных по конверсии в заказ справки
             </p>
           </CardContent>
         </Card>

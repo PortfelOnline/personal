@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { FileText, Globe, LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { Bot, FileText, Globe, LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -32,6 +32,7 @@ const menuItems = [
   { icon: Users, label: "Page 2", path: "/some-path" },
   { icon: Globe, label: "WordPress", path: "/wordpress" },
   { icon: FileText, label: "Статьи", path: "/articles" },
+  { icon: Bot, label: "Боты", path: null, href: "http://167.86.116.15:4000/login" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -183,12 +184,18 @@ function DashboardLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
-                const isActive = location === item.path;
+                const isActive = item.path !== null && location === item.path;
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={item.path ?? item.href}>
                     <SidebarMenuButton
                       isActive={isActive}
-                      onClick={() => setLocation(item.path)}
+                      onClick={() => {
+                        if (item.href) {
+                          window.open(item.href, "_blank");
+                        } else if (item.path) {
+                          setLocation(item.path);
+                        }
+                      }}
                       tooltip={item.label}
                       className={`h-10 transition-all font-normal`}
                     >
