@@ -196,8 +196,10 @@ async function enhanceIfNeeded(html: string, keyword: string): Promise<string> {
 
   if (wordCount < 1800) {
     const needed = 1800 - wordCount;
-    const sections = Math.ceil(needed / 220);
-    tasks.push(`Напиши ${sections} новых подробных раздела (<h2>Заголовок</h2><p>200+ слов</p>) которых ещё НЕТ в статье. Суммарно минимум ${needed} слов. Используй H2/H3, не H1.`);
+    // Request 1.5x to compensate for LLM undershoot
+    const targetWords = Math.round(needed * 1.5);
+    const sections = Math.max(3, Math.ceil(targetWords / 200));
+    tasks.push(`Напиши ${sections} новых подробных раздела (<h2>Заголовок</h2><p>минимум 200 слов каждый</p>) которых ещё НЕТ в статье. Суммарно минимум ${targetWords} слов. Используй H2/H3, не H1.`);
   }
   if (faqQuestions.length < 6) {
     const faqNeeded = Math.max(6 - faqQuestions.length, 3);
