@@ -29,7 +29,7 @@ async function cachedGoogleSerp(keyword: string): Promise<SerpData> {
   const key = `google:${keyword}`;
   const hit = cacheGet(serpCache, key);
   if (hit) { console.log(`[cache] SERP HIT google:${keyword}`); return hit; }
-  const result = await cachedGoogleSerp(keyword);
+  const result = await fetchGoogleSerp(keyword);
   if (!result.error) cacheSet(serpCache, key, result);
   return result;
 }
@@ -38,7 +38,7 @@ async function cachedYandexSerp(keyword: string): Promise<SerpData> {
   const key = `yandex:${keyword}`;
   const hit = cacheGet(serpCache, key);
   if (hit) { console.log(`[cache] SERP HIT yandex:${keyword}`); return hit; }
-  const result = await cachedYandexSerp(keyword);
+  const result = await fetchYandexSerp(keyword);
   if (!result.error) cacheSet(serpCache, key, result);
   return result;
 }
