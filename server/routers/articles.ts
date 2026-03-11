@@ -223,6 +223,23 @@ async function enhanceIfNeeded(html: string, keyword: string): Promise<string> {
   return result;
 }
 
+// ── Normalize heading hierarchy (H1→H2 for all headings after the first H1) ─
+function normalizeHeadings(html: string): string {
+  let h1Count = 0;
+  let inConverted = false;
+  return html.replace(/<(\/?)h1(\b[^>]*)?>/gi, (_match, slash, attrs) => {
+    if (!slash) {
+      h1Count++;
+      if (h1Count > 1) { inConverted = true; return `<h2${attrs || ''}>`; }
+      inConverted = false;
+      return _match;
+    } else {
+      if (inConverted) { inConverted = false; return '</h2>'; }
+      return _match;
+    }
+  });
+}
+
 // ── Internal links from user's article history ───────────────────────────────
 
 async function addInternalLinks(html: string, userId: number, ourDomain: string, currentTitle: string): Promise<string> {
@@ -531,7 +548,7 @@ ${missingTopicsBlock}${lsiBlock}
     invokeLLM({
       messages: [
         { role: 'system', content: 'Ты SEO-эксперт по российскому рынку. Отвечай только валидным JSON.' },
-        { role: 'user', content: `Ты SEO-эксперт. Проанализируй статью и верни JSON:\nЗаголовок: ${parsed.title}\nКлюч: ${keyword}\nОбъём: ${parsed.wordCount} слов\n\nВерни ТОЛЬКО валидный JSON:\n{"metaTitle":"до 60 симв","metaDescription":"до 160 симв","keywords":["ключ1"],"headingsSuggestions":[],"generalSuggestions":["совет"],"score":75}` },
+        { role: 'user', content: `Ты SEO-эксперт. Проанализируй статью и верни JSON:\nЗаголовок: ${parsed.title}\nКлюч: ${keyword}\nОбъём: ${parsed.wordCount} слов (целевой объём: 1800+ слов)\n\nВерни ТОЛЬКО валидный JSON:\n{"metaTitle":"до 60 симв","metaDescription":"до 160 симв","keywords":["ключ1"],"headingsSuggestions":[],"generalSuggestions":["совет"],"score":75}` },
       ],
     }),
     invokeLLM({
@@ -557,6 +574,7 @@ ${missingTopicsBlock}${lsiBlock}
 
   // Post-generation quality check: add missing FAQ questions or table
   improvedContent = await enhanceIfNeeded(improvedContent, keyword);
+  improvedContent = normalizeHeadings(improvedContent);
 
   // Add internal links to related articles on the same site
   improvedContent = await addInternalLinks(improvedContent, userId, ourDomain, parsed.title);
@@ -805,6 +823,7 @@ ${missingTopicsBlock}${lsiBlock}
 
       // Post-generation: fix missing FAQ questions or table
       improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword);
+      improvedContent = normalizeHeadings(improvedContent);
 
       // Add internal links to related articles on the same site
       improvedContent = await addInternalLinks(improvedContent, ctx.user.id, ourDomain, parsed.title);
