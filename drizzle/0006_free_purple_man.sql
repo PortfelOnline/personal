@@ -1,0 +1,2 @@
+ALTER TABLE `contentPosts` MODIFY COLUMN `platform` enum('facebook','instagram','whatsapp','youtube') NOT NULL;--> statement-breakpoint
+ALTER TABLE `contentTemplates` MODIFY COLUMN `platform` enum('facebook','instagram','whatsapp','youtube','all') NOT NULL;

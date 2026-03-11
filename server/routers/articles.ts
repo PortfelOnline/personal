@@ -2,13 +2,74 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { parseArticleFromUrl, scanCatalog } from "../_core/articleParser";
-import { fetchGoogleSerp, fetchYandexSerp } from "../_core/serpParser";
+import { fetchGoogleSerp, fetchYandexSerp, SerpData } from "../_core/serpParser";
 import { invokeLLM } from "../_core/llm";
 import { generateDallEImage } from "../_core/imageGen";
 import * as wp from "../_core/wordpress";
 import { createContentPost } from "../db";
 import * as articlesDb from "../articles.db";
 import * as wordpressDb from "../wordpress.db";
+
+// ── In-memory cache: SERP results + competitor pages (TTL 24h) ───────────────
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const serpCache = new Map<string, { data: SerpData; ts: number }>();
+const pageCache = new Map<string, { data: any; ts: number }>();
+
+function cacheGet<T>(map: Map<string, { data: T; ts: number }>, key: string): T | null {
+  const entry = map.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) { map.delete(key); return null; }
+  return entry.data;
+}
+function cacheSet<T>(map: Map<string, { data: T; ts: number }>, key: string, data: T): void {
+  map.set(key, { data, ts: Date.now() });
+}
+
+async function cachedGoogleSerp(keyword: string): Promise<SerpData> {
+  const key = `google:${keyword}`;
+  const hit = cacheGet(serpCache, key);
+  if (hit) { console.log(`[cache] SERP HIT google:${keyword}`); return hit; }
+  const result = await cachedGoogleSerp(keyword);
+  if (!result.error) cacheSet(serpCache, key, result);
+  return result;
+}
+
+async function cachedYandexSerp(keyword: string): Promise<SerpData> {
+  const key = `yandex:${keyword}`;
+  const hit = cacheGet(serpCache, key);
+  if (hit) { console.log(`[cache] SERP HIT yandex:${keyword}`); return hit; }
+  const result = await cachedYandexSerp(keyword);
+  if (!result.error) cacheSet(serpCache, key, result);
+  return result;
+}
+
+// ─── Актуальные цены с kadastrmap.info/spravki/ ──────────────────────────────
+const REAL_PRICES = `Актуальные цены kadastrmap.info:
+- Справка об объекте недвижимости — 649 руб.
+- Справка о переходе прав — 649 руб.
+- Расширенная справка об объекте — 699 руб.
+- Справка о кадастровой стоимости — 299 руб.
+- Кадастровый план территории квартала — 1 190 руб.
+- Ситуационный план (газификация/электрификация) — 2 490 руб.
+- План поэтажный с экспликацией БТИ — 3 990 руб.
+Срок получения: 5 минут – 24 часа. Получение онлайн (скачать или открыть в личном кабинете), без доставки.`;
+
+// ─── WordPress shortcodes — определяются по ключевому запросу статьи ─────────
+function getShortcodesHint(keyword: string): string {
+  const kw = keyword.toLowerCase();
+  const blocks: string[] = [
+    '- [BLOCK_PRICE] — таблица сравнения цен и сроков получения. Вставляй в раздел "Сроки и стоимость" ВСЕГДА.',
+  ];
+  if (/ситуацион|ситуативн|участ.*план|строительств|ижс|межеван/.test(kw)) {
+    blocks.push('- [BLOCK_SITUATIONAL_PLAN] — кнопка заказа ситуационного плана. Вставляй в раздел "Как заказать" или после описания документа.');
+  }
+  if (/план.*(этаж|помещ|квартир|экспликац)|экспликац|этаж.*план|поэтажн/.test(kw)) {
+    blocks.push('- [BLOCK_ETAGI_PLAN] — кнопка заказа плана этажей/экспликации. Вставляй в раздел "Как заказать" или после описания документа.');
+  }
+  return `${REAL_PRICES}\n\nWORDPRESS ШОРТКОДЫ (вставляй как отдельную строку в HTML):\n${blocks.join('\n')}`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 export interface SeoAnalysis {
   metaTitle: string;
@@ -76,11 +137,13 @@ async function fetchCompetitorArticles(
 
   const fetched = await Promise.allSettled(
     competitors.map(async (r, i) => {
+      const cached = cacheGet(pageCache, r.url);
+      if (cached) { console.log(`[cache] PAGE HIT ${r.url}`); return cached; }
       const parsed = await Promise.race([
         parseArticleFromUrl(r.url),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
       ]);
-      return {
+      const result = {
         position: i + 1,
         domain: r.domain,
         title: parsed.title,
@@ -88,6 +151,8 @@ async function fetchCompetitorArticles(
         content: parsed.content.slice(0, 4000),
         wordCount: parsed.wordCount,
       };
+      if (parsed.wordCount > 0) cacheSet(pageCache, r.url, result);
+      return result;
     }),
   );
 
@@ -96,27 +161,145 @@ async function fetchCompetitorArticles(
     .map(r => r.value);
 }
 
+// ── LSI keyword extraction from SERP snippets ────────────────────────────────
+
+const RU_STOP_WORDS = new Set(['и','в','на','с','по','для','от','до','из','не','как','что','это','при','за','или','также','а','но','то','о','об','у','к','же','бы','был','была','были','есть','быть','так','вы','вас','ваш','их','они','он','она','через','после','во','со','между','без','чем','если','когда','где','можно','нужно','всё','все','который','которые','которая','которого']);
+
+function extractLsiKeywords(serpResults: { snippet?: string; title?: string }[]): string[] {
+  const wordFreq = new Map<string, number>();
+  for (const r of serpResults) {
+    const text = `${r.title || ''} ${r.snippet || ''}`.toLowerCase();
+    const words = text.match(/[а-яёa-z]{4,}/g) || [];
+    for (const w of words) {
+      if (!RU_STOP_WORDS.has(w)) wordFreq.set(w, (wordFreq.get(w) || 0) + 1);
+    }
+  }
+  return Array.from(wordFreq.entries())
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 25)
+    .map(([word]) => word);
+}
+
+// ── Post-generation quality check + fix ──────────────────────────────────────
+
+function countWords(html: string): number {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length;
+}
+
+async function enhanceIfNeeded(html: string, keyword: string): Promise<string> {
+  const wordCount = countWords(html);
+  const faqQuestions = html.match(/<h[23][^>]*>[^<]*\?[^<]*<\/h[23]>/gi) || [];
+  const hasTable = /<table/i.test(html);
+
+  const missing: string[] = [];
+
+  // Priority 1: word count — if article is short, expand all sections
+  if (wordCount < 1800) {
+    missing.push(`КРИТИЧНО: расширь каждый существующий H2-раздел — добавь 100-150 слов к каждому разделу. Текущий объём: ${wordCount} слов — нужно минимум 1800. НЕ УДАЛЯЙ существующий текст — только ДОБАВЛЯЙ.`);
+  }
+  if (faqQuestions.length < 6) {
+    missing.push(`добавь раздел "Часто задаваемые вопросы" с ${Math.max(6 - faqQuestions.length, 3)} вопросами-ответами в формате <h3>Вопрос?</h3><p>Развёрнутый ответ 60-80 слов</p>`);
+  }
+  if (!hasTable) {
+    missing.push('добавь таблицу сравнения способов получения документа (сроки, стоимость, удобство)');
+  }
+
+  if (missing.length === 0) return html;
+
+  const response = await invokeLLM({
+    messages: [
+      { role: 'system', content: 'Ты SEO-копирайтер. Расширяешь HTML-статью — только добавляешь контент, не удаляешь. Структура заголовков: H1 только один (заголовок статьи), разделы — H2, подразделы — H3. Возвращаешь ПОЛНЫЙ HTML.' },
+      { role: 'user', content: `Тема: "${keyword}". Текущая статья (${wordCount} слов):\n\n${html}\n\nЗАДАЧА — выполни ВСЁ перечисленное:\n${missing.map((m, i) => `${i + 1}. ${m}`).join('\n')}\n\nТРЕБОВАНИЯ:\n- Сохраняй структуру заголовков: H1 только заголовок статьи, разделы — H2, подразделы — H3\n- НЕ УДАЛЯЙ существующий текст — итоговая статья должна быть ДЛИННЕЕ исходной\n- Цены указывай ТОЛЬКО через шорткод [BLOCK_PRICE]\nВерни ТОЛЬКО полный итоговый HTML без <html>/<body>.` },
+    ],
+    maxTokens: 8192,
+  }).catch(() => null);
+
+  const rawContent = response?.choices[0]?.message.content;
+  const result = typeof rawContent === 'string' ? rawContent.trim() : '';
+
+  // Only use enhanced version if it's actually longer than original
+  if (!result || countWords(result) <= wordCount) return html;
+  return result;
+}
+
+// ── Internal links from user's article history ───────────────────────────────
+
+async function addInternalLinks(html: string, userId: number, ourDomain: string, currentTitle: string): Promise<string> {
+  const history = await articlesDb.getUserAnalysisHistory(userId, 300).catch(() => []);
+
+  // Only articles from same domain, deduplicated by URL
+  const seen = new Set<string>();
+  const siteArticles = history
+    .filter(a => {
+      try {
+        const domain = new URL(a.url).hostname.replace(/^www\./, '');
+        if (domain !== ourDomain || seen.has(a.url)) return false;
+        seen.add(a.url);
+        return true;
+      } catch { return false; }
+    })
+    .map(a => ({ url: a.url, title: a.originalTitle || '' }))
+    .filter(a => a.title && a.title !== currentTitle)
+    .slice(0, 100);
+
+  if (siteArticles.length === 0) return html;
+
+  // Extract key words from current article title (first 4 words)
+  const currentWords = currentTitle.toLowerCase().split(/\s+/).slice(0, 4);
+
+  // Find articles with 2+ matching words
+  const related = siteArticles
+    .map(a => {
+      const titleWords = a.title.toLowerCase().split(/\s+/);
+      const matches = currentWords.filter(w => w.length > 3 && titleWords.some(tw => tw.includes(w) || w.includes(tw)));
+      return { ...a, score: matches.length };
+    })
+    .filter(a => a.score >= 2)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  if (related.length === 0) return html;
+
+  const linksBlock = `\n<h2>Полезные материалы по теме</h2>\n<ul>\n${related.map(a => `<li><a href="${a.url}">${a.title}</a></li>`).join('\n')}\n</ul>\n`;
+
+  // Insert before last h2 (conclusion) if exists, otherwise append
+  const lastH2Match = html.match(/(<h2[^>]*>[^<]*(?:[Вв]ывод|[Зз]аключ)[^<]*<\/h2>)/);
+  return lastH2Match
+    ? html.replace(lastH2Match[0], linksBlock + lastH2Match[0])
+    : html + linksBlock;
+}
+
 async function analyzeAndSaveArticle(userId: number, url: string): Promise<void> {
   const parsed = await parseArticleFromUrl(url);
   const contentForLLM = parsed.content.slice(0, 6000);
   const serpKeyword = extractKeywordFromTitle(parsed.title);
   const ourDomain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
 
-  // Step 1: fetch SERP + our article in parallel
+  // Step 1: Google + Яндекс параллельно
   const [googleSerp, yandexSerp] = await Promise.all([
-    fetchGoogleSerp(serpKeyword).catch(() => ({ results: [], error: 'fetch failed' })),
-    fetchYandexSerp(serpKeyword).catch(() => ({ results: [], error: 'fetch failed' })),
+    cachedGoogleSerp(serpKeyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
+    cachedYandexSerp(serpKeyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
   ]);
 
-  // Step 2: fetch top-3 competitor articles from best SERP
-  const bestSerp = (googleSerp.results.length >= yandexSerp.results.length ? googleSerp : yandexSerp).results;
-  const competitors = await fetchCompetitorArticles(bestSerp, ourDomain);
+  // Дедупликация по домену: Яндекс добавляет уникальных конкурентов
+  const seenDomains = new Set(googleSerp.results.map((r: any) => r.domain));
+  const mergedResults = [
+    ...googleSerp.results,
+    ...yandexSerp.results.filter((r: any) => r.url && !seenDomains.has(r.domain)),
+  ];
+
+  // Step 2: fetch top-5 competitor articles from combined SERP
+  const competitors = await fetchCompetitorArticles(mergedResults, ourDomain);
 
   // Step 3: build competitor context for prompts
   const avgCompetitorWords = competitors.length > 0
     ? Math.round(competitors.reduce((s, c) => s + (c.wordCount || 0), 0) / competitors.length)
-    : 1500;
-  const targetWords = Math.max(1500, avgCompetitorWords + 300);
+    : 1200;
+  const maxCompetitorWords = competitors.length > 0
+    ? Math.max(...competitors.map(c => c.wordCount || 0))
+    : 1200;
+  const targetWords = Math.max(1800, Math.round(maxCompetitorWords * 1.3));
 
   const competitorContext = competitors.length > 0
     ? competitors.map((c, i) => `Конкурент #${i + 1} (${c.domain}, ~${c.wordCount} слов):
@@ -170,7 +353,7 @@ ${competitorContext}
 3. Начало: прямой ответ на запрос "${serpKeyword}" в первых 2-3 предложениях (featured snippet)
 4. Охват тем: включи ВСЕ темы конкурентов которых нет у нас
 5. FAQ-раздел: добавь H2 "Часто задаваемые вопросы" с минимум 5 вопросами-ответами (важно для блока "Люди также спрашивают" в Яндексе)
-6. E-E-A-T: добавь конкретные факты, числа, сроки, стоимости, ссылки на законы где уместно
+6. E-E-A-T: добавь конкретные факты, числа, сроки, стоимости, ссылки на законы где уместно. ${getShortcodesHint(serpKeyword)}
 7. Пошаговые инструкции: нумерованные списки для процессов
 8. Сохрани тематику: статья про кадастр/недвижимость — упоминай возможность заказать справку онлайн
 9. Сохрани язык и стиль оригинала
@@ -179,7 +362,7 @@ ${competitorContext}
 
   const [seoResponse, improvedResponse] = await Promise.all([
     invokeLLM({ messages: [{ role: 'system', content: 'Ты SEO-эксперт по российскому рынку. Отвечай только валидным JSON.' }, { role: 'user', content: seoPrompt }] }),
-    invokeLLM({ messages: [{ role: 'system', content: 'Ты SEO-копирайтер. Пишешь длинные полные статьи для топа поиска. Всегда пиши HTML.' }, { role: 'user', content: improvePrompt }], maxTokens: 8192 }),
+    invokeLLM({ messages: [{ role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 1800+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 200 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях.' }, { role: 'user', content: improvePrompt }], maxTokens: 8192 }),
   ]);
 
   let seo: SeoAnalysis;
@@ -194,6 +377,10 @@ ${competitorContext}
   const improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim() : parsed.content;
 
+  const improvedWordCount = improvedContent
+    ? improvedContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length
+    : parsed.wordCount;
+
   // Find our position in each SERP
   const findPos = (results: { domain: string }[]) => {
     if (!ourDomain) return null;
@@ -207,7 +394,7 @@ ${competitorContext}
     url,
     originalTitle: parsed.title,
     originalContent: parsed.content,
-    wordCount: parsed.wordCount,
+    wordCount: improvedWordCount,
     improvedTitle: seo.metaTitle || parsed.title,
     improvedContent,
     metaTitle: seo.metaTitle || null,
@@ -259,24 +446,86 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   const ourDomain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
   const keyword = extractKeywordFromTitle(parsed.title);
 
+  // Google + Яндекс параллельно
   const [googleSerp, yandexSerp] = await Promise.all([
-    fetchGoogleSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
-    fetchYandexSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
+    cachedGoogleSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
+    cachedYandexSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
   ]);
 
-  const mergedSerp = [...googleSerp.results, ...yandexSerp.results]
-    .filter((r, i, arr) => r.url && arr.findIndex(x => x.url === r.url) === i);
+  // Дедупликация по домену
+  const seenDomains = new Set(googleSerp.results.map((r: any) => r.domain));
+  const mergedSerp = [
+    ...googleSerp.results.filter((r: any) => r.url),
+    ...yandexSerp.results.filter((r: any) => r.url && !seenDomains.has(r.domain)),
+  ];
 
   const competitors = await fetchCompetitorArticles(mergedSerp, ourDomain, 5);
   const avgCompetitorWords = competitors.length
     ? Math.round(competitors.reduce((s, c) => s + c.wordCount, 0) / competitors.length) : 1200;
-  const targetWords = Math.max(1800, avgCompetitorWords + 200);
+  const maxCompetitorWords = competitors.length
+    ? Math.max(...competitors.map(c => c.wordCount)) : 1200;
+  const targetWords = Math.max(1800, Math.round(maxCompetitorWords * 1.3));
+
+  // Extract unique H2 headings from competitors that our article is missing
+  const ourH2s = new Set(
+    (parsed.headings || []).filter((h: any) => h.level === 'H2').map((h: any) => h.text.toLowerCase())
+  );
+  const missingTopics = competitors.flatMap(c =>
+    (c.headings || '').split(' | ')
+      .filter(h => h.startsWith('H2:'))
+      .map(h => h.replace('H2:', '').trim())
+      .filter(h => h && !ourH2s.has(h.toLowerCase()))
+  );
+  const uniqueMissingTopics = Array.from(new Set(missingTopics));
+
+  // Use SERP snippets as fallback context when competitor articles couldn't be parsed
+  const serpFallback = googleSerp.results
+    .filter((r: any) => !r.domain.includes(ourDomain) && r.snippet)
+    .slice(0, 5)
+    .map((r: any) => `- ${r.title}: ${r.snippet}`)
+    .join('\n');
 
   const competitorContext = competitors.length
     ? competitors.map(c =>
-        `--- Конкурент ${c.position}: ${c.domain} (${c.wordCount} слов) ---\nЗаголовки: ${c.headings}\nФрагмент:\n${c.content}`
+        `--- Конкурент ${c.position}: ${c.domain} (${c.wordCount} слов) ---\nЗаголовки: ${c.headings}\nФрагмент:\n${c.content.slice(0, 3000)}`
       ).join('\n\n')
-    : 'Данные конкурентов недоступны';
+    : serpFallback
+      ? `(полный текст конкурентов недоступен, используй сниппеты из SERP)\n${serpFallback}`
+      : null;
+
+  const missingTopicsBlock = uniqueMissingTopics.length > 0
+    ? `\nТЕМЫ КОНКУРЕНТОВ КОТОРЫХ НЕТ В НАШЕЙ СТАТЬЕ (обязательно добавить):\n${uniqueMissingTopics.map(t => `- ${t}`).join('\n')}\n`
+    : '';
+
+  // LSI keywords from all SERP results
+  const lsiKeywords = extractLsiKeywords([...googleSerp.results, ...yandexSerp.results]);
+  const lsiBlock = lsiKeywords.length > 0
+    ? `\nLSI-ТЕРМИНЫ (должны встречаться в статье): ${lsiKeywords.join(', ')}\n`
+    : '';
+
+  const improvePrompt = competitorContext
+    ? `Ключ: "${keyword}"
+
+Наша статья (${parsed.wordCount} слов):
+${parsed.title}
+${parsed.content.slice(0, 3000)}
+
+КОНКУРЕНТЫ ТОП-5 (лучший конкурент: ${maxCompetitorWords} слов, средний: ${avgCompetitorWords} слов):
+${competitorContext}
+${missingTopicsBlock}${lsiBlock}
+ТРЕБОВАНИЯ:
+1. Объём: минимум ${targetWords} слов — это 30% БОЛЬШЕ лучшего конкурента (${maxCompetitorWords} слов). Каждый раздел должен быть полным, не обрывай мысль.
+2. HTML: H1, H2 (7-12), H3 где уместно, <ul>/<ol>, <table> для сравнений и данных
+3. Прямой ответ на "${keyword}" в первых 2-3 предложениях (featured snippet для Яндекса)
+4. Покрой ВСЕ темы из списка "ТЕМЫ КОНКУРЕНТОВ" выше плюс добавь уникальный угол — то чего нет ни у кого
+5. FAQ: H2 "Часто задаваемые вопросы" с минимум 6 вопросами-ответами (блок "Люди также спрашивают")
+6. E-E-A-T: конкретные числа, сроки, законы РФ, стоимости, примеры из практики. ${getShortcodesHint(keyword)}
+7. Все упоминания заказа документов — ТОЛЬКО через https://base.kadastrmap.info/spravki/ (ссылка <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.
+8. Качество: пиши лучше конкурентов — более подробно, структурировано, с конкретными примерами и полезными деталями которых у них нет.
+9. ЗАПРЕЩЕНО вставлять конкретные цены в рублях — используй ТОЛЬКО шорткод [BLOCK_PRICE] для раздела с ценами.
+
+Верни ТОЛЬКО HTML без <html>/<body>.`
+    : `Ключ: "${keyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n${lsiBlock}\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${keyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${keyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${keyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${keyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${keyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="https://base.kadastrmap.info/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>FAQ: часто задаваемые вопросы</h2>\n[6 вопросов-ответов в формате <h3>Вопрос</h3><p>Ответ 60-80 слов</p>]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="https://base.kadastrmap.info/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через https://base.kadastrmap.info/spravki/ (вставляй как ссылку <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
 
   const [seoResponse, improvedResponse] = await Promise.all([
     invokeLLM({
@@ -287,8 +536,8 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
     }),
     invokeLLM({
       messages: [
-        { role: 'system', content: 'Ты SEO-копирайтер. Пишешь длинные полные статьи для топа поиска. Всегда пиши HTML.' },
-        { role: 'user', content: `Ключ: "${keyword}"\n\nНаша статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 3000)}\n\nКОНКУРЕНТЫ (средний объём: ${avgCompetitorWords} слов):\n${competitorContext}\n\nТРЕБОВАНИЯ:\n1. Минимум ${targetWords} слов\n2. HTML: H1, H2 (6-10), H3, p, ul, ol, table\n3. Прямой ответ на "${keyword}" в начале (featured snippet)\n4. Покрой ВСЕ темы конкурентов\n5. FAQ H2 с 5+ вопросами-ответами\n6. E-E-A-T: факты, числа, законы, сроки, стоимости\n7. CTA: упомяни заказ справки онлайн на kadastrmap.info\n\nВерни ТОЛЬКО HTML без <html>/<body>.` },
+        { role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 1800+ слов для топа поиска. Каждый H2-раздел минимум 200 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен.' },
+        { role: 'user', content: improvePrompt },
       ],
       maxTokens: 8192,
     }),
@@ -303,8 +552,18 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
     seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
   }
 
-  const improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
+  let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim() : parsed.content;
+
+  // Post-generation quality check: add missing FAQ questions or table
+  improvedContent = await enhanceIfNeeded(improvedContent, keyword);
+
+  // Add internal links to related articles on the same site
+  improvedContent = await addInternalLinks(improvedContent, userId, ourDomain, parsed.title);
+
+  const improvedWordCount = improvedContent
+    ? improvedContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length
+    : parsed.wordCount;
 
   const findPos = (results: { domain: string }[]) => {
     if (!ourDomain) return null;
@@ -316,7 +575,7 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
     url,
     originalTitle: parsed.title,
     originalContent: parsed.content,
-    wordCount: parsed.wordCount,
+    wordCount: improvedWordCount,
     improvedTitle: seo.metaTitle || parsed.title,
     improvedContent,
     metaTitle: seo.metaTitle || null,
@@ -331,7 +590,7 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   });
 }
 
-async function runBatchRewrite(userId: number, urls: string[]): Promise<void> {
+export async function runBatchRewrite(userId: number, urls: string[]): Promise<void> {
   let stopped = false;
   const queue = [...urls];
   const state: BatchRewriteJobState = {
@@ -407,81 +666,103 @@ export const articlesRouter = router({
       const serpKeyword = extractKeywordFromTitle(parsed.title);
       const ourDomain = (() => { try { return new URL(input.url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
 
-      // 2. Fetch SERP + competitors in parallel with SEO analysis
+      // 2. Fetch SERP — Google + Яндекс параллельно
       const [googleSerp, yandexSerp] = await Promise.all([
-        fetchGoogleSerp(serpKeyword).catch(() => ({ results: [], error: 'fetch failed' })),
-        fetchYandexSerp(serpKeyword).catch(() => ({ results: [], error: 'fetch failed' })),
+        cachedGoogleSerp(serpKeyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
+        cachedYandexSerp(serpKeyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
       ]);
 
-      const bestSerp = (googleSerp.results.length >= yandexSerp.results.length ? googleSerp : yandexSerp).results;
-      const competitors = await fetchCompetitorArticles(bestSerp, ourDomain);
+      // Дедупликация по домену
+      const seenDomains = new Set(googleSerp.results.map((r: any) => r.domain));
+      const mergedSerpResults = [
+        ...googleSerp.results,
+        ...yandexSerp.results.filter((r: any) => r.url && !seenDomains.has(r.domain)),
+      ];
+
+      const competitors = await fetchCompetitorArticles(mergedSerpResults, ourDomain);
 
       const avgCompetitorWords = competitors.length > 0
         ? Math.round(competitors.reduce((s, c) => s + (c.wordCount || 0), 0) / competitors.length)
-        : 1500;
-      const targetWords = Math.max(1500, avgCompetitorWords + 300);
+        : 1200;
+      const maxCompetitorWords = competitors.length > 0
+        ? Math.max(...competitors.map(c => c.wordCount || 0))
+        : 1200;
+      const targetWords = Math.max(1800, Math.round(maxCompetitorWords * 1.3));
+
+      // Extract unique H2 topics from competitors missing in our article
+      const ourH2s = new Set(
+        (parsed.headings || []).filter((h: any) => h.level === 'H2').map((h: any) => h.text.toLowerCase())
+      );
+      const missingTopics = competitors.flatMap(c =>
+        (c.headings || '').split(' | ')
+          .filter(h => h.startsWith('H2:'))
+          .map(h => h.replace('H2:', '').trim())
+          .filter(h => h && !ourH2s.has(h.toLowerCase()))
+      );
+      const uniqueMissingTopics = Array.from(new Set(missingTopics));
+
+      // SERP snippets fallback when full competitor content unavailable
+      const serpFallback = googleSerp.results
+        .filter((r: any) => !r.domain.includes(ourDomain) && r.snippet)
+        .slice(0, 5)
+        .map((r: any) => `- ${r.title}: ${r.snippet}`)
+        .join('\n');
 
       const competitorContext = competitors.length > 0
-        ? competitors.map((c, i) => `Конкурент #${i + 1} (${c.domain}, ~${c.wordCount} слов):
-  Заголовок: ${c.title}
-  Структура: ${c.headings || '—'}
-  Текст (фрагмент): ${c.content}`).join('\n\n')
-        : '(конкуренты недоступны)';
+        ? competitors.map(c =>
+            `--- Конкурент ${c.position}: ${c.domain} (${c.wordCount} слов) ---\nЗаголовки: ${c.headings}\nФрагмент:\n${c.content.slice(0, 3000)}`
+          ).join('\n\n')
+        : serpFallback
+          ? `(полный текст конкурентов недоступен, используй сниппеты из SERP)\n${serpFallback}`
+          : null;
+
+      const missingTopicsBlock = uniqueMissingTopics.length > 0
+        ? `\nТЕМЫ КОНКУРЕНТОВ КОТОРЫХ НЕТ В НАШЕЙ СТАТЬЕ (обязательно добавить):\n${uniqueMissingTopics.map(t => `- ${t}`).join('\n')}\n`
+        : '';
+
+      // LSI keywords from both SERPs
+      const lsiKeywords = extractLsiKeywords([...googleSerp.results, ...yandexSerp.results]);
+      const lsiBlock = lsiKeywords.length > 0
+        ? `\nLSI-ТЕРМИНЫ (должны встречаться в статье): ${lsiKeywords.join(', ')}\n`
+        : '';
 
       const ourHeadings = parsed.headings.map(h => `${h.level}: ${h.text}`).join('; ');
 
       // 3. SEO analysis + improved text — parallel, with competitor context
-      const seoPrompt = `Ты SEO-эксперт по российскому рынку. Проанализируй нашу статью с учётом конкурентов из поисковой выдачи и верни JSON.
+      const seoPrompt = `Ты SEO-эксперт по российскому рынку. Проанализируй нашу статью с учётом конкурентов и верни JSON.
 
 Наша статья:
 Заголовок: ${parsed.title}
 Ключевой запрос: ${serpKeyword}
-Мета-описание: ${parsed.metaDescription || '(отсутствует)'}
-Структура заголовков: ${ourHeadings}
 Объём: ${parsed.wordCount} слов
-Текст (фрагмент): ${contentForLLM}
-
-Топ конкуренты из SERP (средний объём: ${avgCompetitorWords} слов):
-${competitorContext}
-
-Верни ТОЛЬКО валидный JSON без markdown-блоков:
-{
-  "metaTitle": "оптимизированный title с ключом в начале (до 60 символов)",
-  "metaDescription": "мета-описание с призывом к действию и ключом (до 160 символов)",
-  "keywords": ["ключевое1", "LSI-термин2", ...до 10 штук],
-  "headingsSuggestions": [
-    { "level": "H1", "current": "текущий заголовок", "suggested": "улучшенный с ключом" }
-  ],
-  "generalSuggestions": ["конкретный совет с примером", ...до 7 советов],
-  "competitorInsights": ["тема/раздел у конкурентов которого нет у нас", ...до 5 пунктов],
-  "missingFaqQuestions": ["Вопрос из блока Люди также спрашивают?", ...до 5],
-  "conversionTips": ["как усилить конверсию в заказ справки", ...до 3],
-  "score": 75
-}`;
-
-      const improvePrompt = `Ты SEO-копирайтер экстра-класса для русскоязычного поиска. Цель: переписать статью так, чтобы она вышла в ТОП-3 Яндекса и Google по запросу "${serpKeyword}".
-
-НАША СТАТЬЯ (${parsed.wordCount} слов):
-Заголовок: ${parsed.title}
 Структура: ${ourHeadings}
-Текст:
-${contentForLLM}
 
-КОНКУРЕНТЫ В ТОП-${competitors.length} (средний объём: ${avgCompetitorWords} слов):
+Верни ТОЛЬКО валидный JSON:
+{"metaTitle":"до 60 симв","metaDescription":"до 160 симв","keywords":["ключ1"],"headingsSuggestions":[],"generalSuggestions":["совет"],"score":75}`;
+
+      const improvePrompt = competitorContext
+        ? `Ключ: "${serpKeyword}"
+
+Наша статья (${parsed.wordCount} слов):
+${parsed.title}
+${parsed.content.slice(0, 3000)}
+
+КОНКУРЕНТЫ ТОП-5 (лучший конкурент: ${maxCompetitorWords} слов, средний: ${avgCompetitorWords} слов):
 ${competitorContext}
+${missingTopicsBlock}${lsiBlock}
+ТРЕБОВАНИЯ:
+1. Объём: минимум ${targetWords} слов — это 30% БОЛЬШЕ лучшего конкурента (${maxCompetitorWords} слов). Каждый раздел должен быть полным, не обрывай мысль.
+2. HTML: H1, H2 (7-12), H3 где уместно, <ul>/<ol>, <table> для сравнений и данных
+3. Прямой ответ на "${serpKeyword}" в первых 2-3 предложениях (featured snippet для Яндекса)
+4. Покрой ВСЕ темы из списка "ТЕМЫ КОНКУРЕНТОВ" выше плюс добавь уникальный угол — то чего нет ни у кого
+5. FAQ: H2 "Часто задаваемые вопросы" с минимум 6 вопросами-ответами (блок "Люди также спрашивают")
+6. E-E-A-T: конкретные числа, сроки, законы РФ, стоимости, примеры из практики. ${getShortcodesHint(serpKeyword)}
+7. Все упоминания заказа документов — ТОЛЬКО через https://base.kadastrmap.info/spravki/ (ссылка <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.
+8. Качество: пиши лучше конкурентов — более подробно, структурировано, с конкретными примерами и полезными деталями которых у них нет.
+9. ЗАПРЕЩЕНО вставлять конкретные цены в рублях — используй ТОЛЬКО шорткод [BLOCK_PRICE] для раздела с ценами.
 
-ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ:
-1. Объём: минимум ${targetWords} слов (конкуренты пишут в среднем ${avgCompetitorWords} слов — нужно превзойти)
-2. Структура HTML: один H1, 6-10 подзаголовков H2, H3 где уместно, списки <ul>/<ol>, таблицы <table> где есть данные для сравнения
-3. Начало: прямой ответ на запрос "${serpKeyword}" в первых 2-3 предложениях (featured snippet)
-4. Охват тем: включи ВСЕ темы конкурентов которых нет у нас
-5. FAQ-раздел: добавь H2 "Часто задаваемые вопросы" с минимум 5 вопросами-ответами (важно для блока "Люди также спрашивают" в Яндексе)
-6. E-E-A-T: добавь конкретные факты, числа, сроки, стоимости, ссылки на законы где уместно
-7. Пошаговые инструкции: нумерованные списки для процессов
-8. CTA: упомяни что на kadastrmap.info можно заказать справку на объект (данные из ЕГРН, подходят для проверки при сделках и юридического анализа — это не выписка ЕГРН, но содержит все реальные сведения)
-9. Сохрани язык и стиль оригинала
-
-Верни ТОЛЬКО готовый HTML-текст статьи используя теги: <h1>, <h2>, <h3>, <p>, <ul>, <ol>, <li>, <table>, <tr>, <td>, <th>, <strong>, <em>. Без <html>/<body>/<head> тегов.`;
+Верни ТОЛЬКО HTML без <html>/<body>.`
+        : `Ключ: "${serpKeyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${serpKeyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${serpKeyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${serpKeyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${serpKeyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${serpKeyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="https://base.kadastrmap.info/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>FAQ: часто задаваемые вопросы</h2>\n[6 вопросов-ответов в формате <h3>Вопрос</h3><p>Ответ 60-80 слов</p>]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="https://base.kadastrmap.info/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через https://base.kadastrmap.info/spravki/ (<a>-ссылка). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
 
       const [seoResponse, improvedResponse] = await Promise.all([
         invokeLLM({
@@ -492,7 +773,7 @@ ${competitorContext}
         }),
         invokeLLM({
           messages: [
-            { role: "system", content: "Ты SEO-копирайтер. Пишешь длинные полные статьи для топа поиска. Всегда пиши HTML." },
+            { role: "system", content: "Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 1800+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 200 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях." },
             { role: "user", content: improvePrompt },
           ],
           maxTokens: 8192,
@@ -518,9 +799,19 @@ ${competitorContext}
         };
       }
 
-      const improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
+      let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
         ? improvedResponse.choices[0].message.content.trim()
         : parsed.content;
+
+      // Post-generation: fix missing FAQ questions or table
+      improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword);
+
+      // Add internal links to related articles on the same site
+      improvedContent = await addInternalLinks(improvedContent, ctx.user.id, ourDomain, parsed.title);
+
+      const improvedWordCount = improvedContent
+        ? improvedContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length
+        : parsed.wordCount;
 
       // 3. Auto-save to history
       let analysisId: number | null = null;
@@ -534,7 +825,7 @@ ${competitorContext}
           url: input.url,
           originalTitle: parsed.title,
           originalContent: parsed.content,
-          wordCount: parsed.wordCount,
+          wordCount: improvedWordCount,
           improvedTitle: seo.metaTitle || parsed.title,
           improvedContent,
           metaTitle: seo.metaTitle || null,
@@ -557,7 +848,7 @@ ${competitorContext}
         originalContent: parsed.content,
         originalMetaDescription: parsed.metaDescription,
         headings: parsed.headings,
-        wordCount: parsed.wordCount,
+        wordCount: improvedWordCount,
         improvedTitle: seo.metaTitle || parsed.title,
         improvedContent,
         seo,
@@ -631,6 +922,44 @@ ${competitorContext}
     }),
 
   /**
+   * Delete duplicate history entries — keep only the latest per URL
+   */
+  clearDuplicates: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const rows = await articlesDb.getUserAnalysisHistory(ctx.user.id, 10000);
+      // Group by URL, keep highest id (latest)
+      const latestByUrl = new Map<string, number>();
+      for (const row of rows) {
+        const existing = latestByUrl.get(row.url);
+        if (!existing || row.id > existing) latestByUrl.set(row.url, row.id);
+      }
+      const toDelete = rows.filter(r => latestByUrl.get(r.url) !== r.id).map(r => r.id);
+      await Promise.all(toDelete.map(id => articlesDb.deleteAnalysis(ctx.user.id, id)));
+      return { deleted: toDelete.length };
+    }),
+
+  /**
+   * Queue re-improvement for short articles (wordCount < threshold)
+   */
+  reImproveShort: protectedProcedure
+    .input(z.object({ maxWords: z.number().min(100).max(2000).default(600) }))
+    .mutation(async ({ ctx }) => {
+      const rows = await articlesDb.getUserAnalysisHistory(ctx.user.id, 10000);
+      // Deduplicate by URL first, keep latest; then filter by short wordCount
+      const latestByUrl = new Map<string, typeof rows[0]>();
+      for (const row of rows) {
+        const existing = latestByUrl.get(row.url);
+        if (!existing || row.id > existing.id) latestByUrl.set(row.url, row);
+      }
+      const shortUrls = Array.from(latestByUrl.values())
+        .filter(r => (r.wordCount ?? 9999) < 600)
+        .map(r => r.url);
+      if (shortUrls.length === 0) return { queued: 0 };
+      void runBatchRewrite(ctx.user.id, shortUrls);
+      return { queued: shortUrls.length };
+    }),
+
+  /**
    * Fetch Google + Yandex top-10, optionally compare with our article via LLM
    */
   analyzeCompetitors: protectedProcedure
@@ -642,8 +971,8 @@ ${competitorContext}
     .mutation(async ({ input }) => {
       // Fetch both SERPs in parallel
       const [google, yandex] = await Promise.all([
-        fetchGoogleSerp(input.keyword),
-        fetchYandexSerp(input.keyword),
+        cachedGoogleSerp(input.keyword),
+        cachedYandexSerp(input.keyword),
       ]);
 
       // Find our position in each SERP
@@ -819,7 +1148,7 @@ ${competitorList}
 3. Структура: H1 (один), 6-10 H2, H3 где уместно, списки, таблицы где уместно
 4. Покрой ВСЕ темы конкурентов (судя по их заголовкам и сниппетам)
 5. FAQ-раздел: H2 "Часто задаваемые вопросы" с минимум 5 вопросами-ответами
-6. E-E-A-T: конкретные факты, числа, сроки, стоимости, нормативные акты
+6. E-E-A-T: конкретные факты, числа, сроки, стоимости, нормативные акты. ${getShortcodesHint(input.keyword)}
 7. Пошаговые нумерованные инструкции для любых процессов
 8. Тема кадастр/недвижимость: упомяни возможность заказать справку онлайн
 9. Сохрани язык и стиль оригинала
@@ -909,13 +1238,13 @@ ${competitorSection}
     .input(z.object({
       keyword:  z.string().min(2),
       niche:    z.string().default('кадастр и недвижимость'),
-      ctaHint:  z.string().default('Вы можете заказать справку на объект недвижимости онлайн — данные реальные из ЕГРН, подходят для проверки объекта, сделок и юридического анализа. Заказать на kadastrmap.info'),
+      ctaHint:  z.string().default('Вы можете заказать справку на объект недвижимости онлайн — данные реальные из ЕГРН, подходят для проверки объекта, сделок и юридического анализа. Заказать на https://base.kadastrmap.info/spravki/'),
     }))
     .mutation(async ({ input }) => {
       // 1. SERP
       const [googleSerp, yandexSerp] = await Promise.all([
-        fetchGoogleSerp(input.keyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
-        fetchYandexSerp(input.keyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
+        cachedGoogleSerp(input.keyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
+        cachedYandexSerp(input.keyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
       ]);
 
       const bestSerp = (googleSerp.results.length >= yandexSerp.results.length ? googleSerp : yandexSerp).results;
@@ -1035,8 +1364,16 @@ ${competitorContext}
       const post = await wp.findPostBySlug(account.siteUrl, account.username, account.appPassword, slug);
       if (!post) throw new TRPCError({ code: 'NOT_FOUND', message: `Статья со slug "${slug}" не найдена на сайте` });
 
-      // 4. In parallel: generate CTA texts + optional DALL-E image
-      const [ctaResponse, imageUrl] = await Promise.all([
+      // 4. In parallel: generate CTA texts + 3 DALL-E images
+      const noText = `NO text, NO letters, NO words, NO labels, NO watermarks, NO inscriptions anywhere in the image.`;
+      const basePrompt = `Professional photorealistic illustration for an article about "${input.title}". Russian real estate, cadastre, property documents. Wide-format photo. ${noText}`;
+      const imagePrompts = [
+        basePrompt,
+        `Aerial top-down view of Russian land plots and cadastral map boundaries, satellite-style photography, clean and detailed. ${noText}`,
+        `Official Russian property documents, certificates with stamps on a desk, business setting, natural lighting. ${noText}`,
+      ];
+
+      const [ctaResponse, ...imageResults] = await Promise.all([
         invokeLLM({
           messages: [
             { role: 'system', content: 'Ты копирайтер. Пишешь короткие призывы к действию для кнопок.' },
@@ -1048,12 +1385,12 @@ ${competitorContext}
 ["текст кнопки 1", "текст кнопки 2", "текст кнопки 3"]` },
           ],
         }),
-        input.generateImage
-          ? generateDallEImage(
-              `Профессиональная иллюстрация для статьи о "${input.title}". ` +
-              `Российская недвижимость, кадастр, документы. Чистый современный стиль, без текста.`
-            ).catch((e) => { console.error('[Articles] DALL-E failed:', e.message); return null; })
-          : Promise.resolve(null),
+        ...(input.generateImage
+          ? imagePrompts.map((p) =>
+              generateDallEImage(p).catch((e) => { console.error('[Articles] DALL-E failed:', e.message); return null; })
+            )
+          : [Promise.resolve(null), Promise.resolve(null), Promise.resolve(null)]
+        ),
       ]);
 
       // Parse CTA texts
@@ -1070,30 +1407,51 @@ ${competitorContext}
         if (Array.isArray(parsed) && parsed.length === 3) ctaTexts = parsed;
       } catch { /* use defaults */ }
 
-      // 5. Upload image to WP media if generated
-      let featuredMediaId: number | undefined;
-      if (imageUrl) {
-        try {
-          const media = await wp.uploadMediaFromUrl(
-            account.siteUrl, account.username, account.appPassword,
-            imageUrl, `${slug}.jpg`
-          );
-          featuredMediaId = media.id;
-        } catch (e: any) {
-          console.error('[Articles] Media upload failed:', e.message);
-        }
-      }
+      // 5. Upload all generated images to WP media
+      const imageUrls = imageResults as (string | null)[];
+      const uploadedMedia: ({ id: number; url: string } | null)[] = await Promise.all(
+        imageUrls.map(async (url, i) => {
+          if (!url) return null;
+          try {
+            return await wp.uploadMediaFromUrl(
+              account.siteUrl, account.username, account.appPassword,
+              url, `${slug}-img-${i + 1}.jpg`
+            );
+          } catch (e: any) {
+            console.error(`[Articles] Media upload ${i + 1} failed:`, e.message);
+            return null;
+          }
+        })
+      );
 
-      // 6. Convert plain text → HTML + inject CTAs
+      // 6. Convert content → HTML + inject CTAs
       const ctaBlock = (text: string) =>
         `\n<div style="text-align:center;margin:2em 0 2.5em;">` +
         `<a href="${input.ctaUrl}" style="display:inline-block;background:#4CAF50;color:#fff;` +
         `padding:16px 48px;border-radius:8px;font-size:16px;font-weight:500;text-decoration:none;">` +
         `${text}</a></div>\n`;
 
-      const htmlContent = plainTextToHtmlWithCTAs(input.content, ctaTexts, ctaBlock);
+      let htmlContent = plainTextToHtmlWithCTAs(input.content, ctaTexts, ctaBlock);
 
-      // 7. Update WP post
+      // 7. Inject content images after H2 tags (2nd, 4th, 6th occurrence)
+      const validMedia = uploadedMedia.filter(Boolean) as { id: number; url: string }[];
+      if (validMedia.length > 0) {
+        let h2count = 0;
+        htmlContent = htmlContent.replace(/<\/h2>/gi, () => {
+          h2count++;
+          const targets: Record<number, number> = { 2: 0, 4: 1, 6: 2 };
+          const mediaIndex = targets[h2count];
+          if (mediaIndex !== undefined && validMedia[mediaIndex]) {
+            const imgUrl = validMedia[mediaIndex].url;
+            return `</h2>\n<figure style="margin:1.5em 0;text-align:center;"><img src="${imgUrl}" alt="${input.title}" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy"></figure>`;
+          }
+          return '</h2>';
+        });
+      }
+
+      // 8. Update WP post (first image as featured media)
+      const featuredMediaId: number | undefined = validMedia[0]?.id;
+
       const updated = await wp.updatePost(
         account.siteUrl, account.username, account.appPassword,
         post.id,
@@ -1107,7 +1465,7 @@ ${competitorContext}
       return {
         success: true,
         link: updated.link,
-        imageUploaded: !!featuredMediaId,
+        imagesUploaded: validMedia.length,
         ctaTexts,
       };
     }),
@@ -1151,8 +1509,8 @@ ${competitorContext}
     }))
     .mutation(async ({ input }) => {
       const [google, yandex] = await Promise.all([
-        fetchGoogleSerp(input.keyword),
-        fetchYandexSerp(input.keyword),
+        cachedGoogleSerp(input.keyword),
+        cachedYandexSerp(input.keyword),
       ]);
 
       const findPos = (results: { domain: string }[]) => {
@@ -1429,8 +1787,8 @@ ${groupsSummary}
       console.log(`[KeywordResearch] Fetching SERP for ${seeds.length} seeds via proxies...`);
       const serpJobs = seeds.map(kw =>
         Promise.all([
-          fetchGoogleSerp(kw).catch(() => ({ results: [] as any[], error: 'fail' })),
-          fetchYandexSerp(kw).catch(() => ({ results: [] as any[], error: 'fail' })),
+          cachedGoogleSerp(kw).catch(() => ({ results: [] as any[], error: 'fail' })),
+          cachedYandexSerp(kw).catch(() => ({ results: [] as any[], error: 'fail' })),
         ])
       );
       const serpAll = await Promise.allSettled(serpJobs);
@@ -1586,6 +1944,36 @@ ${competitorSection}
       const job = batchRewriteJobs.get(ctx.user.id);
       if (job) { job.stop(); job.running = false; }
       return { stopped: true };
+    }),
+
+  // ── Scheduler ────────────────────────────────────────────────────────────
+
+  getSchedulerConfig: protectedProcedure
+    .query(async () => {
+      const { getSchedulerConfig, getSchedulerStatus } = await import('../articleScheduler');
+      return { config: getSchedulerConfig(), status: getSchedulerStatus() };
+    }),
+
+  saveSchedulerConfig: protectedProcedure
+    .input(z.object({
+      enabled:          z.boolean(),
+      catalogUrl:       z.string().url(),
+      articlesPerNight: z.number().min(1).max(200),
+      hour:             z.number().min(0).max(23),
+      userId:           z.number().min(1),
+      skipImprovedDays: z.number().min(0).max(365),
+    }))
+    .mutation(async ({ input }) => {
+      const { saveSchedulerConfig } = await import('../articleScheduler');
+      saveSchedulerConfig(input);
+      return { saved: true };
+    }),
+
+  // ── Progress stats ────────────────────────────────────────────────────────
+
+  getProgressStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      return articlesDb.getProgressStats(ctx.user.id);
     }),
 
 });

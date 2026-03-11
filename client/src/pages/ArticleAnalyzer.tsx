@@ -273,47 +273,45 @@ function CompetitorPanel({
   );
 }
 
-// Convert plain text to preview HTML with CTA buttons
-function buildPreviewHtml(title: string, text: string, ctaUrl: string): string {
-  const ctaBlock = `
-    <div style="text-align:center;margin:2em 0 2.5em;">
-      <a href="${ctaUrl || '#'}"
-         style="display:inline-block;background:#4CAF50;color:#fff;padding:16px 48px;
-                border-radius:8px;font-size:16px;font-weight:500;text-decoration:none;
-                letter-spacing:0.2px;cursor:pointer;">
-        Получить полную информацию о вашем объекте недвижимости
-      </a>
-    </div>`;
+// Build preview HTML from already-HTML content — inject CTAs + image placeholders
+function buildPreviewHtml(title: string, html: string, ctaUrl: string): string {
+  const ctaBlock = `<div style="text-align:center;margin:2em 0 2.5em;">
+    <a href="${ctaUrl || '#'}" style="display:inline-block;background:#4CAF50;color:#fff;padding:16px 48px;border-radius:8px;font-size:16px;font-weight:500;text-decoration:none;">
+      Получить полную информацию о вашем объекте недвижимости
+    </a>
+  </div>`;
 
-  const blocks = text.split(/\n{2,}/);
-  const html: string[] = [];
+  const imgPlaceholder = (n: number) =>
+    `<figure style="margin:1.5em 0;text-align:center;">
+      <div style="background:linear-gradient(135deg,#e0e7ff 0%,#f0fdf4 100%);border-radius:10px;padding:48px 24px;color:#6b7280;font-size:14px;border:1px dashed #c7d2fe;">
+        🖼 Картинка ${n} — будет сгенерирована DALL-E при публикации
+      </div>
+    </figure>`;
 
-  for (const block of blocks) {
-    const t = block.trim();
-    if (!t) continue;
-    if (t.startsWith('### ')) html.push(`<h3>${t.slice(4)}</h3>`);
-    else if (t.startsWith('## ')) html.push(`<h2>${t.slice(3)}</h2>`);
-    else if (t.startsWith('# ')) html.push(`<h2>${t.slice(2)}</h2>`);
-    else {
-      const lines = t.split('\n');
-      if (lines.every(l => /^[-*]\s/.test(l)))
-        html.push('<ul>' + lines.map(l => `<li>${l.slice(2)}</li>`).join('') + '</ul>');
-      else if (lines.every(l => /^\d+\.\s/.test(l)))
-        html.push('<ol>' + lines.map(l => `<li>${l.replace(/^\d+\.\s/, '')}</li>`).join('') + '</ol>');
-      else
-        html.push(`<p>${t.replace(/\n/g, '<br>')}</p>`);
-    }
+  // Inject image placeholders after 2nd, 4th, 6th </h2>
+  let h2count = 0;
+  let body = html.replace(/<\/h2>/gi, () => {
+    h2count++;
+    const targets: Record<number, number> = { 2: 1, 4: 2, 6: 3 };
+    return targets[h2count] !== undefined
+      ? `</h2>\n${imgPlaceholder(targets[h2count])}`
+      : '</h2>';
+  });
+
+  // Inject CTAs at ~1/3, ~2/3, end — split by </h2> boundaries
+  const h2positions: number[] = [];
+  const h2re = /<\/h2>/gi;
+  let h2m: RegExpExecArray | null;
+  while ((h2m = h2re.exec(body)) !== null) h2positions.push(h2m.index);
+  const total = h2positions.length;
+  if (total >= 3) {
+    const ins1 = h2positions[Math.floor(total / 3)];
+    const ins2 = h2positions[Math.floor((total * 2) / 3)];
+    // Insert from end to start to preserve indices
+    body = body.slice(0, ins2 + 5) + '\n' + ctaBlock + body.slice(ins2 + 5);
+    body = body.slice(0, ins1 + 5) + '\n' + ctaBlock + body.slice(ins1 + 5);
   }
-
-  const total = html.length;
-  const pos1 = Math.floor(total / 3);
-  const pos2 = Math.floor((total * 2) / 3);
-  const result: string[] = [];
-  for (let i = 0; i < html.length; i++) {
-    result.push(html[i]);
-    if (i === pos1 - 1 || i === pos2 - 1) result.push(ctaBlock);
-  }
-  result.push(ctaBlock);
+  body += '\n' + ctaBlock;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
@@ -325,10 +323,14 @@ function buildPreviewHtml(title: string, text: string, ctaUrl: string): string {
   p  { margin: 0 0 1.2em; }
   ul, ol { padding-left: 1.5em; margin: 0 0 1.2em; }
   li { margin-bottom: 0.4em; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; }
+  th { background: #f9fafb; font-weight: 600; }
   a  { color: #1a73e8; }
+  figure { margin: 1.5em 0; }
+  img { max-width: 100%; height: auto; border-radius: 8px; }
 </style></head><body>
-<h1>${title}</h1>
-${result.join('\n')}
+${body}
 </body></html>`;
 }
 
@@ -343,10 +345,14 @@ function PublishToSiteDialog({
   title: string;
   content: string;
 }) {
-  const [ctaUrl, setCtaUrl] = useState(() => localStorage.getItem(CTA_URL_KEY) || 'https://kadastrmap.info/order/');
+  const [ctaUrl, setCtaUrl] = useState(() => {
+    const saved = localStorage.getItem(CTA_URL_KEY);
+    if (saved) return saved;
+    try { return new URL(originalUrl).origin + '/spravki/'; } catch { return 'https://kadastrmap.info/spravki/'; }
+  });
   const [accountId, setAccountId] = useState<number | null>(null);
   const [generateImage, setGenerateImage] = useState(true);
-  const [result, setResult] = useState<{ link: string; ctaTexts: string[]; imageUploaded: boolean } | null>(null);
+  const [result, setResult] = useState<{ link: string; ctaTexts: string[]; imagesUploaded: number } | null>(null);
 
   const { data: accounts = [] } = trpc.wordpress.getAccounts.useQuery();
 
@@ -380,7 +386,7 @@ function PublishToSiteDialog({
           <div className="p-6 space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
               <p className="text-green-800 font-medium mb-1">✓ Статья успешно обновлена</p>
-              {result.imageUploaded && <p className="text-green-600 text-sm">· Картинка загружена</p>}
+              {result.imagesUploaded > 0 && <p className="text-green-600 text-sm">· Загружено картинок: {result.imagesUploaded}</p>}
               <p className="text-green-600 text-sm">· Добавлено 3 кнопки конверсии</p>
             </div>
             <div>
@@ -421,7 +427,7 @@ function PublishToSiteDialog({
 
             <div>
               <p className="text-xs text-slate-500 mb-1">URL кнопок заказа документов</p>
-              <Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://kadastrmap.info/order/" />
+              <Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://kadastrmap.info/spravki/" />
               <p className="text-xs text-slate-400 mt-1">Сохраняется автоматически</p>
             </div>
 
@@ -479,12 +485,19 @@ function AnalysisPanel({
   const [overriddenContent, setOverriddenContent] = useState<string | null>(null);
   const [overriddenAt, setOverriddenAt] = useState<Date | null>(null);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [articleCopied, setArticleCopied] = useState(false);
 
   const displayContent = overriddenContent ?? result.improvedContent;
 
   const handleRewrite = (newContent: string) => {
     setOverriddenContent(newContent);
     setOverriddenAt(new Date());
+  };
+
+  const handleCopyArticle = () => {
+    navigator.clipboard.writeText(displayContent);
+    setArticleCopied(true);
+    setTimeout(() => setArticleCopied(false), 2000);
   };
 
   return (
@@ -541,6 +554,9 @@ function AnalysisPanel({
                     </Badge>
                   )}
                   <Badge className="bg-blue-100 text-blue-800">AI</Badge>
+                  <Button size="sm" variant="outline" onClick={handleCopyArticle} className="gap-1.5 h-7 text-xs">
+                    {articleCopied ? '✓ Скопировано' : 'Копировать'}
+                  </Button>
                 </div>
               </CardTitle>
               <p className="text-sm text-slate-500"><span className="font-medium">Заголовок:</span> {result.improvedTitle}</p>
@@ -591,7 +607,7 @@ function AnalysisPanel({
                 srcDoc={buildPreviewHtml(
                   result.improvedTitle,
                   displayContent,
-                  localStorage.getItem(CTA_URL_KEY) || 'https://kadastrmap.info/order/'
+                  (() => { try { return new URL(originalUrl).origin + '/spravki/'; } catch { return localStorage.getItem(CTA_URL_KEY) || 'https://kadastrmap.info/spravki/'; } })()
                 )}
                 className="w-full rounded-b-lg border-0"
                 style={{ height: '75vh', minHeight: 500 }}
@@ -3317,7 +3333,7 @@ function GenerateTopArticle({ initialKeyword }: { initialKeyword?: string }) {
 }
 
 export default function ArticleAnalyzer() {
-  const [activeTab, setActiveTab] = useState<'analyze' | 'catalog' | 'ideas' | 'audit' | 'serp' | 'proxies' | 'generate' | 'keywords'>('catalog');
+  const [activeTab, setActiveTab] = useState<'analyze' | 'catalog' | 'ideas' | 'audit' | 'serp' | 'proxies' | 'generate' | 'keywords' | 'auto'>('catalog');
   const [generateKeyword, setGenerateKeyword] = useState('');
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -3404,6 +3420,38 @@ export default function ArticleAnalyzer() {
     onSuccess: () => { toast.info('Авто-улучшение остановлено'); utils.articles.getBatchRewriteStatus.invalidate(); },
   });
 
+  // Scheduler + progress stats
+  const { data: progressStats } = trpc.articles.getProgressStats.useQuery(undefined, {
+    refetchInterval: activeTab === 'auto' ? 30_000 : false,
+    enabled: true,
+  });
+  const { data: schedulerData, refetch: refetchScheduler } = trpc.articles.getSchedulerConfig.useQuery(undefined, {
+    enabled: activeTab === 'auto',
+  });
+  const [schedulerForm, setSchedulerForm] = useState({
+    enabled: false, catalogUrl: 'https://kadastrmap.info/kadastr/',
+    articlesPerNight: 20, hour: 2, userId: 1, skipImprovedDays: 30,
+  });
+  const { mutate: saveScheduler, isPending: isSavingScheduler } = trpc.articles.saveSchedulerConfig.useMutation({
+    onSuccess: () => { toast.success('Расписание сохранено'); refetchScheduler(); },
+    onError: (e) => toast.error(e?.message || 'Ошибка сохранения'),
+  });
+
+  // Auto-tab: manual "run now" state
+  const [autoRunUrl, setAutoRunUrl] = useState('https://kadastrmap.info/kadastr/');
+  const [autoRunPages, setAutoRunPages] = useState(5);
+  const { mutateAsync: scanCatalogForAuto, isPending: isAutoScanning } = trpc.articles.scanCatalog.useMutation();
+  const handleAutoRunStart = async () => {
+    try {
+      const result = await scanCatalogForAuto({ url: autoRunUrl, maxPages: autoRunPages, startPage: 1 });
+      const urls = result.articles.map((a: { url: string }) => a.url);
+      if (urls.length === 0) { toast.error('Не найдено статей по этому URL'); return; }
+      startBatchRewrite({ urls });
+    } catch (e: any) {
+      toast.error(e?.message || 'Ошибка сканирования каталога');
+    }
+  };
+
   const { mutate: analyze, isPending: isAnalyzing } = trpc.articles.analyzeUrl.useMutation({
     onSuccess: (data) => {
       setResult(data as AnalysisResult);
@@ -3461,6 +3509,9 @@ export default function ArticleAnalyzer() {
     },
   });
 
+  const { mutate: clearDuplicates, isPending: isClearingDups } = trpc.articles.clearDuplicates.useMutation();
+  const { mutate: reImproveShort, isPending: isReImprovingShort } = trpc.articles.reImproveShort.useMutation();
+
   const { mutate: saveToLibrary, isPending: isSaving } = trpc.articles.saveToLibrary.useMutation({
     onSuccess: (data) => {
       setSavedPostId(data.postId ?? null);
@@ -3469,6 +3520,10 @@ export default function ArticleAnalyzer() {
     },
     onError: (e: any) => toast.error(e?.message || 'Ошибка сохранения'),
   });
+
+  useEffect(() => {
+    if (schedulerData?.config) setSchedulerForm(schedulerData.config);
+  }, [schedulerData]);
 
   const handleAnalyze = (articleUrl?: string) => {
     const targetUrl = articleUrl || url;
@@ -3506,11 +3561,11 @@ export default function ArticleAnalyzer() {
           <p className="text-slate-600">Сканируйте каталог или введите URL статьи — AI улучшит текст и даст SEO-рекомендации</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
           {/* Main area */}
           <div>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-8">
+              <TabsList className="grid w-full grid-cols-9">
                 <TabsTrigger value="catalog" className="text-xs">
                   <List className="w-3.5 h-3.5 mr-1" />Каталог
                 </TabsTrigger>
@@ -3534,6 +3589,9 @@ export default function ArticleAnalyzer() {
                 </TabsTrigger>
                 <TabsTrigger value="proxies" className="text-xs">
                   <Shield className="w-3.5 h-3.5 mr-1" />Прокси
+                </TabsTrigger>
+                <TabsTrigger value="auto" className="text-xs data-[state=active]:bg-orange-600 data-[state=active]:text-white">
+                  <Zap className="w-3.5 h-3.5 mr-1" />Авто
                 </TabsTrigger>
               </TabsList>
 
@@ -3774,6 +3832,234 @@ export default function ArticleAnalyzer() {
                   </Card>
                 </div>
               </TabsContent>
+
+              {/* Auto tab: Scheduler + Progress */}
+              <TabsContent value="auto" className="space-y-6">
+
+                {/* Run now card */}
+                <Card className="border-orange-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-orange-500" />
+                      Запустить улучшение сейчас
+                    </CardTitle>
+                    <p className="text-sm text-slate-500">Сканируем каталог и запускаем улучшение статей одну за другой</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-2 flex-wrap items-end">
+                      <div className="flex-1 min-w-[200px] space-y-1">
+                        <label className="text-xs font-medium text-slate-600">URL каталога</label>
+                        <Input
+                          value={autoRunUrl}
+                          onChange={e => setAutoRunUrl(e.target.value)}
+                          placeholder="https://kadastrmap.info/kadastr/"
+                          disabled={batchRewrite?.running || isAutoScanning}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-600">Страниц каталога</label>
+                        <select
+                          className="border rounded-md px-3 py-2 text-sm bg-white"
+                          value={autoRunPages}
+                          onChange={e => setAutoRunPages(Number(e.target.value))}
+                          disabled={batchRewrite?.running || isAutoScanning}
+                        >
+                          {[1, 2, 5, 10, 20, 50].map(n => (
+                            <option key={n} value={n}>{n} {n === 1 ? 'страница' : 'страниц'}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        className="gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+                        disabled={batchRewrite?.running || isAutoScanning || !autoRunUrl.trim()}
+                        onClick={handleAutoRunStart}
+                      >
+                        {isAutoScanning
+                          ? <><Loader2 className="w-4 h-4 animate-spin" />Сканирую каталог...</>
+                          : batchRewrite?.running
+                            ? <><Loader2 className="w-4 h-4 animate-spin" />Улучшаю...</>
+                            : <><Zap className="w-4 h-4" />Запустить улучшение</>
+                        }
+                      </Button>
+                      {batchRewrite?.running && (
+                        <Button size="sm" variant="outline" onClick={() => stopBatchRewrite()} className="gap-1 text-xs border-red-300 text-red-600 hover:bg-red-50">
+                          <Square className="w-3 h-3" />Стоп
+                        </Button>
+                      )}
+                    </div>
+
+                    {batchRewrite && (batchRewrite.running || batchRewrite.total > 0) && (
+                      <div className="space-y-1.5 pt-1 border-t">
+                        <div className="flex justify-between text-xs text-orange-700 font-medium">
+                          <span>
+                            {batchRewrite.done} / {batchRewrite.total} улучшено
+                            {batchRewrite.errors > 0 && <span className="text-orange-500 ml-2">({batchRewrite.errors} ошибок)</span>}
+                            {!batchRewrite.running && batchRewrite.done > 0 && <span className="text-green-600 ml-2">✓ Готово</span>}
+                          </span>
+                          <span>{batchRewrite.total > 0 ? Math.round((batchRewrite.done / batchRewrite.total) * 100) : 0}%</span>
+                        </div>
+                        <div className="w-full bg-orange-100 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${batchRewrite.total > 0 ? Math.round((batchRewrite.done / batchRewrite.total) * 100) : 0}%` }}
+                          />
+                        </div>
+                        {batchRewrite.current && (
+                          <p className="text-xs text-slate-500 truncate">
+                            Сейчас: <span className="text-slate-700">{batchRewrite.current}</span>
+                          </p>
+                        )}
+                        <p className="text-xs text-orange-400">Вкладку можно закрыть — улучшение продолжается на сервере</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Progress stats */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-orange-500" />
+                      Прогресс улучшения статей
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {progressStats ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                        {[
+                          { label: 'Всего улучшено', value: progressStats.totalImproved, unit: 'стат.' },
+                          { label: 'За 7 дней',      value: progressStats.improvedThisWeek,  unit: 'стат.' },
+                          { label: 'За 30 дней',     value: progressStats.improvedThisMonth, unit: 'стат.' },
+                          { label: 'Средний SEO',    value: progressStats.avgSeoScore,  unit: '/100' },
+                          { label: 'Макс. SEO',      value: progressStats.topSeoScore,  unit: '/100' },
+                          { label: 'Ср. слов (до)',  value: progressStats.avgWordsBefore, unit: 'сл.' },
+                        ].map(({ label, value, unit }) => (
+                          <div key={label} className="bg-slate-50 rounded-lg p-3 text-center">
+                            <p className="text-2xl font-bold text-slate-800">{value}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{unit}</p>
+                            <p className="text-xs text-slate-400 mt-1 leading-tight">{label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-slate-400 text-sm">
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                        Загрузка статистики...
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Scheduler settings */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-orange-500" />
+                      Ночной планировщик
+                    </CardTitle>
+                    <p className="text-sm text-slate-500">
+                      Каждую ночь сервер автоматически улучшает N статей из каталога
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Status badge */}
+                    {schedulerData?.status && (
+                      <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-sm">
+                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${schedulerData.status.running ? 'bg-green-500 animate-pulse' : schedulerData.config.enabled ? 'bg-blue-400' : 'bg-slate-300'}`} />
+                        <span className="text-slate-600">
+                          {schedulerData.status.running
+                            ? 'Батч запущен прямо сейчас...'
+                            : schedulerData.config.enabled
+                              ? `Включён · последний запуск: ${schedulerData.status.lastRun ?? 'ещё не запускался'}`
+                              : 'Планировщик отключён'}
+                        </span>
+                        {schedulerData.status.nextRun && (
+                          <span className="ml-auto text-xs text-slate-400">
+                            Следующий: {new Date(schedulerData.status.nextRun).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">URL каталога</label>
+                        <Input
+                          value={schedulerForm.catalogUrl}
+                          onChange={e => setSchedulerForm(f => ({ ...f, catalogUrl: e.target.value }))}
+                          placeholder="https://kadastrmap.info/kadastr/"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Статей за ночь</label>
+                        <select
+                          className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                          value={schedulerForm.articlesPerNight}
+                          onChange={e => setSchedulerForm(f => ({ ...f, articlesPerNight: Number(e.target.value) }))}
+                        >
+                          {[5, 10, 20, 30, 50, 100].map(n => (
+                            <option key={n} value={n}>{n} статей</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Час запуска (0–23)</label>
+                        <select
+                          className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                          value={schedulerForm.hour}
+                          onChange={e => setSchedulerForm(f => ({ ...f, hour: Number(e.target.value) }))}
+                        >
+                          {Array.from({ length: 24 }, (_, i) => (
+                            <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Пропускать уже улучшенные (дней)</label>
+                        <select
+                          className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                          value={schedulerForm.skipImprovedDays}
+                          onChange={e => setSchedulerForm(f => ({ ...f, skipImprovedDays: Number(e.target.value) }))}
+                        >
+                          {[7, 14, 30, 60, 90, 0].map(n => (
+                            <option key={n} value={n}>{n === 0 ? 'Не пропускать' : `${n} дней`}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded"
+                          checked={schedulerForm.enabled}
+                          onChange={e => setSchedulerForm(f => ({ ...f, enabled: e.target.checked }))}
+                        />
+                        <span className="text-sm font-medium text-slate-700">Включить планировщик</span>
+                      </label>
+                      <Button
+                        onClick={() => saveScheduler(schedulerForm)}
+                        disabled={isSavingScheduler}
+                        className="gap-2 bg-orange-600 hover:bg-orange-700"
+                      >
+                        {isSavingScheduler ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Сохранить
+                      </Button>
+                    </div>
+
+                    <p className="text-xs text-slate-400">
+                      Планировщик проверяет время каждые 10 минут. При включении: каждую ночь в указанный час
+                      сервер сканирует каталог и улучшает первые N статей, которые не улучшались
+                      последние {schedulerForm.skipImprovedDays} дней.
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
             </Tabs>
           </div>
 
@@ -3781,7 +4067,41 @@ export default function ArticleAnalyzer() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-slate-700 font-medium">
               <History className="w-4 h-4" />
-              <span>История ({history.length})</span>
+              <span>История ({Math.min(history.length, 100)})</span>
+            </div>
+            <div className="flex gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs h-7 gap-1"
+                onClick={() => clearDuplicates(undefined, {
+                  onSuccess: (d) => {
+                    toast.success(`Удалено дублей: ${d.deleted}`);
+                    utils.articles.getHistory.invalidate();
+                  },
+                  onError: (e) => toast.error(e.message),
+                })}
+                disabled={isClearingDups}
+              >
+                {isClearingDups ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                Убрать дубли
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs h-7 gap-1 text-amber-700 border-amber-300 hover:bg-amber-50"
+                onClick={() => reImproveShort({ maxWords: 600 }, {
+                  onSuccess: (d) => {
+                    if (d.queued === 0) toast.info('Нет коротких статей (< 600 слов)');
+                    else { toast.success(`Улучшение запущено: ${d.queued} статей`); utils.articles.getBatchRewriteStatus.invalidate(); }
+                  },
+                  onError: (e) => toast.error(e.message),
+                })}
+                disabled={isReImprovingShort}
+              >
+                {isReImprovingShort ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                Улучшить короткие
+              </Button>
             </div>
 
             {historyLoading ? (
@@ -3794,7 +4114,7 @@ export default function ArticleAnalyzer() {
               </Card>
             ) : (
               <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
-                {history.map((item) => (
+                {history.slice(0, 100).map((item) => (
                   <Card
                     key={item.id}
                     className={`cursor-pointer transition-all hover:shadow-md ${selectedHistoryId === item.id ? 'ring-2 ring-blue-500' : ''}`}

@@ -31,20 +31,44 @@ export const appRouter = router({
     generatePost: protectedProcedure
       .input(z.object({
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
-        platform: z.enum(["facebook", "instagram", "whatsapp"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
         language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]).default("hinglish"),
         customPrompt: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const prompts: Record<string, string> = {
-          desi_business_owner: "Create a viral Instagram Reel script for Indian business owners. Use Hinglish and humor to show the struggle of manual customer service vs AI. Include a hook like 'When a customer pings at 2:00 AM'. Make it relatable and funny. Keep it under 150 words.",
-          five_minute_transformation: `Create a fast-paced 5-minute transformation script for setting up an AI consultant. Show the entire onboarding process in real-time. Use language: ${input.language}. Include a visible timer concept. Keep it engaging and under 150 words.`,
-          roi_calculator: "Create a carousel post or video script about ROI and cost savings. Compare hiring a full-time employee (₹15,000-30,000/month) vs AI agent (₹2,000/month). Use 'Paisa Vasool' concept. Keep it under 150 words.",
+        const isYouTube = input.platform === "youtube";
+
+        const prompts: Record<string, Record<string, string>> = {
+          facebook: {
+            desi_business_owner: "Write a Facebook post for Indian business owners using Hinglish humor. Show the struggle of missing customer messages at night vs having an AI agent. Add a relatable story hook (e.g. 'Raat 2 baje ek message aaya...'). Include call-to-action. Under 200 words.",
+            five_minute_transformation: `Write a Facebook post showing how to set up an AI consultant in 5 minutes. Step-by-step, use language: ${input.language}. Add excitement and a free trial CTA. Under 200 words.`,
+            roi_calculator: "Write a Facebook post comparing hiring staff (₹15,000-30,000/month) vs AI agent (₹999/month). Use 'Paisa Vasool' angle. Include ROI math. Under 200 words.",
+          },
+          instagram: {
+            desi_business_owner: "Write an Instagram Reel script for Indian SMBs. Hinglish, funny, hook in first 3 seconds. Show customer service struggle vs AI. Include text overlays idea and hashtags. Under 150 words.",
+            five_minute_transformation: `Write an Instagram Reel script: 5-minute AI setup demo. Fast cuts, timer visible, language: ${input.language}. End with free trial link. Under 150 words.`,
+            roi_calculator: "Write an Instagram carousel caption about cost savings: staff vs AI agent ₹999/month. Use bold stats, emojis, Hinglish. Under 150 words.",
+          },
+          whatsapp: {
+            desi_business_owner: "Write a WhatsApp Business broadcast message for Indian shop owners. Casual, short, in Hinglish. Show how AI handles customer queries 24/7. Include a WhatsApp demo link. Under 100 words.",
+            five_minute_transformation: `Write a WhatsApp Business message: 'Set up your AI agent in 5 minutes'. Language: ${input.language}. Conversational tone, include free trial link. Under 100 words.`,
+            roi_calculator: "Write a WhatsApp broadcast about ROI: compare cost of missed leads vs ₹999/month AI. Add urgency. Under 100 words.",
+          },
+          youtube: {
+            desi_business_owner: `Write a YouTube Shorts script (max 60 sec) for Indian business owners. Hook in first 2 seconds. Use Hinglish humor about missing customer messages. Show before/after with Get My Agent. End with subscribe CTA. Format: [HOOK] [PROBLEM] [SOLUTION] [CTA]. Language: ${input.language}.`,
+            five_minute_transformation: `Write a full YouTube video script (5-7 min) showing complete AI agent setup demo. Structured: intro hook, step-by-step setup (paste code → agent live), results, CTA to free trial. Language: ${input.language}. Include suggested title, description, and tags.`,
+            roi_calculator: `Write a YouTube Shorts script (max 60 sec) about ROI: hiring staff ₹15,000-30,000/month vs AI ₹999/month. Use a calculator visual idea. Language: ${input.language}. Format: [HOOK] [MATH] [PUNCHLINE] [CTA]. Include suggested title and 10 tags.`,
+          },
         };
 
-        const systemPrompt = "You are a social media content expert for the Indian market. Create engaging, viral-worthy content that resonates with Indian business owners. Use cultural references, humor, and local language preferences. Always include relevant hashtags and emojis.";
-        
-        const userPrompt = input.customPrompt || prompts[input.pillarType];
+        const platformPrompts = prompts[input.platform] || prompts.instagram;
+        const basePrompt = platformPrompts[input.pillarType];
+
+        const systemPrompt = isYouTube
+          ? "You are a YouTube content strategist for the Indian market. Create engaging video scripts, optimized titles, descriptions, and tags that help Indian business owners understand the value of AI. Use cultural references and relatable examples."
+          : "You are a social media content expert for the Indian market. Create engaging, viral-worthy content that resonates with Indian business owners. Use cultural references, humor, and local language preferences. Always include relevant hashtags and emojis.";
+
+        const userPrompt = input.customPrompt || basePrompt;
 
         const response = await invokeLLM({
           messages: [
@@ -73,7 +97,7 @@ export const appRouter = router({
       .input(z.object({
         title: z.string(),
         content: z.string(),
-        platform: z.enum(["facebook", "instagram", "whatsapp"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
         language: z.string(),
         hashtags: z.string().optional(),
         status: z.enum(["draft", "scheduled", "published"]).default("draft"),
@@ -111,7 +135,7 @@ export const appRouter = router({
       .input(z.object({
         title: z.string(),
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
-        platform: z.enum(["facebook", "instagram", "whatsapp", "all"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube", "all"]),
         language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]),
         prompt: z.string(),
         description: z.string().optional(),
@@ -166,7 +190,7 @@ export const appRouter = router({
     generateVariation: protectedProcedure
       .input(z.object({
         content: z.string(),
-        platform: z.enum(["facebook", "instagram", "whatsapp"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
         language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]).default("hinglish"),
       }))
       .mutation(async ({ input }) => {
@@ -184,7 +208,7 @@ export const appRouter = router({
     suggestHashtags: protectedProcedure
       .input(z.object({
         content: z.string(),
-        platform: z.enum(["facebook", "instagram", "whatsapp"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
       }))
       .mutation(async ({ input }) => {
         const response = await invokeLLM({

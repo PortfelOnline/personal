@@ -12,7 +12,7 @@ import { Loader2, Copy, Download, Share2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PillarType = 'desi_business_owner' | 'five_minute_transformation' | 'roi_calculator';
-type Platform = 'facebook' | 'instagram' | 'whatsapp';
+type Platform = 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
 type Language = 'hinglish' | 'hindi' | 'english' | 'tamil' | 'telugu' | 'bengali';
 
 const pillarDescriptions = {
@@ -37,6 +37,14 @@ const platformIcons = {
   facebook: '👍',
   instagram: '📸',
   whatsapp: '💬',
+  youtube: '▶️',
+};
+
+const platformLabels: Record<Platform, string> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  whatsapp: 'WhatsApp',
+  youtube: 'YouTube',
 };
 
 export default function ContentGenerator() {
@@ -154,7 +162,7 @@ export default function ContentGenerator() {
                   <label className="block text-sm font-semibold text-slate-900 mb-3">
                     Platform
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {(Object.entries(platformIcons) as [Platform, string][]).map(([key, icon]) => (
                       <button
                         key={key}
@@ -165,8 +173,8 @@ export default function ContentGenerator() {
                             : 'border-slate-200 bg-white hover:border-blue-400'
                         }`}
                       >
-                        <span className="text-xl mr-2">{icon}</span>
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
+                        <span className="text-xl mr-1">{icon}</span>
+                        {platformLabels[key]}
                       </button>
                     ))}
                   </div>

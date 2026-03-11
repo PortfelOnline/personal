@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { fetchPageHtml } from './browser';
 import { getRandomWorkingProxy, banProxy } from '../bots';
 
@@ -69,13 +70,16 @@ function parseProxy(proxy: string): { host: string; port: number; username: stri
 async function fetchHtmlViaProxy(url: string, proxy: string): Promise<string> {
   const p = parseProxy(proxy);
   if (!p) throw new Error('Invalid proxy format');
+  const proxyUrl = `http://${p.username}:${p.password}@${p.host}:${p.port}`;
+  const agent = new HttpsProxyAgent(proxyUrl);
   const response = await axios.get(url, {
     headers: BROWSER_HEADERS,
     timeout: 20000,
     maxRedirects: 5,
     decompress: true,
     responseType: 'text',
-    proxy: { protocol: 'http', host: p.host, port: p.port, auth: { username: p.username, password: p.password } },
+    proxy: false,
+    httpsAgent: agent,
   });
   return response.data as string;
 }
@@ -100,159 +104,57 @@ async function fetchSerpHtml(url: string, isCaptcha: (html: string) => boolean):
   return fetchHtml(url);
 }
 
-/**
- * Parse Google search results
- */
-export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
-  const url = `https://www.google.ru/search?q=${encodeURIComponent(keyword)}&num=10&hl=ru&gl=ru`;
+const SERPAPI_KEY = process.env.SERPAPI_KEY;
 
-  const googleCaptcha = (h: string) =>
-    h.includes('recaptcha') || h.includes('detected unusual traffic') || h.includes('captcha');
-
-  let html: string;
-  try {
-    html = await fetchSerpHtml(url, googleCaptcha);
-  } catch (error: any) {
-    return { engine: 'google', keyword, results: [], error: `Ошибка загрузки: ${error?.message}` };
-  }
-
-  if (googleCaptcha(html)) {
-    return { engine: 'google', keyword, results: [], error: 'Google заблокировал запрос (CAPTCHA). Все доступные прокси заблокированы.' };
-  }
-
-  const $ = cheerio.load(html);
-  const results: SerpResult[] = [];
-
-  // Strategy 1: data-async-context containers (modern Google)
-  $('[data-async-context], [jscontroller][data-ved]').each((_, el) => {
-    if (results.length >= 10) return;
-    const $el = $(el as any);
-    if ($el.find('[data-text-ad]').length > 0) return;
-    const titleEl = $el.find('h3').first();
-    const title = cleanText(titleEl.text());
-    if (!title) return;
-    const linkEl = $el.find('a[href^="http"], a[href^="/url"]').first();
-    let href = linkEl.attr('href') || '';
-    if (href.startsWith('/url?q=')) href = new URLSearchParams(href.slice(5)).get('q') || href;
-    if (!href.startsWith('http') || href.includes('google')) return;
-    const snippet = cleanText($el.find('.VwiC3b, .lEBKkf, [data-sncf] span').first().text());
-    results.push({ position: results.length + 1, title, url: href, domain: extractDomain(href), snippet });
-  });
-
-  // Strategy 2: Standard .g containers
-  if (results.length === 0) {
-    $('div.g, div[data-sokoban-container]').each((_, el) => {
-      if (results.length >= 10) return;
-      const $el = $(el as any);
-      if ($el.find('[data-text-ad]').length > 0) return;
-      if ($el.closest('.ads-ad').length > 0) return;
-      const title = cleanText($el.find('h3').first().text());
-      if (!title) return;
-      const linkEl = $el.find('a[href^="http"], a[href^="/url"]').first();
-      let href = linkEl.attr('href') || '';
-      if (href.startsWith('/url?q=')) href = new URLSearchParams(href.slice(5)).get('q') || href;
-      if (!href.startsWith('http') || href.includes('google')) return;
-      const snippet = cleanText($el.find('.VwiC3b, .s, [data-sncf] span, .st').first().text());
-      results.push({ position: results.length + 1, title, url: href, domain: extractDomain(href), snippet });
-    });
-  }
-
-  // Strategy 3: any a:has(h3) not inside ads
-  if (results.length === 0) {
-    $('a:has(h3)').each((_, el) => {
-      if (results.length >= 10) return;
-      const $el = $(el as any);
-      if ($el.closest('[data-text-ad], .ads-ad').length > 0) return;
-      const href = $el.attr('href') || '';
-      if (!href.startsWith('http') || href.includes('google')) return;
-      const title = cleanText($el.find('h3').text());
-      if (!title) return;
-      results.push({ position: results.length + 1, title, url: href, domain: extractDomain(href), snippet: '' });
-    });
-  }
-
-  if (results.length === 0 && html.length < 5000) {
-    return { engine: 'google', keyword, results: [], error: 'Google вернул пустой ответ (возможно заблокировал запрос)' };
-  }
-
-  return { engine: 'google', keyword, results };
+async function fetchViaSerpApi(params: Record<string, string>): Promise<any> {
+  if (!SERPAPI_KEY) throw new Error('SERPAPI_KEY not configured');
+  const qs = new URLSearchParams({ ...params, api_key: SERPAPI_KEY, output: 'json' });
+  const response = await axios.get(`https://serpapi.com/search?${qs}`, { timeout: 30000 });
+  return response.data;
 }
 
 /**
- * Parse Yandex search results
+ * Fetch Google search results via SerpAPI
+ */
+export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
+  if (!SERPAPI_KEY) {
+    return { engine: 'google', keyword, results: [], error: 'SERPAPI_KEY не настроен' };
+  }
+  try {
+    const data = await fetchViaSerpApi({ engine: 'google', q: keyword, hl: 'ru', gl: 'ru', num: '10' });
+    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 10).map((r: any, i: number) => ({
+      position: r.position ?? i + 1,
+      title: r.title ?? '',
+      url: r.link ?? '',
+      domain: extractDomain(r.link ?? ''),
+      snippet: r.snippet ?? '',
+    }));
+    return { engine: 'google', keyword, results: organicResults };
+  } catch (err: any) {
+    console.warn('[SERP] SerpAPI Google error:', err?.message);
+    return { engine: 'google', keyword, results: [], error: err?.message };
+  }
+}
+
+/**
+ * Fetch Yandex search results via SerpAPI
  */
 export async function fetchYandexSerp(keyword: string): Promise<SerpData> {
-  const url = `https://yandex.ru/search/?text=${encodeURIComponent(keyword)}&lr=213&numdoc=10`;
-
-  const yandexCaptcha = (h: string) =>
-    h.includes('showcaptcha') || h.includes('captcha') || h.includes('Проверка браузера');
-
-  let html: string;
+  if (!SERPAPI_KEY) {
+    return { engine: 'yandex', keyword, results: [], error: 'SERPAPI_KEY не настроен' };
+  }
   try {
-    html = await fetchSerpHtml(url, yandexCaptcha);
-  } catch (error: any) {
-    return { engine: 'yandex', keyword, results: [], error: `Ошибка загрузки: ${error?.message}` };
+    const data = await fetchViaSerpApi({ engine: 'yandex', text: keyword, lr: '213', lang: 'ru', numdoc: '10' });
+    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 10).map((r: any, i: number) => ({
+      position: r.position ?? i + 1,
+      title: r.title ?? '',
+      url: r.link ?? '',
+      domain: extractDomain(r.link ?? ''),
+      snippet: r.snippet ?? '',
+    }));
+    return { engine: 'yandex', keyword, results: organicResults };
+  } catch (err: any) {
+    console.warn('[SERP] SerpAPI Yandex error:', err?.message);
+    return { engine: 'yandex', keyword, results: [], error: err?.message };
   }
-
-  if (yandexCaptcha(html)) {
-    return { engine: 'yandex', keyword, results: [], error: 'Яндекс заблокировал запрос (CAPTCHA). Все доступные прокси заблокированы.' };
-  }
-
-  const $ = cheerio.load(html);
-  const results: SerpResult[] = [];
-
-  // Yandex organic results — try multiple selectors
-  const organicSelectors = [
-    'li.serp-item article.organic',
-    '.serp-item .organic',
-    'article.organic',
-    '.organic',
-  ];
-
-  let $items: cheerio.Cheerio<any> = $([]);
-  for (const sel of organicSelectors) {
-    const found = $(sel);
-    if (found.length > 0) { $items = found; break; }
-  }
-
-  // Fallback: all serp-item
-  if ($items.length === 0) {
-    $items = $('li.serp-item');
-  }
-
-  $items.each((_, el) => {
-    if (results.length >= 10) return;
-    const $el = $(el as any);
-
-    // Title — try multiple selectors
-    const titleText = cleanText(
-      $el.find('.OrganicTitle-LinkText, .organic__title-wrapper a, h2 a, .serp-item__title').first().text()
-    );
-    if (!titleText) return;
-
-    // URL
-    const linkEl = $el.find('.OrganicTitle-Link, .organic__title-wrapper a, h2 a').first();
-    let href = linkEl.attr('href') || '';
-    if (!href || (!href.startsWith('http') && !href.startsWith('//'))) return;
-    if (href.startsWith('//')) href = 'https:' + href;
-    if (href.includes('yandex.ru') && href.includes('/clck/')) {
-      // Yandex click redirect — try to get real URL from data attribute
-      href = linkEl.attr('data-url') || href;
-    }
-
-    // Snippet
-    const snippet = cleanText(
-      $el.find('.OrganicText, .organic__text, .serp-item__text, .organic__content-wrapper p').first().text()
-    );
-
-    results.push({
-      position: results.length + 1,
-      title: titleText,
-      url: href,
-      domain: extractDomain(href),
-      snippet,
-    });
-  });
-
-  return { engine: 'yandex', keyword, results };
 }

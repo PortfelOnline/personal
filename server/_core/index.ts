@@ -12,6 +12,7 @@ import * as db from "../db";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./cookies";
 import { initOrchestrator } from "../orchestrator";
+import { initArticleScheduler } from "../articleScheduler";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -82,6 +83,7 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     initOrchestrator();
+    initArticleScheduler();
   });
 }
 

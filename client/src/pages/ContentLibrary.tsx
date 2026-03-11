@@ -28,13 +28,14 @@ const platformEmojis: Record<string, string> = {
   facebook: '👍',
   instagram: '📸',
   whatsapp: '💬',
+  youtube: '▶️',
 };
 
 interface Post {
   id: number;
   title: string;
   content: string;
-  platform: 'facebook' | 'instagram' | 'whatsapp';
+  platform: 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
   language: string;
   status: string;
   hashtags?: string | null;

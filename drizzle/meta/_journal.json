@@ -43,6 +43,13 @@
       "when": 1772773068533,
       "tag": "0005_foamy_virginia_dare",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773202356536,
+      "tag": "0006_free_purple_man",
+      "breakpoints": true
     }
   ]
 }
