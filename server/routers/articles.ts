@@ -2227,14 +2227,76 @@ function detectCategoryIds(url: string): number[] {
 }
 
 /**
+ * Maps a Russian heading text to a relevant emoji based on keywords.
+ */
+function pickHeadingEmoji(text: string): string {
+  const t = text.toLowerCase();
+  const rules: [RegExp, string][] = [
+    [/кадастр|кпт|публичн|карт/, '🗺️'],
+    [/стоимост|цен|рыноч|оценк/, '💰'],
+    [/докум|справк|выписк|свидетельств/, '📄'],
+    [/земл|участ|надел|межеван/, '🌱'],
+    [/квартир|жил|недвижимост|объект/, '🏠'],
+    [/оформлен|регистрац|сделк|купл|продаж/, '✍️'],
+    [/срок|время|сколько|когда|период/, '⏱️'],
+    [/налог/, '💼'],
+    [/ипотек|кредит|банк/, '🏦'],
+    [/заказ|получ|запрос/, '📝'],
+    [/право|закон|правов|юрид/, '⚖️'],
+    [/онлайн|интернет|сайт|электрон/, '💻'],
+    [/строительств|строит|капиталь/, '🏗️'],
+    [/росреестр|фкп|гкн/, '🏛️'],
+    [/наследств|завещан/, '📜'],
+    [/проверк|проверит|узнат/, '🔍'],
+    [/история|архив|сведен/, '📚'],
+    [/итог|вывод|заключен|резюме/, '✅'],
+    [/часто|вопрос|faq/, '❓'],
+    [/ошибк|ошибк|проблем/, '⚠️'],
+    [/преимущест|плюс|польза|выгод/, '👍'],
+    [/шаг|инструкц|порядок|этап/, '📋'],
+    [/адрес|местопол|координат/, '📍'],
+  ];
+  for (const [re, emoji] of rules) {
+    if (re.test(t)) return emoji;
+  }
+  return '📌';
+}
+
+/**
  * Post-process article HTML to add visual styling:
+ * - h2/h3 → styled headings with emojis
  * - <ol> steps → numbered cards with colored step circles
- * - <ul> with <strong> items → green checkmark cards
- * - plain <ul> → styled bullet list with accent color
- * - [!TIP] / "Важно:" patterns → yellow info-box
+ * - <ul> → green checkmark cards
+ * - "Важно:" / "Обратите внимание" → yellow info-box
  */
 function beautifyArticleHtml(html: string): string {
   const $ = cheerio.load(html, { xml: { decodeEntities: false } });
+
+  // 0. Style h2 headings — green left border + emoji prefix
+  $('h2').each((_: number, h2: any) => {
+    const inner = $(h2).html() || '';
+    const text = $(h2).text();
+    // Skip if already has an emoji at the start
+    if (/^\p{Emoji}/u.test(text.trim())) return;
+    const emoji = pickHeadingEmoji(text);
+    $(h2).replaceWith(
+      `<h2 style="border-left:4px solid #16a34a;padding:6px 0 6px 16px;` +
+      `margin:2em 0 0.75em;font-size:1.35em;font-weight:700;line-height:1.3;color:#1a202c;">` +
+      `${emoji} ${inner}</h2>`
+    );
+  });
+
+  // 0b. Style h3 headings — subtle green color + small emoji
+  $('h3').each((_: number, h3: any) => {
+    const inner = $(h3).html() || '';
+    const text = $(h3).text();
+    if (/^\p{Emoji}/u.test(text.trim())) return;
+    const emoji = pickHeadingEmoji(text);
+    $(h3).replaceWith(
+      `<h3 style="color:#166534;font-size:1.1em;font-weight:600;margin:1.5em 0 0.5em;">` +
+      `${emoji} ${inner}</h3>`
+    );
+  });
 
   // 1. Styled <ol> — step-by-step cards
   $('ol').each((_: number, ol: any) => {
@@ -2273,7 +2335,7 @@ function beautifyArticleHtml(html: string): string {
     $(ul).replaceWith(cardsHtml);
   });
 
-  // 4. Detect "Важно:" / "Обратите внимание" → yellow info-box
+  // 3. Detect "Важно:" / "Обратите внимание" → yellow info-box
   $('p').each((_: number, p: any) => {
     const text = $(p).text();
     if (/^(важно|обратите внимание|примечание|внимание)[:\s!]/i.test(text.trim())) {
