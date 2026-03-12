@@ -103,6 +103,65 @@ const ANGLE_CONTEXT = {
   },
 } as const;
 
+// ── Season context ───────────────────────────────────────────────────────────
+
+const SEASON_CONTEXT = {
+  none: null,
+  diwali: {
+    label: "Diwali / Festive",
+    months: "Oct–Nov",
+    urgency: "It's Diwali season — India's biggest shopping window. Customers are buying RIGHT NOW. The business that replies first gets the order.",
+    hook: "Diwali mein ek missed message = ek missed order",
+    stat: "E-commerce and retail see 40–60% sales spike in Diwali week. Most of it goes to whoever responds first.",
+  },
+  ipl: {
+    label: "IPL Season",
+    months: "Mar–May",
+    urgency: "IPL season: restaurants, food delivery, and sports bars see 3x more group booking requests on match evenings — mostly 6–10pm when owners are busiest.",
+    hook: "Match night: 40 WhatsApp messages in 2 hours. Can you reply to all?",
+    stat: "Restaurants report 60% more group bookings during IPL. Peak hour: 7–9pm — exactly when you can't answer.",
+  },
+  back_to_school: {
+    label: "Back to School",
+    months: "Jun–Jul",
+    urgency: "June admission season: parents decide coaching centers in a 2-week window. A delayed reply loses you the entire academic year's fees.",
+    hook: "June: every coaching centre gets 100+ enquiries in 2 weeks. Who replies first, wins.",
+    stat: "70% of parents contact 3+ coaching centers simultaneously — and enroll with whoever responds first.",
+  },
+  gst_season: {
+    label: "GST Season",
+    months: "Jul, Sep, Dec",
+    urgency: "GST filing deadline: CA firms and service businesses face a flood of last-minute requests in the final week before July 31 / September 30.",
+    hook: "July 31: your phone is ringing, your WhatsApp is full, your email is overflowing",
+    stat: "Service businesses lose 30% of GST-season clients to competitors who respond instantly during deadline week.",
+  },
+  wedding: {
+    label: "Wedding Season",
+    months: "Nov–Feb",
+    urgency: "Wedding season: couples book caterers, decorators, photographers 2–3 months ahead. A 4-hour response delay means they've already signed with your competitor.",
+    hook: "She contacted 8 wedding photographers. 3 replied same day. She booked one of those 3.",
+    stat: "85% of wedding bookings go to the first vendor who gives a clear, fast quote.",
+  },
+  summer: {
+    label: "Summer Vacations",
+    months: "May–Jun",
+    urgency: "Summer vacation: parents are actively searching for activities, coaching, tuition for kids during the 2-month break — the window is short and competitive.",
+    hook: "Summer break starts May 1. Coaching centers that aren't ready lose 3 months of revenue.",
+    stat: "Coaching enrollment drops 40% for centers that respond slowly in April–May admissions rush.",
+  },
+} as const;
+
+// ── Social proof bank ─────────────────────────────────────────────────────────
+
+const SOCIAL_PROOF = {
+  instruction: `SOCIAL PROOF REQUIREMENT (mandatory — weave naturally into the post, do not bolt on):
+Include exactly one social proof element chosen from:
+- "1,200+ Indian business owners already use get-my-agent.com"
+- A specific mini-result relevant to the industry (e.g. "A saree shop in Jaipur recovered ₹38,000 in missed orders in 30 days")
+- A credibility stat: "Response in under 3 seconds. Humans average 4 hours."
+Place it where it strengthens the narrative — not just at the end.`,
+};
+
 // ── Pillar context ───────────────────────────────────────────────────────────
 
 const PILLAR_CONTEXT = {
@@ -187,12 +246,22 @@ function buildGenerationPrompt(
   contentFormat: keyof typeof FORMAT_SCHEMAS,
   industry: keyof typeof INDUSTRY_CONTEXT,
   contentAngle: keyof typeof ANGLE_CONTEXT,
+  season: keyof typeof SEASON_CONTEXT = "none",
   customPrompt?: string
 ): string {
   const pillar = PILLAR_CONTEXT[pillarType];
   const schema = FORMAT_SCHEMAS[contentFormat];
   const ind = INDUSTRY_CONTEXT[industry];
   const angle = ANGLE_CONTEXT[contentAngle];
+  const seasonData = SEASON_CONTEXT[season];
+
+  const seasonBlock = seasonData
+    ? `\nSEASONAL CONTEXT — ${seasonData.label} (${seasonData.months}):
+URGENCY: ${seasonData.urgency}
+SEASONAL HOOK: "${seasonData.hook}"
+SEASONAL STAT: ${seasonData.stat}
+→ Weave this seasonal timing and urgency throughout the post. The season makes the pain MORE URGENT right now.`
+    : "";
 
   return `${schema}
 
@@ -205,7 +274,9 @@ CONTENT ANGLE — ${angle.label.toUpperCase()}: ${angle.instruction}
 
 PILLAR FOCUS — ${pillar.focus}
 HOOK CONCEPT: ${pillar.hook}
-KEY PROOF: ${pillar.proof}${customPrompt ? `\n\nEXTRA INSTRUCTIONS: ${customPrompt}` : ""}
+KEY PROOF: ${pillar.proof}${seasonBlock}
+
+${SOCIAL_PROOF.instruction}${customPrompt ? `\n\nEXTRA INSTRUCTIONS: ${customPrompt}` : ""}
 
 Use the industry-specific scenario and ₹ amounts throughout. Make it feel written FOR this exact type of business owner, not generic.`;
 }
@@ -262,6 +333,7 @@ export const appRouter = router({
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
         industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
         contentAngle: z.enum(["standard", "pov", "transformation", "comparison", "objection", "story"]).default("standard"),
+        season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
         language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]).default("english"),
         customPrompt: z.string().optional(),
       }))
@@ -271,6 +343,7 @@ export const appRouter = router({
           input.contentFormat as keyof typeof FORMAT_SCHEMAS,
           input.industry as keyof typeof INDUSTRY_CONTEXT,
           input.contentAngle as keyof typeof ANGLE_CONTEXT,
+          input.season as keyof typeof SEASON_CONTEXT,
           input.customPrompt
         );
 
@@ -453,6 +526,7 @@ export const appRouter = router({
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
         industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
         contentAngle: z.enum(["standard", "pov", "transformation", "comparison", "objection", "story"]).default("standard"),
+        season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
         platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]).default("instagram"),
         count: z.number().min(1).max(7).default(7),
         language: z.string().default("english"),
@@ -470,6 +544,7 @@ export const appRouter = router({
               input.contentFormat as keyof typeof FORMAT_SCHEMAS,
               input.industry as keyof typeof INDUSTRY_CONTEXT,
               angle,
+              input.season as keyof typeof SEASON_CONTEXT,
             );
             const response = await invokeLLM({
               messages: [

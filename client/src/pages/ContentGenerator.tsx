@@ -16,6 +16,7 @@ type Platform = 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
 type ContentFormat = 'carousel' | 'reel' | 'story' | 'feed_post';
 type Industry = 'retail' | 'real_estate' | 'restaurant' | 'ecommerce' | 'coaching' | 'services';
 type ContentAngle = 'standard' | 'pov' | 'transformation' | 'comparison' | 'objection' | 'story';
+type Season = 'none' | 'diwali' | 'ipl' | 'back_to_school' | 'gst_season' | 'wedding' | 'summer';
 
 const PILLARS = {
   desi_business_owner: { icon: '😅', title: 'Relatable Owner', desc: 'Missed messages, competitor won' },
@@ -44,6 +45,16 @@ const INDUSTRIES: { key: Industry; icon: string; label: string }[] = [
   { key: 'ecommerce', icon: '📦', label: 'E-commerce' },
   { key: 'coaching', icon: '📚', label: 'Coaching' },
   { key: 'services', icon: '🔧', label: 'Services' },
+];
+
+const SEASONS: { key: Season; icon: string; label: string; months: string }[] = [
+  { key: 'none',          icon: '📅', label: 'No season',    months: 'Generic' },
+  { key: 'diwali',        icon: '🪔', label: 'Diwali',       months: 'Oct–Nov' },
+  { key: 'ipl',           icon: '🏏', label: 'IPL',          months: 'Mar–May' },
+  { key: 'back_to_school',icon: '📚', label: 'Back to School', months: 'Jun–Jul' },
+  { key: 'gst_season',    icon: '📊', label: 'GST Season',   months: 'Jul/Sep/Dec' },
+  { key: 'wedding',       icon: '💒', label: 'Wedding',      months: 'Nov–Feb' },
+  { key: 'summer',        icon: '☀️', label: 'Summer',       months: 'May–Jun' },
 ];
 
 const ANGLES: { key: ContentAngle; icon: string; label: string; desc: string }[] = [
@@ -231,6 +242,7 @@ export default function ContentGenerator() {
   const [contentFormat, setContentFormat] = useState<ContentFormat>('carousel');
   const [industry, setIndustry] = useState<Industry>('retail');
   const [contentAngle, setContentAngle] = useState<ContentAngle>('standard');
+  const [season, setSeason] = useState<Season>('none');
   const [customPrompt, setCustomPrompt] = useState('');
 
   const [generatedContent, setGeneratedContent] = useState('');
@@ -260,6 +272,7 @@ export default function ContentGenerator() {
         contentFormat,
         industry,
         contentAngle,
+        season,
         language: 'english',
         customPrompt: customPrompt || undefined,
       });
@@ -312,6 +325,7 @@ export default function ContentGenerator() {
         contentFormat,
         industry,
         contentAngle,
+        season,
         platform: selectedPlatform,
         count: bulkCount,
         language: 'english',
@@ -374,13 +388,13 @@ export default function ContentGenerator() {
               </CardContent>
             </Card>
 
-            {/* Row 2: Industry */}
+            {/* Row 2: Industry + Season */}
             <Card className="shadow-sm border-orange-100">
               <CardHeader className="pb-2 pt-4 px-5">
                 <CardTitle className="text-sm font-semibold text-slate-900">🏪 Industry</CardTitle>
                 <CardDescription className="text-xs">Makes content specific to this type of business — not generic</CardDescription>
               </CardHeader>
-              <CardContent className="px-5 pb-5">
+              <CardContent className="px-5 pb-5 space-y-4">
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                   {INDUSTRIES.map(ind => (
                     <button key={ind.key} onClick={() => setIndustry(ind.key)}
@@ -389,6 +403,27 @@ export default function ContentGenerator() {
                       <div className="text-xs font-medium text-slate-700 leading-tight">{ind.label}</div>
                     </button>
                   ))}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide">
+                    🗓️ Seasonal Trigger
+                    <span className="ml-1.5 font-normal text-slate-400 normal-case">— adds urgency tied to a specific moment</span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SEASONS.map(s => (
+                      <button key={s.key} onClick={() => setSeason(s.key)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                          season === s.key
+                            ? 'border-rose-500 bg-rose-50 text-rose-700'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-rose-300 hover:text-rose-600'
+                        }`}>
+                        <span>{s.icon}</span>
+                        <span>{s.label}</span>
+                        {s.key !== 'none' && <span className="text-slate-400 font-normal">{s.months}</span>}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -579,6 +614,7 @@ export default function ContentGenerator() {
               <p className="font-semibold text-slate-700">Will use current settings:</p>
               <p>🏪 {INDUSTRIES.find(i => i.key === industry)?.label} · {PILLARS[selectedPillar].title}</p>
               <p>📸 {PLATFORMS[selectedPlatform]} · {FORMATS.find(f => f.key === contentFormat)?.label}</p>
+              {season !== 'none' && <p>🗓️ Season: {SEASONS.find(s => s.key === season)?.label}</p>}
               <p>🔄 Rotates through {bulkCount} content angles automatically</p>
             </div>
 
