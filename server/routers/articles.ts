@@ -1447,15 +1447,16 @@ ${competitorContext}
 
       // 4. In parallel: generate CTA texts + 3 DALL-E images
       const noText = `NO text, NO letters, NO words, NO labels, NO watermarks, NO inscriptions anywhere in the image.`;
+      const skinNote = `All people must have light/fair Slavic skin tone (Russian appearance). No dark-skinned people.`;
       const imgSubjectPub = input.title
         .replace(/^Заказать\s+|^Как\s+|^Что\s+такое\s+|^Получить\s+/i, '')
         .replace(/\s+в\s+Москве$/i, '')
         .replace(/:\s*.+$/, '')
         .trim();
       const imagePrompts = [
-        `Photorealistic wide-format photo: friendly real estate agent and client shaking hands in a bright modern office, large windows, plants, neutral interior. No text, no signs, no screens, no documents visible.`,
+        `Photorealistic wide-format photo: friendly real estate agent and client shaking hands in a bright modern office, large windows, plants, neutral interior. ${skinNote} No text, no signs, no screens, no documents visible.`,
         `Aerial drone view of a Russian city residential neighborhood, rows of apartment buildings, courtyards with trees, clear blue sky, warm daylight. No text, no labels, no overlays.`,
-        `Photorealistic close-up: a person's hands holding a set of keys over a wooden desk with a blurred laptop and coffee cup in the background, warm natural light. No text, no screens, no signs.`,
+        `Photorealistic close-up: a person's hands holding a set of keys over a wooden desk with a blurred laptop and coffee cup in the background, warm natural light. ${skinNote} No text, no screens, no signs.`,
       ];
 
       const [ctaResponse, metaResponse, ...imageResults] = await Promise.all([
@@ -1570,16 +1571,18 @@ ${competitorContext}
         }
       );
 
-      // Update Yoast meta via custom endpoint
-      if (metaDescription) {
+      // Update Yoast meta + outsearch via custom endpoint
+      {
         const siteBase = account.siteUrl.replace(/\/$/, '');
         const auth = 'Basic ' + Buffer.from(`${account.username}:${account.appPassword}`).toString('base64');
         const axiosInst2 = (await import('axios')).default;
+        const metaPayload: Record<string, string> = { outsearch: '1' };
+        if (metaDescription) metaPayload['_yoast_wpseo_metadesc'] = metaDescription;
         await axiosInst2.post(
           `${siteBase}/wp-json/kadastrmap/v1/post-meta/${post.id}`,
-          { meta: { _yoast_wpseo_metadesc: metaDescription } },
+          { meta: metaPayload },
           { headers: { Authorization: auth, 'Content-Type': 'application/json' } }
-        ).catch((e: any) => console.warn('[Articles] Yoast meta update failed:', e?.message));
+        ).catch((e: any) => console.warn('[Articles] meta update failed:', e?.message));
       }
 
       return {
@@ -1631,10 +1634,11 @@ ${competitorContext}
 
       // Derive short subject for context-specific prompt
       const imgSubject = focusKeyword || input.title;
+      const skinNoteD = `All people must have light/fair Slavic skin tone (Russian appearance). No dark-skinned people.`;
       const imagePrompts = [
-        `Photorealistic wide-format photo: friendly real estate agent and client shaking hands in a bright modern office, large windows, plants, neutral interior. No text, no signs, no screens, no documents visible.`,
+        `Photorealistic wide-format photo: friendly real estate agent and client shaking hands in a bright modern office, large windows, plants, neutral interior. ${skinNoteD} No text, no signs, no screens, no documents visible.`,
         `Aerial drone view of a Russian city residential neighborhood, rows of apartment buildings, courtyards with trees, clear blue sky, warm daylight. No text, no labels, no overlays.`,
-        `Photorealistic close-up: a person's hands holding a set of keys over a wooden desk with a blurred laptop and coffee cup in the background, warm natural light. No text, no screens, no signs.`,
+        `Photorealistic close-up: a person's hands holding a set of keys over a wooden desk with a blurred laptop and coffee cup in the background, warm natural light. ${skinNoteD} No text, no screens, no signs.`,
       ];
 
       // Run meta LLM + DALL-E images in parallel
@@ -1703,17 +1707,15 @@ ${competitorContext}
         { headers }
       );
 
-      // Update Yoast meta via custom endpoint
-      const yoastMeta: Record<string, string> = {};
+      // Update Yoast meta + outsearch via custom endpoint
+      const yoastMeta: Record<string, string> = { outsearch: '1' };
       if (metaDesc)     yoastMeta._yoast_wpseo_metadesc = metaDesc;
       if (focusKeyword) yoastMeta._yoast_wpseo_focuskw  = focusKeyword;
-      if (Object.keys(yoastMeta).length > 0) {
-        await axiosInst.post(
-          `${siteBase}/wp-json/kadastrmap/v1/post-meta/${draft.id}`,
-          { meta: yoastMeta },
-          { headers }
-        ).catch((e: any) => console.warn('[Draft] Yoast meta update failed:', e?.message));
-      }
+      await axiosInst.post(
+        `${siteBase}/wp-json/kadastrmap/v1/post-meta/${draft.id}`,
+        { meta: yoastMeta },
+        { headers }
+      ).catch((e: any) => console.warn('[Draft] meta update failed:', e?.message));
 
       return {
         draftId:        draft.id as number,
