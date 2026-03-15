@@ -620,7 +620,9 @@ ${missingTopicsBlock}${lsiBlock}
   }
 
   let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
-    ? improvedResponse.choices[0].message.content.trim() : parsed.content;
+    ? improvedResponse.choices[0].message.content.trim()
+        .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
+    : parsed.content;
 
   // Post-generation quality check: add missing FAQ questions or table
   improvedContent = await enhanceIfNeeded(improvedContent, keyword);
@@ -870,6 +872,7 @@ ${missingTopicsBlock}${lsiBlock}
 
       let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
         ? improvedResponse.choices[0].message.content.trim()
+            .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
         : parsed.content;
 
       // Post-generation: fix missing FAQ questions or table
