@@ -215,7 +215,7 @@ async function enhanceIfNeeded(html: string, keyword: string): Promise<string> {
   // APPEND approach: generate only new blocks, concatenate to existing html
   const response = await invokeLLM({
     messages: [
-      { role: 'system', content: 'Ты SEO-копирайтер. Генерируешь ДОПОЛНИТЕЛЬНЫЙ HTML-контент для добавления в статью. НЕ пересказывай существующий текст. Используй только H2/H3 (не H1). Цены — через [BLOCK_PRICE]. Возвращай ТОЛЬКО новые HTML-блоки.' },
+      { role: 'system', content: 'Ты SEO-копирайтер. Генерируешь ДОПОЛНИТЕЛЬНЫЙ HTML-контент для добавления в статью. НЕ пересказывай существующий текст. Используй только H2/H3 (не H1). Цены — через [BLOCK_PRICE]. Все упоминания заказа — ТОЛЬКО через https://base.kadastrmap.info/spravki/. НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа. Возвращай ТОЛЬКО новые HTML-блоки.' },
       { role: 'user', content: `Тема: "${keyword}". Существующая статья (${wordCount} слов, начало):\n${html.slice(0, 1500)}...\n\nСгенерируй ДОПОЛНИТЕЛЬНЫЙ HTML (не дублируй то что уже есть):\n${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\nВерни ТОЛЬКО новые HTML-блоки без <html>/<body>.` },
     ],
     maxTokens: 4096,
@@ -348,6 +348,25 @@ async function analyzeAndSaveArticle(userId: number, url: string): Promise<void>
 
   const ourHeadings = parsed.headings.map(h => `${h.level}: ${h.text}`).join('; ');
 
+  // Extract missing H2 topics from competitors + LSI keywords from SERP
+  const ourH2s = new Set(
+    (parsed.headings || []).filter((h: any) => h.level === 'H2').map((h: any) => h.text.toLowerCase())
+  );
+  const missingTopics = competitors.flatMap(c =>
+    (c.headings || '').split(' | ')
+      .filter(h => h.startsWith('H2:'))
+      .map(h => h.replace('H2:', '').trim())
+      .filter(h => h && !ourH2s.has(h.toLowerCase()))
+  );
+  const uniqueMissingTopics = Array.from(new Set(missingTopics));
+  const missingTopicsBlock = uniqueMissingTopics.length > 0
+    ? `\nТЕМЫ КОНКУРЕНТОВ КОТОРЫХ НЕТ В НАШЕЙ СТАТЬЕ (обязательно добавить):\n${uniqueMissingTopics.map(t => `- ${t}`).join('\n')}\n`
+    : '';
+  const lsiKeywords = extractLsiKeywords([...googleSerp.results, ...yandexSerp.results]);
+  const lsiBlock = lsiKeywords.length > 0
+    ? `\nLSI-ТЕРМИНЫ (должны встречаться в статье): ${lsiKeywords.join(', ')}\n`
+    : '';
+
   const seoPrompt = `Ты SEO-эксперт по российскому рынку. Проанализируй нашу статью с учётом конкурентов из поисковой выдачи и верни JSON.
 
 Наша статья:
@@ -384,17 +403,18 @@ ${contentForLLM}
 
 КОНКУРЕНТЫ В ТОП-${competitors.length} (средний объём: ${avgCompetitorWords} слов):
 ${competitorContext}
-
+${missingTopicsBlock}${lsiBlock}
 ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ:
 1. Объём: минимум ${targetWords} слов (конкуренты пишут в среднем ${avgCompetitorWords} слов — нужно превзойти)
 2. Структура HTML: один H1, 6-10 подзаголовков H2, H3 где уместно, списки <ul>/<ol>, таблицы <table> где есть данные для сравнения
 3. Начало: прямой ответ на запрос "${serpKeyword}" в первых 2-3 предложениях (featured snippet)
 4. Охват тем: включи ВСЕ темы конкурентов которых нет у нас
-5. FAQ-раздел: добавь H2 "Часто задаваемые вопросы" с минимум 5 вопросами-ответами (важно для блока "Люди также спрашивают" в Яндексе)
+5. FAQ-раздел: добавь H2 "Часто задаваемые вопросы" с минимум 6 вопросами-ответами (важно для блока "Люди также спрашивают" в Яндексе)
 6. E-E-A-T: добавь конкретные факты, числа, сроки, стоимости, ссылки на законы где уместно. ${getShortcodesHint(serpKeyword)}
 7. Пошаговые инструкции: нумерованные списки для процессов
-8. Сохрани тематику: статья про кадастр/недвижимость — упоминай возможность заказать справку онлайн
-9. Сохрани язык и стиль оригинала
+8. Все упоминания заказа документов — ТОЛЬКО через https://base.kadastrmap.info/spravki/ (<a>-ссылка). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.
+9. ЗАПРЕЩЕНО вставлять конкретные цены в рублях — используй ТОЛЬКО шорткод [BLOCK_PRICE] для раздела с ценами.
+10. Сохрани язык и стиль оригинала
 
 Верни ТОЛЬКО готовый HTML-текст статьи используя теги: <h1>, <h2>, <h3>, <p>, <ul>, <ol>, <li>, <table>, <tr>, <td>, <th>, <strong>, <em>. Без <html>/<body>/<head> тегов.`;
 
@@ -412,10 +432,13 @@ ${competitorContext}
     seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
   }
 
-  const improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
+  let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim()
         .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
     : parsed.content;
+
+  improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword);
+  improvedContent = normalizeHeadings(improvedContent);
 
   const improvedWordCount = improvedContent
     ? improvedContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length
