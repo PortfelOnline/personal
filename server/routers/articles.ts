@@ -2370,6 +2370,13 @@ function pickHeadingEmoji(text: string): string {
 function beautifyArticleHtml(html: string): string {
   const $ = cheerio.load(html, { xml: { decodeEntities: false } });
 
+  // -1. Convert absolute kadastrmap.info links to relative paths
+  $('a[href]').each((_: number, a: any) => {
+    const href = $(a).attr('href') || '';
+    const cleaned = href.replace(/^https?:\/\/kadastrmap\.info/i, '');
+    if (cleaned !== href) $(a).attr('href', cleaned || '/');
+  });
+
   // 0. Style h2 headings — green left border + emoji prefix
   $('h2').each((_: number, h2: any) => {
     const inner = $(h2).html() || '';
@@ -2378,7 +2385,7 @@ function beautifyArticleHtml(html: string): string {
     if (/^\p{Emoji}/u.test(text.trim())) return;
     const emoji = pickHeadingEmoji(text);
     $(h2).replaceWith(
-      `<h2 style="text-align:center;` +
+      `<h2 style="text-align:left;` +
       `margin:2em 0 0.75em;font-size:1.35em;font-weight:700;line-height:1.3;color:#1a202c;">` +
       `${emoji} ${inner}</h2>`
     );
