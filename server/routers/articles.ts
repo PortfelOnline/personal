@@ -2413,9 +2413,10 @@ function beautifyArticleHtml(html: string): string {
       stepsHtml +=
         `<div style="display:flex;align-items:flex-start;gap:14px;padding:12px 16px;` +
         `margin-bottom:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">` +
-        `<span style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#16a34a;` +
-        `color:#fff;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;">${idx + 1}</span>` +
-        `<span style="padding-top:5px;font-size:15px;line-height:1.6;">${text}</span>` +
+        `<span style="flex-shrink:0;min-width:36px;width:36px;height:36px;border-radius:50%;background:#16a34a;` +
+        `color:#fff;font-weight:700;font-size:16px;display:inline-flex;align-items:center;justify-content:center;` +
+        `text-align:center;line-height:1;">${idx + 1}</span>` +
+        `<span style="padding-top:7px;font-size:15px;line-height:1.6;">${text}</span>` +
         `</div>`;
     });
     stepsHtml += '</div>';
