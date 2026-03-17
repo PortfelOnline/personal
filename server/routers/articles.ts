@@ -604,7 +604,7 @@ ${missingTopicsBlock}${lsiBlock}
 9. ЗАПРЕЩЕНО вставлять конкретные цены в рублях — используй ТОЛЬКО шорткод [BLOCK_PRICE] для раздела с ценами.
 10. Название сервиса пиши СТРОГО как "kadastrmap.info" (с буквой r: kadas-TR-map). Никогда не пиши "Kadastmap", "kadastmap", "KadastrMap" — только "kadastrmap.info".
 11. Внешние авторитетные ссылки: добавь 2-3 ссылки на официальные источники — <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a>, ФЗ-218 "О государственной регистрации недвижимости". Это обязательно для E-E-A-T.
-12. СТРОГО по теме запроса "${serpKeyword}" — НЕ включай разделы про другие продукты (выписки ЕГРН, отчёты о недвижимости и т.д.) если они не относятся к теме. Только релевантные разделы.
+12. СТРОГО по теме запроса "${keyword}" — НЕ включай разделы про другие продукты (выписки ЕГРН, отчёты о недвижимости и т.д.) если они не относятся к теме. Только релевантные разделы.
 
 Верни ТОЛЬКО HTML без <html>/<body>.`
     : `Ключ: "${keyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n${lsiBlock}\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${keyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${keyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${keyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${keyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${keyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>FAQ: часто задаваемые вопросы</h2>\n[6 вопросов-ответов в формате <h3>Вопрос</h3><p>Ответ 60-80 слов</p>]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (вставляй как ссылку <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
@@ -1485,7 +1485,7 @@ ${competitorContext}
         `Photorealistic close-up: a person's hands holding a set of keys over a wooden desk with a blurred laptop and coffee cup in the background, warm natural light. ${skinNote} No text, no screens, no signs.`,
       ];
 
-      const [ctaResponse, metaResponse, ...imageResults] = await Promise.all([
+      const [ctaResponse, metaResponse, excerptResponse, ...imageResults] = await Promise.all([
         invokeLLM({
           messages: [
             { role: 'system', content: 'Ты копирайтер. Пишешь короткие призывы к действию для кнопок.' },
@@ -1507,6 +1507,17 @@ ${competitorContext}
 Верни ТОЛЬКО строку без кавычек и markdown.` },
           ],
           maxTokens: 200,
+        }).catch(() => null),
+        invokeLLM({
+          messages: [
+            { role: 'system', content: 'Ты SEO-копирайтер. Пишешь анонсы (excerpts) для статей WordPress. Никогда не упоминай Госуслуги, МФЦ, Росреестр как способы заказа. Акцент — kadastrmap.info.' },
+            { role: 'user', content: `Заголовок статьи: "${input.title}"
+
+Напиши анонс (excerpt) для листинга статей — 1-2 предложения, 100–160 символов.
+Должен быть интригующим, содержать ключевой запрос и побуждать читать дальше.
+Верни ТОЛЬКО текст анонса без кавычек, тегов и markdown.` },
+          ],
+          maxTokens: 100,
         }).catch(() => null),
         ...(input.generateImage
           ? imagePrompts.map((p) =>
@@ -1540,6 +1551,17 @@ ${competitorContext}
         } catch { return undefined; }
       })();
       if (metaDescription) console.log(`[Articles] Generated meta: ${metaDescription}`);
+
+      // Parse excerpt
+      const excerpt: string | undefined = (() => {
+        try {
+          const raw = typeof excerptResponse?.choices[0]?.message.content === 'string'
+            ? excerptResponse.choices[0].message.content.trim().replace(/^["']|["']$/g, '')
+            : '';
+          return raw.length > 20 ? raw : undefined;
+        } catch { return undefined; }
+      })();
+      if (excerpt) console.log(`[Articles] Generated excerpt: ${excerpt}`);
 
       // 5. Upload all generated images to WP media
       const imageUrls = imageResults as (string | null)[];
@@ -1593,6 +1615,7 @@ ${competitorContext}
           title:      input.title,
           content:    htmlContent,
           categories: detectCategoryIds(input.originalUrl),
+          ...(excerpt ? { excerpt } : {}),
           ...(featuredMediaId ? { featured_media: featuredMediaId } : {}),
         }
       );
