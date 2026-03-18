@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal } from 'lucide-react';
+import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -72,6 +72,44 @@ const ANGLES: { key: ContentAngle; icon: string; label: string; desc: string }[]
   { key: 'objection', icon: '🛡️', label: 'Objection Busting', desc: 'Flip common fears' },
   { key: 'story', icon: '📖', label: 'Mini Story', desc: 'Named protagonist' },
 ];
+
+// ─── Best posting times (research-backed) ────────────────────────────────────
+
+const BEST_TIMES: Record<Platform, { time: string; days: string }> = {
+  facebook:  { time: '1–3pm',  days: 'Wed/Thu' },
+  instagram: { time: '6–9pm',  days: 'Mon–Fri' },
+  whatsapp:  { time: '9–11am', days: 'Tue–Thu' },
+  youtube:   { time: '3–6pm',  days: 'Fri/Sat' },
+};
+
+// ─── CTA library ─────────────────────────────────────────────────────────────
+
+const CTA_BANK = [
+  '👉 DM "AGENT" to get started',
+  '🔗 Link in bio — try free',
+  '💬 Comment "AI" for a demo',
+  '🚀 7-day free trial — no credit card',
+  '📞 WhatsApp us to set up in 10 min',
+  '⬇️ Save this for when you lose your next customer',
+  '🎯 Tag a business owner who needs this',
+  '🤝 Book a free 15-min setup call',
+];
+
+// ─── Readability score ────────────────────────────────────────────────────────
+
+function computeReadability(text: string): { label: string; color: string } | null {
+  if (!text || text.length < 50) return null;
+  const words = text.split(/\s+/).filter(Boolean);
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
+  const avgWordsPerSentence = sentences.length > 0 ? words.length / sentences.length : words.length;
+  const avgWordLen = words.length > 0
+    ? words.reduce((s, w) => s + w.replace(/[^a-zA-Z]/g, '').length, 0) / words.length : 0;
+  // Simple score: short sentences + short words = easy
+  const score = Math.max(0, Math.min(100, 100 - avgWordsPerSentence * 1.8 - avgWordLen * 4));
+  if (score >= 62) return { label: '✅ Easy Read', color: 'text-green-700 bg-green-50 border-green-200' };
+  if (score >= 42) return { label: '🟡 Medium', color: 'text-amber-700 bg-amber-50 border-amber-200' };
+  return { label: '🔴 Dense — simplify', color: 'text-red-700 bg-red-50 border-red-200' };
+}
 
 // ─── Preview sub-components ──────────────────────────────────────────────────
 
@@ -265,6 +303,9 @@ export default function ContentGenerator() {
   const [trendGeo, setTrendGeo] = useState<TrendGeo>('IN');
   const [abVariants, setAbVariants] = useState<any[]>([]);
   const [abOpen, setAbOpen] = useState(false);
+  const [repurposeFormat, setRepurposeFormat] = useState<ContentFormat | null>(null);
+  const [rssUrl, setRssUrl] = useState('');
+  const [rssOpen, setRssOpen] = useState(false);
 
   const { data: trendsData, isLoading: trendsLoading, refetch: refetchTrends } =
     trpc.content.getTrends.useQuery({ geo: trendGeo }, { staleTime: 60 * 60 * 1000 });
@@ -282,6 +323,8 @@ export default function ContentGenerator() {
   const visualMutation = trpc.content.generateVisual.useMutation();
   const videoMutation = trpc.content.generateVideo.useMutation();
   const abMutation = trpc.content.generateABVariants.useMutation();
+  const repurposeMutation = trpc.content.repurposeContent.useMutation();
+  const rssMutation = trpc.content.rssToPost.useMutation();
 
   const handleGenerate = async () => {
     setHookVariants([]);
@@ -429,6 +472,49 @@ export default function ContentGenerator() {
     setPostTitle(`${INDUSTRIES.find(i => i.key === industry)?.label} · ${variant.label} · ${FORMATS.find(f => f.key === contentFormat)?.label}`);
     setAbOpen(false);
     toast.success(`${variant.label} selected!`);
+  };
+
+  const handleRepurpose = async (targetFormat: ContentFormat) => {
+    if (!generatedContent) return toast.error('Generate content first');
+    setRepurposeFormat(targetFormat);
+    try {
+      const result = await repurposeMutation.mutateAsync({
+        content: generatedContent,
+        sourceFormat: currentFormat,
+        targetFormat,
+        industry,
+      });
+      setGeneratedContent(result.content);
+      setParsedContent(result.parsed ?? null);
+      setCurrentFormat(result.format as ContentFormat);
+      if (result.hashtags) setGeneratedHashtags(result.hashtags);
+      toast.success(`Repurposed to ${FORMATS.find(f => f.key === targetFormat)?.label}!`);
+    } catch {
+      toast.error('Repurpose failed');
+    } finally {
+      setRepurposeFormat(null);
+    }
+  };
+
+  const handleRssToPost = async () => {
+    if (!rssUrl.trim()) return toast.error('Enter an RSS feed URL');
+    try {
+      const result = await rssMutation.mutateAsync({
+        rssUrl: rssUrl.trim(),
+        industry,
+        contentFormat,
+        platform: selectedPlatform,
+      });
+      setGeneratedContent(result.content);
+      setParsedContent(result.parsed ?? null);
+      setCurrentFormat(result.format as ContentFormat);
+      if (result.hashtags) setGeneratedHashtags(result.hashtags);
+      setPostTitle(`${INDUSTRIES.find(i => i.key === industry)?.label} · RSS · ${result.sourceTitle.slice(0, 40)}`);
+      setRssOpen(false);
+      toast.success(`Post from: "${result.sourceTitle.slice(0, 50)}..."`);
+    } catch (e: any) {
+      toast.error(e?.message || 'RSS fetch failed');
+    }
   };
 
   const handleCopy = () => {
@@ -622,6 +708,22 @@ export default function ContentGenerator() {
                   />
                 </div>
 
+                {/* CTA library */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    <BookOpen className="w-3 h-3 inline mr-1" />CTA Library — click to append
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CTA_BANK.map((cta, i) => (
+                      <button key={i}
+                        onClick={() => setCustomPrompt(p => p ? `${p}. Use this CTA: "${cta}"` : `Use this CTA: "${cta}"`)}
+                        className="px-2 py-1 rounded-full border border-blue-200 bg-white text-xs text-slate-600 hover:border-blue-400 hover:bg-blue-50 transition-all text-left">
+                        {cta}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Hook variants */}
                 {hookVariants.length > 0 && (
                   <HookVariants hooks={hookVariants} onSelect={text => setCustomPrompt(`Start with this hook: "${text}"`)} />
@@ -647,6 +749,9 @@ export default function ContentGenerator() {
                   </Button>
                   <Button onClick={() => setBulkOpen(true)} variant="outline" className="px-3 border-green-300 text-green-700 hover:bg-green-50" title="Generate a full week of posts">
                     <CalendarDays className="w-4 h-4" />
+                  </Button>
+                  <Button onClick={() => setRssOpen(true)} variant="outline" className="px-3 border-orange-300 text-orange-700 hover:bg-orange-50" title="Generate from RSS article">
+                    <Rss className="w-4 h-4" />
                   </Button>
                 </div>
                 {!hasContent && (
@@ -720,7 +825,45 @@ export default function ContentGenerator() {
                       </div>
                     )}
 
+                      {/* Best time + Readability */}
+                    {(() => {
+                      const bt = BEST_TIMES[selectedPlatform];
+                      const rd = computeReadability(generatedContent);
+                      return (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-xs text-slate-600">
+                            <Clock className="w-3 h-3" />{bt.days} {bt.time}
+                          </span>
+                          {rd && (
+                            <span className={`px-2 py-0.5 rounded-full border text-xs font-medium ${rd.color}`}>
+                              {rd.label}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     <div className="space-y-2 pt-2 border-t">
+                      {/* Repurpose row */}
+                      <div>
+                        <label className="text-xs font-semibold text-slate-500 uppercase block mb-1.5">
+                          <ArrowRightLeft className="w-3 h-3 inline mr-1" />Repurpose as
+                        </label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {FORMATS.filter(f => f.key !== currentFormat).map(f => (
+                            <button key={f.key}
+                              onClick={() => handleRepurpose(f.key)}
+                              disabled={repurposeMutation.isPending}
+                              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs text-slate-600 hover:border-blue-400 hover:bg-blue-50 transition-all disabled:opacity-50">
+                              {repurposeMutation.isPending && repurposeFormat === f.key
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <span>{f.icon}</span>}
+                              {f.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Gemini visual buttons */}
                       <div className="grid grid-cols-2 gap-2">
                         <Button
@@ -795,6 +938,54 @@ export default function ContentGenerator() {
           </div>
         </div>
       </div>
+
+      {/* RSS → Post Dialog */}
+      <Dialog open={rssOpen} onOpenChange={setRssOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Rss className="w-5 h-5 text-orange-600" />
+              RSS → Post Generator
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-slate-600">
+              Paste any RSS feed URL — the latest article will be used as a hook for your industry post.
+            </p>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5">RSS Feed URL</label>
+              <Input
+                placeholder="https://feeds.feedburner.com/... or any RSS URL"
+                value={rssUrl}
+                onChange={e => setRssUrl(e.target.value)}
+                className="text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1">e.g. TechCrunch India, Economic Times, YourStory</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: '📰 YourStory', url: 'https://yourstory.com/feed' },
+                { label: '💼 ET Business', url: 'https://economictimes.indiatimes.com/rssfeedstopstories.cms' },
+                { label: '🤖 AI News', url: 'https://feeds.feedburner.com/oreilly/radar' },
+              ].map(s => (
+                <button key={s.url} onClick={() => setRssUrl(s.url)}
+                  className="px-2.5 py-1 rounded-full border border-orange-200 bg-orange-50 text-xs text-orange-700 hover:border-orange-400 transition-all">
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRssOpen(false)}>Cancel</Button>
+            <Button onClick={handleRssToPost} disabled={rssMutation.isPending}
+              className="bg-orange-600 hover:bg-orange-700 text-white">
+              {rssMutation.isPending
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Fetching...</>
+                : <><Rss className="w-4 h-4 mr-2" />Generate Post</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* A/B Variants Dialog */}
       <Dialog open={abOpen} onOpenChange={setAbOpen}>

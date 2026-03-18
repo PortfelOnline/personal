@@ -655,7 +655,14 @@ export const appRouter = router({
             if (input.startDate) {
               scheduledAt = new Date(input.startDate);
               scheduledAt.setDate(scheduledAt.getDate() + i);
-              scheduledAt.setHours(9, 0, 0, 0);
+              // Optimal posting hours per platform (local time)
+              const optimalHour: Record<string, number> = {
+                facebook: 13,   // 1pm — peak engagement Wed/Thu
+                instagram: 18,  // 6pm — peak Mon–Fri evening
+                whatsapp: 9,    // 9am — professional hours
+                youtube: 15,    // 3pm — weekend afternoon
+              };
+              scheduledAt.setHours(optimalHour[input.platform] ?? 9, 0, 0, 0);
             }
 
             await createContentPost(ctx.user.id, {
@@ -755,6 +762,89 @@ export const appRouter = router({
         const hashtags = typeof response.choices[0]?.message.content === 'string'
           ? response.choices[0].message.content.trim() : "";
         return { hashtags };
+      }),
+
+    repurposeContent: protectedProcedure
+      .input(z.object({
+        content: z.string(),
+        sourceFormat: z.enum(["carousel", "reel", "story", "feed_post"]),
+        targetFormat: z.enum(["carousel", "reel", "story", "feed_post"]),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+      }))
+      .mutation(async ({ input }) => {
+        const schema = FORMAT_SCHEMAS[input.targetFormat];
+        const ind = INDUSTRY_CONTEXT[input.industry as keyof typeof INDUSTRY_CONTEXT];
+        const prompt = `Here is existing ${input.sourceFormat} content:\n\n${input.content}\n\nRepurpose this into a ${input.targetFormat} for a ${ind.owner}. Keep the same core message, industry scenario, and ₹ numbers. Apply this format:\n${schema}\n\nReturn ONLY valid JSON. No markdown fences.`;
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: CONTENT_SYSTEM_PROMPT },
+            { role: "user", content: prompt },
+          ],
+        });
+        const contentText = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content : "";
+        let parsed: any = null;
+        try {
+          const jsonStr = contentText.replace(/^```json\s*|\s*```$/g, "").trim();
+          parsed = JSON.parse(jsonStr);
+        } catch {}
+        const hashtags = Array.isArray(parsed?.hashtags)
+          ? parsed.hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ") : "";
+        return { content: contentText, parsed, format: input.targetFormat, hashtags };
+      }),
+
+    rssToPost: protectedProcedure
+      .input(z.object({
+        rssUrl: z.string().url(),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("feed_post"),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]).default("instagram"),
+      }))
+      .mutation(async ({ input }) => {
+        let xml = "";
+        try {
+          const res = await fetch(input.rssUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; ContentBot/1.0)" },
+            signal: AbortSignal.timeout(10000),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          xml = await res.text();
+        } catch (e: any) {
+          throw new Error(`RSS fetch failed: ${e.message}`);
+        }
+
+        const items: { title: string; desc: string }[] = [];
+        const itemMatches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g);
+        for (const m of itemMatches) {
+          const block = m[1];
+          const title = (block.match(/<title><!\[CDATA\[([^\]]+)\]\]><\/title>/) ?? block.match(/<title>([^<]+)<\/title>/))?.[1]?.trim() ?? "";
+          const desc = (block.match(/<description><!\[CDATA\[([^\]]+)\]\]><\/description>/) ?? block.match(/<description>([^<]+)<\/description>/))?.[1]?.trim() ?? "";
+          if (title) items.push({ title, desc: desc.replace(/<[^>]+>/g, "").slice(0, 300) });
+          if (items.length >= 1) break;
+        }
+        if (items.length === 0) throw new Error("No items found in RSS feed");
+
+        const article = items[0];
+        const ind = INDUSTRY_CONTEXT[input.industry as keyof typeof INDUSTRY_CONTEXT];
+        const schema = FORMAT_SCHEMAS[input.contentFormat as keyof typeof FORMAT_SCHEMAS];
+        const prompt = `News headline: "${article.title}"${article.desc ? `\nSummary: ${article.desc}` : ""}\n\nCreate a ${input.contentFormat} social media post for a ${ind.owner} using this news as a hook to show why they need an AI chatbot. Connect it to: ${ind.painSpecific}.\n\nApply this format:\n${schema}\n\nReturn ONLY valid JSON. No markdown fences.`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: CONTENT_SYSTEM_PROMPT },
+            { role: "user", content: prompt },
+          ],
+        });
+        const contentText = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content : "";
+        let parsed: any = null;
+        try {
+          const jsonStr = contentText.replace(/^```json\s*|\s*```$/g, "").trim();
+          parsed = JSON.parse(jsonStr);
+        } catch {}
+        const hashtags = Array.isArray(parsed?.hashtags)
+          ? parsed.hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ") : "#GetMyAgent #AI";
+        return { content: contentText, parsed, format: input.contentFormat, hashtags, sourceTitle: article.title };
       }),
 
     getTrends: publicProcedure
