@@ -430,7 +430,8 @@ export const appRouter = router({
           status: input.status,
           scheduledAt: input.scheduledAt,
         });
-        return result;
+        const insertId = (result as any)[0]?.insertId ?? (result as any)?.insertId ?? null;
+        return { id: insertId as number | null };
       }),
 
     listPosts: protectedProcedure

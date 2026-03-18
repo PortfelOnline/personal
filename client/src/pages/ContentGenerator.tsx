@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video } from 'lucide-react';
+import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
+import { PublishToMeta } from '@/components/PublishToMeta';
 
 type PillarType = 'desi_business_owner' | 'five_minute_transformation' | 'roi_calculator';
 type Platform = 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
@@ -253,6 +254,8 @@ export default function ContentGenerator() {
   const [hookVariants, setHookVariants] = useState<any[]>([]);
   const [generatedImageUrl, setGeneratedImageUrl] = useState('');
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState('');
+  const [savedPostId, setSavedPostId] = useState<number | null>(null);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   // Bulk generate state
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -304,7 +307,7 @@ export default function ContentGenerator() {
   const handleSave = async () => {
     if (!generatedContent || !postTitle) return toast.error('Nothing to save');
     try {
-      await saveMutation.mutateAsync({
+      const result = await saveMutation.mutateAsync({
         title: postTitle,
         content: generatedContent,
         platform: selectedPlatform,
@@ -312,11 +315,29 @@ export default function ContentGenerator() {
         hashtags: generatedHashtags,
         status: 'draft',
       });
+      setSavedPostId(result.id);
       toast.success('Saved as draft!');
-      setGeneratedContent('');
-      setParsedContent(null);
-      setGeneratedHashtags('');
-      setPostTitle('');
+    } catch {
+      toast.error('Failed to save');
+    }
+  };
+
+  const handleSaveAndPublish = async () => {
+    if (!generatedContent || !postTitle) return toast.error('Nothing to save');
+    if (!['facebook', 'instagram'].includes(selectedPlatform)) {
+      return toast.error('Publish only supported for Facebook and Instagram');
+    }
+    try {
+      const result = await saveMutation.mutateAsync({
+        title: postTitle,
+        content: generatedContent,
+        platform: selectedPlatform,
+        language: 'english',
+        hashtags: generatedHashtags,
+        status: 'draft',
+      });
+      setSavedPostId(result.id);
+      setPublishOpen(true);
     } catch {
       toast.error('Failed to save');
     }
@@ -632,12 +653,25 @@ export default function ContentGenerator() {
                       <Button onClick={handleCopy} variant="outline" className="w-full text-sm">
                         <Copy className="w-4 h-4 mr-2" />Copy
                       </Button>
-                      <Button onClick={handleSave} disabled={saveMutation.isPending}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm">
-                        {saveMutation.isPending
-                          ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
-                          : <><Download className="w-4 h-4 mr-2" />Save Draft</>}
-                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button onClick={handleSave} disabled={saveMutation.isPending}
+                          variant="outline" className="text-sm">
+                          {saveMutation.isPending
+                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                            : <><Download className="w-4 h-4 mr-2" />Save Draft</>}
+                        </Button>
+                        {['facebook', 'instagram'].includes(selectedPlatform) && (
+                          <Button
+                            onClick={handleSaveAndPublish}
+                            disabled={saveMutation.isPending}
+                            className="text-sm bg-gradient-to-r from-blue-600 to-pink-600 hover:from-blue-700 hover:to-pink-700 text-white"
+                          >
+                            {saveMutation.isPending
+                              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                              : <><Send className="w-4 h-4 mr-2" />Publish</>}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -657,6 +691,18 @@ export default function ContentGenerator() {
           </div>
         </div>
       </div>
+
+      {/* Publish to Meta Dialog */}
+      {savedPostId && (
+        <PublishToMeta
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          postId={savedPostId}
+          content={`${generatedContent}\n\n${generatedHashtags}`.trim()}
+          platform={selectedPlatform}
+          imageUrl={generatedImageUrl || undefined}
+        />
+      )}
 
       {/* Bulk Generate Dialog */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
