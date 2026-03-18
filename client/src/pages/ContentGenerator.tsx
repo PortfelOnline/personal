@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen } from 'lucide-react';
+import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen, Radar, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -306,6 +306,9 @@ export default function ContentGenerator() {
   const [repurposeFormat, setRepurposeFormat] = useState<ContentFormat | null>(null);
   const [rssUrl, setRssUrl] = useState('');
   const [rssOpen, setRssOpen] = useState(false);
+  const [competitorKeyword, setCompetitorKeyword] = useState('');
+  const [competitorOpen, setCompetitorOpen] = useState(false);
+  const [competitorResult, setCompetitorResult] = useState<any>(null);
 
   const { data: trendsData, isLoading: trendsLoading, refetch: refetchTrends } =
     trpc.content.getTrends.useQuery({ geo: trendGeo }, { staleTime: 60 * 60 * 1000 });
@@ -326,6 +329,7 @@ export default function ContentGenerator() {
   const repurposeMutation = trpc.content.repurposeContent.useMutation();
   const rssMutation = trpc.content.rssToPost.useMutation();
   const emojiMutation = trpc.content.optimizeEmojis.useMutation();
+  const competitorMutation = trpc.content.analyzeCompetitors.useMutation();
 
   const handleGenerate = async () => {
     setHookVariants([]);
@@ -473,6 +477,21 @@ export default function ContentGenerator() {
     setPostTitle(`${INDUSTRIES.find(i => i.key === industry)?.label} · ${variant.label} · ${FORMATS.find(f => f.key === contentFormat)?.label}`);
     setAbOpen(false);
     toast.success(`${variant.label} selected!`);
+  };
+
+  const handleAnalyzeCompetitors = async () => {
+    if (!competitorKeyword.trim()) return toast.error('Enter a keyword or niche');
+    try {
+      const result = await competitorMutation.mutateAsync({
+        keyword: competitorKeyword.trim(),
+        industry,
+        geo: trendGeo as any,
+      });
+      setCompetitorResult(result);
+      toast.success(`Analyzed ${result.headlinesAnalyzed} articles`);
+    } catch {
+      toast.error('Analysis failed');
+    }
   };
 
   const handleOptimizeEmojis = async () => {
@@ -668,6 +687,105 @@ export default function ContentGenerator() {
                   </div>
                 )}
               </CardContent>
+            </Card>
+
+            {/* Competitor Intel Panel */}
+            <Card className="shadow-sm border-violet-100">
+              <CardHeader className="pb-2 pt-4 px-5">
+                <CardTitle className="text-sm font-semibold text-slate-900 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Radar className="w-4 h-4 text-violet-500" />
+                    Competitor Intel
+                  </span>
+                  <button onClick={() => setCompetitorOpen(o => !o)}
+                    className="text-slate-400 hover:text-slate-600">
+                    {competitorOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                </CardTitle>
+                <CardDescription className="text-xs">Analyze what competitors are posting — find gaps to exploit</CardDescription>
+              </CardHeader>
+              {competitorOpen && (
+                <CardContent className="px-5 pb-4 space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g. AI chatbot, WhatsApp automation, CRM software..."
+                      value={competitorKeyword}
+                      onChange={e => setCompetitorKeyword(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAnalyzeCompetitors()}
+                      className="text-sm flex-1"
+                    />
+                    <Button onClick={handleAnalyzeCompetitors} disabled={competitorMutation.isPending}
+                      className="bg-violet-600 hover:bg-violet-700 text-white px-3 text-xs whitespace-nowrap">
+                      {competitorMutation.isPending
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <><Radar className="w-3.5 h-3.5 mr-1.5" />Analyze</>}
+                    </Button>
+                  </div>
+
+                  {competitorResult && (() => {
+                    const a = competitorResult.analysis;
+                    return (
+                      <div className="space-y-3 pt-1">
+                        {a.summary && (
+                          <p className="text-xs text-slate-600 bg-violet-50 rounded-lg p-3 border border-violet-100 leading-relaxed">
+                            {a.summary}
+                          </p>
+                        )}
+
+                        {a.contentGaps?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-violet-700 mb-1.5">🎯 Gaps to exploit</p>
+                            <div className="space-y-1">
+                              {a.contentGaps.map((gap: string, i: number) => (
+                                <div key={i} className="flex gap-1.5 text-xs text-slate-700">
+                                  <span className="text-violet-400 flex-shrink-0">•</span>{gap}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {a.recommendedHooks?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-emerald-700 mb-1.5">
+                              <Lightbulb className="w-3 h-3 inline mr-1" />Use these hooks
+                            </p>
+                            <div className="space-y-2">
+                              {a.recommendedHooks.map((h: any, i: number) => (
+                                <button key={i}
+                                  onClick={() => setCustomPrompt(p => p ? `${p}. Use this hook: "${h.hook}"` : `Use this hook: "${h.hook}"`)}
+                                  className="w-full text-left p-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:border-emerald-400 transition-all">
+                                  <p className="text-xs font-medium text-slate-800">"{h.hook}"</p>
+                                  {h.why && <p className="text-xs text-slate-500 mt-0.5">{h.why}</p>}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {a.differentiationAngles?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-slate-600 mb-1.5">🛡️ How to differentiate</p>
+                            <div className="space-y-1">
+                              {a.differentiationAngles.map((d: string, i: number) => (
+                                <button key={i}
+                                  onClick={() => setCustomPrompt(p => p ? `${p}. ${d}` : d)}
+                                  className="w-full text-left text-xs text-slate-700 px-2 py-1 rounded border border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 transition-all">
+                                  + {d}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-xs text-slate-400">
+                          Analyzed {competitorResult.headlinesAnalyzed} articles for "{competitorResult.keyword}" · {competitorResult.industry}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              )}
             </Card>
 
             {/* Row 3: Format + Angle */}

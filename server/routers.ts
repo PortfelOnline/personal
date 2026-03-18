@@ -870,6 +870,90 @@ export const appRouter = router({
         return { content: contentText, parsed, format: input.contentFormat, hashtags, sourceTitle: article.title };
       }),
 
+    analyzeCompetitors: protectedProcedure
+      .input(z.object({
+        keyword: z.string().min(2),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        geo: z.enum(["IN", "US", "GB", "AU", "SG"]).default("IN"),
+      }))
+      .mutation(async ({ input }) => {
+        // Fetch Google News RSS for the keyword + industry
+        const q = encodeURIComponent(`${input.keyword} ${INDUSTRY_CONTEXT[input.industry as keyof typeof INDUSTRY_CONTEXT].label} India`);
+        const newsUrl = `https://news.google.com/rss/search?q=${q}&hl=en-${input.geo}&gl=${input.geo}&ceid=${input.geo}:en`;
+
+        const headlines: { title: string; desc: string; source: string }[] = [];
+        try {
+          const res = await fetch(newsUrl, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; ResearchBot/1.0)" },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.ok) {
+            const xml = await res.text();
+            const itemMatches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g);
+            for (const m of itemMatches) {
+              const block = m[1];
+              const title = (block.match(/<title><!\[CDATA\[([^\]]+)\]\]><\/title>/) ?? block.match(/<title>([^<]+)<\/title>/))?.[1]?.trim() ?? "";
+              const desc = (block.match(/<description><!\[CDATA\[([^\]]+)\]\]><\/description>/) ?? block.match(/<description>([^<]+)<\/description>/))?.[1]?.trim() ?? "";
+              const src = block.match(/<source[^>]*>([^<]+)<\/source>/)?.[1]?.trim() ?? "";
+              if (title) headlines.push({ title, desc: desc.replace(/<[^>]+>/g, "").slice(0, 200), source: src });
+              if (headlines.length >= 15) break;
+            }
+          }
+        } catch {}
+
+        const ind = INDUSTRY_CONTEXT[input.industry as keyof typeof INDUSTRY_CONTEXT];
+        const headlinesText = headlines.length > 0
+          ? headlines.map((h, i) => `${i + 1}. "${h.title}"${h.source ? ` (${h.source})` : ""}${h.desc ? `\n   Summary: ${h.desc}` : ""}`).join("\n\n")
+          : `No live news found — analyze general content patterns for "${input.keyword}" in ${ind.label} industry`;
+
+        const analysisPrompt = `You are a social media competitive intelligence analyst for get-my-agent.com (AI chatbot for Indian small businesses).
+
+Industry: ${ind.label}
+Keyword/Niche: "${input.keyword}"
+
+Recent content from competitors and media in this space:
+${headlinesText}
+
+Analyze this content landscape and return a JSON object:
+{
+  "dominantAngles": ["top 3-4 content angles competitors are using (e.g. 'cost savings', 'speed', 'success stories')"],
+  "commonHooks": ["3-4 hook styles appearing most often"],
+  "contentGaps": ["3-4 topics/angles NOT being covered that represent an opportunity"],
+  "competitorWeaknesses": ["2-3 weaknesses in current competitor content (e.g. 'too generic', 'no India-specific numbers', 'no urgency')"],
+  "differentiationAngles": ["4-5 specific angles get-my-agent.com should use to stand out — be very specific with ₹ numbers and Indian scenarios"],
+  "recommendedHooks": [
+    {"hook": "specific hook text", "why": "why this will outperform competitors"},
+    {"hook": "specific hook text", "why": "why this will outperform competitors"},
+    {"hook": "specific hook text", "why": "why this will outperform competitors"}
+  ],
+  "summary": "2-sentence executive summary of the competitive landscape"
+}
+
+Return ONLY valid JSON. No markdown fences.`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a competitive intelligence expert for Indian social media marketing. Return ONLY valid JSON." },
+            { role: "user", content: analysisPrompt },
+          ],
+        });
+
+        const responseText = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content : "{}";
+        let analysis: any = {};
+        try {
+          const jsonStr = responseText.replace(/^```json\s*|\s*```$/g, "").trim();
+          analysis = JSON.parse(jsonStr);
+        } catch {}
+
+        return {
+          analysis,
+          headlinesAnalyzed: headlines.length,
+          keyword: input.keyword,
+          industry: ind.label,
+        };
+      }),
+
     getTrends: publicProcedure
       .input(z.object({
         geo: z.enum(["IN", "US", "GB", "AU", "SG"]).default("IN"),
