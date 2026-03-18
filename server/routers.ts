@@ -396,6 +396,76 @@ export const appRouter = router({
         };
       }),
 
+    generateABVariants: protectedProcedure
+      .input(z.object({
+        pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
+        contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
+        season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
+        customPrompt: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const VARIANT_ANGLES = ["standard", "transformation", "objection"] as const;
+        const variants = await Promise.all(
+          VARIANT_ANGLES.map(async (angle) => {
+            const userPrompt = buildGenerationPrompt(
+              input.pillarType as keyof typeof PILLAR_CONTEXT,
+              input.contentFormat as keyof typeof FORMAT_SCHEMAS,
+              input.industry as keyof typeof INDUSTRY_CONTEXT,
+              angle,
+              input.season as keyof typeof SEASON_CONTEXT,
+              input.customPrompt
+            );
+            const response = await invokeLLM({
+              messages: [
+                { role: "system", content: CONTENT_SYSTEM_PROMPT },
+                { role: "user", content: userPrompt },
+              ],
+            });
+            const contentText = typeof response.choices[0]?.message.content === "string"
+              ? response.choices[0].message.content : "";
+            let parsed: any = null;
+            try {
+              parsed = JSON.parse(contentText.replace(/^```json\s*|\s*```$/g, "").trim());
+            } catch {}
+            const hashtags = (Array.isArray(parsed?.hashtags)
+              ? parsed.hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ")
+              : null) ?? "#GetMyAgent #AI #IndianBusiness";
+            return { angle, label: { standard: "Variant A — Direct", transformation: "Variant B — Before/After", objection: "Variant C — Objection Busting" }[angle], content: contentText, parsed, hashtags };
+          })
+        );
+        return { variants, format: input.contentFormat };
+      }),
+
+    translatePost: protectedProcedure
+      .input(z.object({
+        content: z.string(),
+        targetLanguage: z.enum(["hinglish", "hindi", "tamil", "telugu", "bengali"]),
+      }))
+      .mutation(async ({ input }) => {
+        const LANG_INSTRUCTIONS: Record<string, string> = {
+          hinglish: "Translate to Hinglish — a natural mix of Hindi and English as spoken by urban Indians. Keep brand names, numbers, and ₹ amounts in English. Use Devanagari script ONLY for pure Hindi words, otherwise Roman script.",
+          hindi: "Translate to pure Hindi in Devanagari script. Keep brand names (get-my-agent.com) and ₹ amounts in English.",
+          tamil: "Translate to Tamil in Tamil script. Keep brand names and ₹ amounts in English.",
+          telugu: "Translate to Telugu in Telugu script. Keep brand names and ₹ amounts in English.",
+          bengali: "Translate to Bengali in Bengali script. Keep brand names and ₹ amounts in English.",
+        };
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: `You are a social media translator. ${LANG_INSTRUCTIONS[input.targetLanguage]} Preserve all JSON structure and field names — only translate the VALUES. Return valid JSON only.` },
+            { role: "user", content: input.content },
+          ],
+        });
+        const translated = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content.trim() : input.content;
+        let parsedTranslated: any = null;
+        try {
+          parsedTranslated = JSON.parse(translated.replace(/^```json\s*|\s*```$/g, "").trim());
+        } catch {}
+        return { content: translated, parsed: parsedTranslated };
+      }),
+
     generateHooks: protectedProcedure
       .input(z.object({
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, Globe } from 'lucide-react';
+import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -263,6 +263,8 @@ export default function ContentGenerator() {
   const [savedPostId, setSavedPostId] = useState<number | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
   const [trendGeo, setTrendGeo] = useState<TrendGeo>('IN');
+  const [abVariants, setAbVariants] = useState<any[]>([]);
+  const [abOpen, setAbOpen] = useState(false);
 
   const { data: trendsData, isLoading: trendsLoading, refetch: refetchTrends } =
     trpc.content.getTrends.useQuery({ geo: trendGeo }, { staleTime: 60 * 60 * 1000 });
@@ -279,6 +281,7 @@ export default function ContentGenerator() {
   const bulkMutation = trpc.content.bulkGenerate.useMutation();
   const visualMutation = trpc.content.generateVisual.useMutation();
   const videoMutation = trpc.content.generateVideo.useMutation();
+  const abMutation = trpc.content.generateABVariants.useMutation();
 
   const handleGenerate = async () => {
     setHookVariants([]);
@@ -397,6 +400,35 @@ export default function ContentGenerator() {
     } catch (e: any) {
       toast.error(e.message || 'Video generation failed — Veo 2 requires special API access');
     }
+  };
+
+  const handleABVariants = async () => {
+    setAbVariants([]);
+    try {
+      const result = await abMutation.mutateAsync({
+        pillarType: selectedPillar,
+        platform: selectedPlatform,
+        contentFormat,
+        industry,
+        season,
+        customPrompt: customPrompt || undefined,
+      });
+      setAbVariants(result.variants);
+      setAbOpen(true);
+      toast.success('3 variants generated!');
+    } catch {
+      toast.error('Failed to generate variants');
+    }
+  };
+
+  const handleSelectVariant = (variant: any) => {
+    setGeneratedContent(variant.content);
+    setParsedContent(variant.parsed ?? null);
+    setCurrentFormat(contentFormat);
+    setGeneratedHashtags(variant.hashtags);
+    setPostTitle(`${INDUSTRIES.find(i => i.key === industry)?.label} · ${variant.label} · ${FORMATS.find(f => f.key === contentFormat)?.label}`);
+    setAbOpen(false);
+    toast.success(`${variant.label} selected!`);
   };
 
   const handleCopy = () => {
@@ -610,6 +642,9 @@ export default function ContentGenerator() {
                   <Button onClick={handleGetHooks} disabled={hooksMutation.isPending} variant="outline" className="px-3 border-amber-300 text-amber-700 hover:bg-amber-50" title="Get 5 hook variants">
                     {hooksMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                   </Button>
+                  <Button onClick={handleABVariants} disabled={abMutation.isPending} variant="outline" className="px-3 border-purple-300 text-purple-700 hover:bg-purple-50" title="Generate 3 A/B variants">
+                    {abMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <FlipHorizontal className="w-4 h-4" />}
+                  </Button>
                   <Button onClick={() => setBulkOpen(true)} variant="outline" className="px-3 border-green-300 text-green-700 hover:bg-green-50" title="Generate a full week of posts">
                     <CalendarDays className="w-4 h-4" />
                   </Button>
@@ -715,14 +750,14 @@ export default function ContentGenerator() {
                       <Button onClick={handleCopy} variant="outline" className="w-full text-sm">
                         <Copy className="w-4 h-4 mr-2" />Copy
                       </Button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button onClick={handleSave} disabled={saveMutation.isPending}
-                          variant="outline" className="text-sm">
-                          {saveMutation.isPending
-                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
-                            : <><Download className="w-4 h-4 mr-2" />Save Draft</>}
-                        </Button>
-                        {['facebook', 'instagram'].includes(selectedPlatform) && (
+                      {['facebook', 'instagram'].includes(selectedPlatform) ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button onClick={handleSave} disabled={saveMutation.isPending}
+                            variant="outline" className="text-sm">
+                            {saveMutation.isPending
+                              ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                              : <><Download className="w-4 h-4 mr-2" />Save Draft</>}
+                          </Button>
                           <Button
                             onClick={handleSaveAndPublish}
                             disabled={saveMutation.isPending}
@@ -732,8 +767,15 @@ export default function ContentGenerator() {
                               ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
                               : <><Send className="w-4 h-4 mr-2" />Publish</>}
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <Button onClick={handleSave} disabled={saveMutation.isPending}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm">
+                          {saveMutation.isPending
+                            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                            : <><Download className="w-4 h-4 mr-2" />Save Draft</>}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -753,6 +795,44 @@ export default function ContentGenerator() {
           </div>
         </div>
       </div>
+
+      {/* A/B Variants Dialog */}
+      <Dialog open={abOpen} onOpenChange={setAbOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FlipHorizontal className="w-5 h-5 text-purple-600" />
+              A/B Variants — Pick the Best One
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-2">
+            {abVariants.map((v, i) => (
+              <div key={i} className="rounded-xl border-2 border-slate-200 bg-white hover:border-purple-400 transition-all flex flex-col">
+                <div className={`px-4 py-2 rounded-t-xl text-xs font-bold uppercase tracking-wide text-white ${['bg-blue-600', 'bg-emerald-600', 'bg-orange-500'][i]}`}>
+                  {v.label}
+                </div>
+                <div className="p-3 flex-1 text-xs text-slate-700 overflow-y-auto max-h-64 leading-relaxed whitespace-pre-wrap">
+                  {v.parsed?.slides?.[0]?.headline
+                    ? <>
+                        <p className="font-bold text-sm text-slate-900 mb-2">{v.parsed.slides[0].headline}</p>
+                        {v.parsed.slides.slice(1, 4).map((s: any) => (
+                          <p key={s.num} className="mb-1 text-slate-600">• {s.headline}</p>
+                        ))}
+                        {v.parsed.caption && <p className="mt-2 italic text-slate-500">{v.parsed.caption}</p>}
+                      </>
+                    : v.content.slice(0, 400) + '...'}
+                </div>
+                <div className="p-3 border-t">
+                  <Button onClick={() => handleSelectVariant(v)} size="sm"
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                    Use this variant
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Publish to Meta Dialog */}
       {savedPostId && (
