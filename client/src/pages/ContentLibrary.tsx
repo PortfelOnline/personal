@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Trash2, Edit2, Archive, Send, Sparkles, Calendar } from 'lucide-react';
+import { Loader2, Trash2, Edit2, Archive, Send, Sparkles, Calendar, BarChart2, Eye, Heart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { PublishToMeta } from '@/components/PublishToMeta';
 import { PublishToWordPress } from '@/components/PublishToWordPress';
@@ -42,6 +42,10 @@ interface Post {
   hashtags?: string | null;
   scheduledAt?: Date | string | null;
   mediaUrl?: string | null;
+  metaPostId?: string | null;
+  metaReach?: number | null;
+  metaImpressions?: number | null;
+  metaLikes?: number | null;
 }
 
 export default function ContentLibrary() {
@@ -219,6 +223,31 @@ export default function ContentLibrary() {
                       <Calendar className="w-4 h-4" />
                       <span>{new Date(post.scheduledAt).toLocaleDateString()}</span>
                     </div>
+                  )}
+
+                  {/* Performance metrics for published posts */}
+                  {post.status === 'published' && (post.metaReach || post.metaLikes || post.metaImpressions) && (
+                    <div className="flex items-center gap-3 px-3 py-2 bg-green-50 rounded-lg border border-green-100">
+                      <BarChart2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                      {post.metaReach != null && (
+                        <span className="flex items-center gap-1 text-xs text-slate-700">
+                          <Eye className="w-3 h-3 text-slate-400" />{post.metaReach.toLocaleString()}
+                        </span>
+                      )}
+                      {post.metaLikes != null && (
+                        <span className="flex items-center gap-1 text-xs text-slate-700">
+                          <Heart className="w-3 h-3 text-rose-400" />{post.metaLikes.toLocaleString()}
+                        </span>
+                      )}
+                      {post.metaImpressions != null && (
+                        <span className="text-xs text-slate-500">{post.metaImpressions.toLocaleString()} impr.</span>
+                      )}
+                    </div>
+                  )}
+                  {post.status === 'published' && post.metaPostId && !post.metaReach && !post.metaLikes && (
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3" />Stats available — fetch via Meta API
+                    </p>
                   )}
 
                   <div className="flex flex-wrap gap-2 pt-4 border-t">

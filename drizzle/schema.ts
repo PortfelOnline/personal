@@ -62,6 +62,10 @@ export const contentPosts = mysqlTable("contentPosts", {
   hashtags: text("hashtags"),
   mediaUrl: varchar("mediaUrl", { length: 512 }),
   engagement: int("engagement").default(0),
+  metaPostId: varchar("metaPostId", { length: 255 }),   // Meta Graph API post ID (after publish)
+  metaReach: int("metaReach"),                           // Cached from Meta Insights
+  metaImpressions: int("metaImpressions"),
+  metaLikes: int("metaLikes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -50,6 +50,13 @@
       "when": 1773202356536,
       "tag": "0006_free_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1773807600209,
+      "tag": "0007_slim_vulture",
+      "breakpoints": true
     }
   ]
 }

@@ -124,7 +124,8 @@ export const metaRouter = router({
             .set({
               status: "published",
               publishedAt: new Date(),
-            })
+              metaPostId: result.id ? String(result.id) : null,
+            } as any)
             .where(eq(contentPosts.id, input.postId));
         }
 
@@ -178,7 +179,8 @@ export const metaRouter = router({
             .set({
               status: "published",
               publishedAt: new Date(),
-            })
+              metaPostId: result.id ? String(result.id) : null,
+            } as any)
             .where(eq(contentPosts.id, input.postId));
         }
 
@@ -219,6 +221,74 @@ export const metaRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to disconnect account",
         });
+      }
+    }),
+
+  /**
+   * Fetch insights for a published post from Meta Graph API
+   */
+  getPostInsights: protectedProcedure
+    .input(z.object({
+      postId: z.number(),        // our DB post ID
+      metaPostId: z.string(),    // Meta Graph post ID
+      accountId: z.string(),     // Meta account ID (for token lookup)
+    }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const account = await metaDb.getMetaAccount(ctx.user.id, input.accountId);
+        if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+
+        const token = account.accessToken;
+        const fields = "reach,impressions,like_count,comments_count,shares,saved";
+
+        // Try IG insights first, then FB
+        let insights: Record<string, number> = {};
+        try {
+          const igRes = await fetch(
+            `https://graph.facebook.com/v19.0/${input.metaPostId}/insights?metric=reach,impressions,saved&access_token=${token}`
+          );
+          if (igRes.ok) {
+            const igData = await igRes.json() as any;
+            for (const item of igData?.data ?? []) {
+              insights[item.name] = item.values?.[0]?.value ?? item.value ?? 0;
+            }
+          }
+        } catch {}
+
+        // Also fetch basic fields (likes, comments work on both FB/IG)
+        try {
+          const basicRes = await fetch(
+            `https://graph.facebook.com/v19.0/${input.metaPostId}?fields=${fields}&access_token=${token}`
+          );
+          if (basicRes.ok) {
+            const basicData = await basicRes.json() as any;
+            if (basicData.like_count !== undefined) insights.likes = basicData.like_count;
+            if (basicData.comments_count !== undefined) insights.comments = basicData.comments_count;
+            if (basicData.shares?.count !== undefined) insights.shares = basicData.shares.count;
+          }
+        } catch {}
+
+        // Cache in DB
+        const db = await getDb();
+        if (db && (insights.reach || insights.impressions)) {
+          await db.update(contentPosts).set({
+            metaReach: insights.reach ?? null,
+            metaImpressions: insights.impressions ?? null,
+            metaLikes: insights.likes ?? null,
+          } as any).where(eq(contentPosts.id, input.postId));
+        }
+
+        return {
+          reach: insights.reach ?? null,
+          impressions: insights.impressions ?? null,
+          likes: insights.likes ?? null,
+          comments: insights.comments ?? null,
+          shares: insights.shares ?? null,
+          saved: insights.saved ?? null,
+        };
+      } catch (error) {
+        console.error("[Meta API] Insights error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to fetch insights" });
       }
     }),
 });

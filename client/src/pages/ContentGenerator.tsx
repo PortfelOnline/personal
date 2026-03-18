@@ -325,6 +325,7 @@ export default function ContentGenerator() {
   const abMutation = trpc.content.generateABVariants.useMutation();
   const repurposeMutation = trpc.content.repurposeContent.useMutation();
   const rssMutation = trpc.content.rssToPost.useMutation();
+  const emojiMutation = trpc.content.optimizeEmojis.useMutation();
 
   const handleGenerate = async () => {
     setHookVariants([]);
@@ -472,6 +473,17 @@ export default function ContentGenerator() {
     setPostTitle(`${INDUSTRIES.find(i => i.key === industry)?.label} · ${variant.label} · ${FORMATS.find(f => f.key === contentFormat)?.label}`);
     setAbOpen(false);
     toast.success(`${variant.label} selected!`);
+  };
+
+  const handleOptimizeEmojis = async () => {
+    if (!generatedContent) return toast.error('Generate content first');
+    try {
+      const result = await emojiMutation.mutateAsync({ content: generatedContent, platform: selectedPlatform });
+      setGeneratedContent(result.optimized);
+      toast.success('Emojis optimized!');
+    } catch {
+      toast.error('Emoji optimization failed');
+    }
   };
 
   const handleRepurpose = async (targetFormat: ContentFormat) => {
@@ -890,9 +902,16 @@ export default function ContentGenerator() {
                           Generate Video
                         </Button>
                       </div>
-                      <Button onClick={handleCopy} variant="outline" className="w-full text-sm">
-                        <Copy className="w-4 h-4 mr-2" />Copy
-                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button onClick={handleCopy} variant="outline" className="text-sm">
+                          <Copy className="w-4 h-4 mr-2" />Copy
+                        </Button>
+                        <Button onClick={handleOptimizeEmojis} disabled={emojiMutation.isPending} variant="outline"
+                          className="text-sm border-yellow-300 text-yellow-700 hover:bg-yellow-50" title="Optimize emoji placement for this platform">
+                          {emojiMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <span className="mr-1.5">✨</span>}
+                          Emojis
+                        </Button>
+                      </div>
                       {['facebook', 'instagram'].includes(selectedPlatform) ? (
                         <div className="grid grid-cols-2 gap-2">
                           <Button onClick={handleSave} disabled={saveMutation.isPending}

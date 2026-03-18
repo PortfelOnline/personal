@@ -764,6 +764,29 @@ export const appRouter = router({
         return { hashtags };
       }),
 
+    optimizeEmojis: protectedProcedure
+      .input(z.object({
+        content: z.string(),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
+      }))
+      .mutation(async ({ input }) => {
+        const platformGuide: Record<string, string> = {
+          instagram: "Instagram: use 3–6 emojis per post. Place at start of lines and before CTA. Use energy emojis: 🔥💰📈✅🎯💬🚀",
+          facebook: "Facebook: use 1–3 emojis. Subtle placement. Prefer professional tone: ✅📊💡👉🤝",
+          whatsapp: "WhatsApp: use 2–4 emojis. Conversational tone: 👋😊✅💬📞",
+          youtube: "YouTube: use 1–2 emojis in hook only. Keep clean: 🎯💡",
+        };
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a social media emoji optimization expert. Return ONLY the rewritten text with no explanation." },
+            { role: "user", content: `Optimize emoji usage in this post for ${input.platform}.\n${platformGuide[input.platform]}\nRules: don't change any words, only add/remove/reposition emojis. Keep all ₹ amounts and brand names intact.\n\nOriginal:\n${input.content}` },
+          ],
+        });
+        const optimized = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content.trim() : input.content;
+        return { optimized };
+      }),
+
     repurposeContent: protectedProcedure
       .input(z.object({
         content: z.string(),
