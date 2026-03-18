@@ -58,19 +58,19 @@ export function getMetaOAuthUrl(state: string): string {
  */
 export async function exchangeMetaCode(code: string): Promise<MetaOAuthTokenResponse> {
   try {
-    const response = await axios.post(
-      `${META_FACEBOOK_API_URL}/oauth/access_token`,
-      {
-        client_id: ENV.metaAppId,
-        client_secret: ENV.metaAppSecret,
-        redirect_uri: ENV.metaRedirectUri,
-        code,
-      }
+    const params = new URLSearchParams({
+      client_id: ENV.metaAppId,
+      client_secret: ENV.metaAppSecret,
+      redirect_uri: ENV.metaRedirectUri,
+      code,
+    });
+    const response = await axios.get(
+      `${META_FACEBOOK_API_URL}/oauth/access_token?${params.toString()}`
     );
-
+    console.log('[Meta OAuth] Token exchange success, token type:', response.data?.token_type);
     return response.data;
-  } catch (error) {
-    console.error('[Meta OAuth] Failed to exchange code:', error);
+  } catch (error: any) {
+    console.error('[Meta OAuth] Failed to exchange code:', error?.response?.data || error);
     throw new Error('Failed to authenticate with Meta');
   }
 }

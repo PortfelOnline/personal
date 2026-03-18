@@ -12,7 +12,6 @@ export default function MetaAccounts() {
   const { user } = useAuth();
   const [oauthUrl, setOauthUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
-
   const { data: accounts, isLoading, refetch } = trpc.meta.getAccounts.useQuery();
   const { mutate: disconnect } = trpc.meta.disconnectAccount.useMutation({
     onSuccess: () => {
@@ -24,18 +23,39 @@ export default function MetaAccounts() {
     },
   });
 
-  const { data: oauthData } = trpc.meta.getOAuthUrl.useQuery(
-    { state: typeof window !== 'undefined' ? (sessionStorage.getItem('meta_oauth_state') || Math.random().toString(36).substring(7)) : '' },
-    {
-      enabled: typeof window !== 'undefined',
-    }
-  );
+  const { data: oauthData } = trpc.meta.getOAuthUrl.useQuery();
 
   useEffect(() => {
     if (oauthData?.oauthUrl) {
       setOauthUrl(oauthData.oauthUrl);
     }
   }, [oauthData]);
+
+  // Show result toasts after OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('meta_success');
+    const error = params.get('meta_error');
+    if (success !== null) {
+      const count = parseInt(success);
+      if (count > 0) {
+        toast.success(`Connected ${count} account(s) successfully!`);
+      } else {
+        toast.warning('OAuth completed but no Facebook Pages or Instagram accounts were found. Make sure your Facebook account manages at least one Page.');
+      }
+      window.history.replaceState({}, '', '/accounts');
+      refetch();
+    } else if (error) {
+      const messages: Record<string, string> = {
+        access_denied: 'Access was denied by Facebook.',
+        no_code: 'No authorization code received.',
+        not_logged_in: 'Session expired. Please log in again.',
+        auth_failed: 'OAuth failed. Check server logs.',
+      };
+      toast.error(messages[error] || `Error: ${error}`);
+      window.history.replaceState({}, '', '/accounts');
+    }
+  }, []);
 
   const handleConnectMeta = () => {
     if (oauthUrl) {

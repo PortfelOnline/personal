@@ -67,20 +67,35 @@ export function registerOAuthRoutes(app: Express) {
       return res.redirect("/?meta_error=no_code");
     }
 
-    // Get current user from session cookie
+    // Get current user: first try state param (userId encoded), then session cookie
     let userId: number | null = null;
-    try {
-      const cookieName = COOKIE_NAME;
-      const sessionToken = req.cookies?.[cookieName];
-      if (sessionToken) {
-        const session = await sdk.verifySession(sessionToken);
-        if (session?.openId) {
-          const user = await db.getUserByOpenId(session.openId);
-          userId = user?.id ?? null;
+    const state = getQueryParam(req, "state");
+
+    // Try decoding userId from state
+    if (state) {
+      try {
+        const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
+        if (decoded?.userId) {
+          userId = Number(decoded.userId);
+          console.log("[Meta OAuth] Got userId from state:", userId);
         }
+      } catch {}
+    }
+
+    // Fallback: session cookie
+    if (!userId) {
+      try {
+        const sessionToken = req.cookies?.[COOKIE_NAME];
+        if (sessionToken) {
+          const session = await sdk.verifySession(sessionToken);
+          if (session?.openId) {
+            const user = await db.getUserByOpenId(session.openId);
+            userId = user?.id ?? null;
+          }
+        }
+      } catch (e) {
+        console.error("[Meta OAuth] Failed to get session user:", e);
       }
-    } catch (e) {
-      console.error("[Meta OAuth] Failed to get session user:", e);
     }
 
     if (!userId) {
@@ -93,12 +108,14 @@ export function registerOAuthRoutes(app: Express) {
 
       // Get Facebook pages
       const facebookPages = await metaApi.getFacebookPages(tokenResponse.access_token);
+      console.log(`[Meta OAuth] Facebook pages found: ${facebookPages.length}`, facebookPages.map(p => p.name));
 
       // Get Instagram business accounts from pages
       const instagramAccounts = await metaApi.getInstagramAccountsFromPages(
         tokenResponse.access_token,
         facebookPages
       );
+      console.log(`[Meta OAuth] Instagram accounts found: ${instagramAccounts.length}`);
 
       let connected = 0;
 

@@ -11,12 +11,11 @@ export const metaRouter = router({
   /**
    * Get Meta OAuth URL for user to authenticate
    */
-  getOAuthUrl: publicProcedure
-    .input(z.object({
-      state: z.string(),
-    }))
-    .query(({ input }) => {
-      const oauthUrl = metaApi.getMetaOAuthUrl(input.state);
+  getOAuthUrl: protectedProcedure
+    .query(({ ctx }) => {
+      // Encode userId in state so callback can find user even if cookie is blocked
+      const state = Buffer.from(JSON.stringify({ userId: ctx.user.id, r: Math.random().toString(36).slice(2) })).toString('base64url');
+      const oauthUrl = metaApi.getMetaOAuthUrl(state);
       return { oauthUrl };
     }),
 
