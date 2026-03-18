@@ -57,6 +57,13 @@
       "when": 1773807600209,
       "tag": "0007_slim_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1773829297908,
+      "tag": "0008_moaning_polaris",
+      "breakpoints": true
     }
   ]
 }
