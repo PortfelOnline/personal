@@ -1,4 +1,9 @@
 import axios from 'axios';
+import https from 'https';
+
+// Custom HTTPS agent: disable keepAlive + ignore cert errors for WP media upload
+// Fixes SSL bad_record_mac errors when uploading large binary payloads
+const wpHttpsAgent = new https.Agent({ keepAlive: false, rejectUnauthorized: false });
 
 export interface WpUserInfo {
   name: string;
@@ -90,6 +95,7 @@ export async function uploadMediaFromUrl(
     },
     maxContentLength: Infinity,
     maxBodyLength: Infinity,
+    httpsAgent: wpHttpsAgent,
   });
   return { id: response.data.id, url: response.data.source_url };
 }

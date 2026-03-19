@@ -1527,9 +1527,7 @@ ${competitorContext}
         .replace(/\s+в\s+Москве$/i, '')
         .replace(/:\s*.+$/, '')
         .trim();
-      const imagePrompts = await generateImagePrompts(input.title);
-
-      const [ctaResponse, metaResponse, excerptResponse, ...imageResults] = await Promise.all([
+      const [ctaResponse, metaResponse, excerptResponse, imagePrompts] = await Promise.all([
         invokeLLM({
           messages: [
             { role: 'system', content: 'Ты копирайтер. Пишешь короткие призывы к действию для кнопок.' },
@@ -1563,13 +1561,16 @@ ${competitorContext}
           ],
           maxTokens: 100,
         }).catch(() => null),
-        ...(input.generateImage
-          ? imagePrompts.map((p) =>
+        generateImagePrompts(input.title),
+      ]);
+
+      const imageResults = await Promise.all(
+        input.generateImage
+          ? (imagePrompts as string[]).map((p) =>
               generateDallEImage(p).catch((e) => { console.error('[Articles] DALL-E failed:', e.message); return null; })
             )
           : [Promise.resolve(null), Promise.resolve(null), Promise.resolve(null)]
-        ),
-      ]);
+      );
 
       // Parse CTA texts
       let ctaTexts: string[] = [
@@ -1725,10 +1726,8 @@ ${competitorContext}
         .replace(/:\s*.+$/, '')  // remove subtitle after colon
         .trim();
 
-      const imagePrompts = await generateImagePrompts(input.title);
-
-      // Run meta LLM + DALL-E images in parallel
-      const [metaResp, ...imageResults] = await Promise.all([
+      // Run meta LLM + image prompts generation in parallel, then DALL-E
+      const [metaResp, imagePrompts] = await Promise.all([
         invokeLLM({
           messages: [
             { role: 'system', content: 'Ты SEO-копирайтер. Никогда не упоминай Госуслуги, МФЦ, Росреестр как способы заказа. Акцент — заказ через kadastrmap.info.' },
@@ -1736,10 +1735,18 @@ ${competitorContext}
           ],
           maxTokens: 200,
         }).catch(() => null),
-        ...imagePrompts.map(p =>
-          generateDallEImage(p).catch((e: any) => { console.warn('[Draft] DALL-E failed:', e?.message); return null; })
-        ),
+        generateImagePrompts(input.title),
       ]);
+
+      // DALL-E in parallel with 50s timeout each
+      console.log('[Draft] imagePrompts count:', imagePrompts.length, 'prompts[0]:', imagePrompts[0]?.slice(0, 60));
+      const imageResults = await Promise.all(
+        imagePrompts.map((p: string, i: number) =>
+          generateDallEImage(p).then(url => { console.log(`[Draft] DALL-E[${i}] OK:`, url?.slice(0, 60)); return url; })
+            .catch((e: any) => { console.warn(`[Draft] DALL-E[${i}] failed:`, e?.message); return null; })
+        )
+      );
+      console.log('[Draft] imageResults:', imageResults.map(r => r ? 'OK' : 'null'));
 
       let metaDesc: string | undefined;
       try {

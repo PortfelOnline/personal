@@ -107,3 +107,5 @@ temp/
 *.sqlite3
 .DS_Store
 .agents/
+public/uploads/
+gen_image_temp.ts
