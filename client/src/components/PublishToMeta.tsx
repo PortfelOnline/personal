@@ -15,6 +15,17 @@ interface PublishToMetaProps {
   imageUrl?: string;
 }
 
+function extractReadableText(content: string): string {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed.caption) {
+      const hashtags = Array.isArray(parsed.hashtags) ? '\n\n' + parsed.hashtags.join(' ') : '';
+      return parsed.caption + hashtags;
+    }
+  } catch {}
+  return content;
+}
+
 export function PublishToMeta({
   open,
   onOpenChange,
@@ -24,6 +35,7 @@ export function PublishToMeta({
   imageUrl,
 }: PublishToMetaProps) {
   const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const displayText = extractReadableText(content);
 
   const { data: accounts = [] } = trpc.meta.getAccounts.useQuery();
   const { mutate: publishInstagram, isPending: isPublishingInstagram } =
@@ -76,14 +88,13 @@ export function PublishToMeta({
     }
   };
 
-  const filteredAccounts = accounts.filter((account) => {
-    if (platform === 'instagram') {
-      return account.accountType === 'instagram_business';
-    } else if (platform === 'facebook') {
-      return account.accountType === 'facebook_page';
-    }
+  const preferredAccounts = accounts.filter((account) => {
+    if (platform === 'instagram') return account.accountType === 'instagram_business';
+    if (platform === 'facebook') return account.accountType === 'facebook_page';
     return true;
   });
+  // Fall back to all accounts if none match the platform
+  const filteredAccounts = preferredAccounts.length > 0 ? preferredAccounts : accounts;
 
   const isPublishing = isPublishingInstagram || isPublishingFacebook;
 
@@ -91,7 +102,7 @@ export function PublishToMeta({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Publish to {platform === 'instagram' ? 'Instagram' : 'Facebook'}</DialogTitle>
+          <DialogTitle>Publish to Social Media</DialogTitle>
           <DialogDescription>
             Select the account where you want to publish this content
           </DialogDescription>
@@ -100,7 +111,7 @@ export function PublishToMeta({
         <div className="space-y-4 py-4">
           {/* Content Preview */}
           <div className="bg-slate-50 p-4 rounded-lg">
-            <p className="text-sm text-slate-600 line-clamp-3">{content}</p>
+            <p className="text-sm text-slate-600 line-clamp-3">{displayText}</p>
             {imageUrl && (
               <div className="mt-3">
                 <img

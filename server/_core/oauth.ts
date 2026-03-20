@@ -108,7 +108,9 @@ export function registerOAuthRoutes(app: Express) {
 
       // Get Facebook pages
       const facebookPages = await metaApi.getFacebookPages(tokenResponse.access_token);
-      console.log(`[Meta OAuth] Facebook pages found: ${facebookPages.length}`, facebookPages.map(p => p.name));
+      const logMsg = `[Meta OAuth] pages=${facebookPages.length}: ${JSON.stringify(facebookPages.map(p => ({id:p.id,name:p.name})))}\n`;
+      console.log(logMsg);
+      require('fs').appendFileSync('/tmp/meta_oauth.log', logMsg);
 
       // Get Instagram business accounts from pages
       const instagramAccounts = await metaApi.getInstagramAccountsFromPages(
@@ -143,8 +145,10 @@ export function registerOAuthRoutes(app: Express) {
 
       console.log(`[Meta OAuth] Connected ${connected} accounts for user ${userId}`);
       res.redirect(`/accounts?meta_success=${connected}`);
-    } catch (err) {
-      console.error("[Meta OAuth] Callback error:", err);
+    } catch (err: any) {
+      const errMsg = err?.response?.data ? JSON.stringify(err.response.data) : String(err);
+      console.error("[Meta OAuth] Callback error:", errMsg);
+      require('fs').appendFileSync('/tmp/meta_oauth.log', `ERROR: ${errMsg}\n`);
       res.redirect("/accounts?meta_error=auth_failed");
     }
   });

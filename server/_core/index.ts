@@ -84,6 +84,15 @@ async function startServer() {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  // Handle malformed URLs (e.g. unresolved %VITE_* env vars) without crashing
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err instanceof URIError) {
+      res.status(400).send('Bad Request');
+      return;
+    }
+    next(err);
+  });
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
     initOrchestrator();
@@ -91,5 +100,13 @@ async function startServer() {
     initContentScheduler();
   });
 }
+
+// Prevent unhandled rejections/exceptions from crashing the process
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
 
 startServer().catch(console.error);

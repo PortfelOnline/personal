@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Trash2, Edit2, Archive, Send, Sparkles, Calendar, BarChart2, Eye, Heart, RefreshCw } from 'lucide-react';
+import { Loader2, Trash2, Edit2, Archive, Send, Sparkles, Calendar, BarChart2, Eye, Heart, RefreshCw, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { PublishToMeta } from '@/components/PublishToMeta';
 import { PublishToWordPress } from '@/components/PublishToWordPress';
@@ -63,6 +63,9 @@ export default function ContentLibrary() {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [editHashtags, setEditHashtags] = useState('');
+  const [editMediaUrl, setEditMediaUrl] = useState<string>('');
+  const [editGalleryOpen, setEditGalleryOpen] = useState(false);
+  const { data: galleryData, refetch: refetchGallery } = trpc.content.listGeneratedImages.useQuery(undefined, { enabled: editGalleryOpen });
   const [variationDialogOpen, setVariationDialogOpen] = useState(false);
   const [variation, setVariation] = useState('');
 
@@ -113,6 +116,7 @@ export default function ContentLibrary() {
     setEditTitle(post.title);
     setEditContent(post.content);
     setEditHashtags(post.hashtags || '');
+    setEditMediaUrl(post.mediaUrl || '');
     setEditDialogOpen(true);
   };
 
@@ -123,6 +127,7 @@ export default function ContentLibrary() {
       title: editTitle,
       content: editContent,
       hashtags: editHashtags,
+      mediaUrl: editMediaUrl || null,
     });
   };
 
@@ -199,6 +204,13 @@ export default function ContentLibrary() {
                 </CardHeader>
 
                 <CardContent className="space-y-4 flex-1 flex flex-col">
+                  {post.mediaUrl && (
+                    <img
+                      src={post.mediaUrl}
+                      alt="Post visual"
+                      className="w-full h-36 object-cover rounded-lg border border-slate-200"
+                    />
+                  )}
                   <div className="flex-1">
                     <p className="text-sm text-slate-700 line-clamp-3 bg-slate-50 p-3 rounded-lg">
                       {post.content}
@@ -353,6 +365,24 @@ export default function ContentLibrary() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">Image</label>
+                <Button variant="ghost" size="sm" onClick={() => { setEditGalleryOpen(true); refetchGallery(); }}>
+                  <Image className="w-4 h-4 mr-1" />Change Image
+                </Button>
+              </div>
+              {editMediaUrl ? (
+                <div className="relative">
+                  <img src={editMediaUrl} alt="Post visual" className="w-full h-32 object-cover rounded-lg border" />
+                  <button onClick={() => setEditMediaUrl('')} className="absolute top-1 right-1 bg-black/50 text-white text-xs rounded px-1.5 py-0.5 hover:bg-black/70">✕ Remove</button>
+                </div>
+              ) : (
+                <button onClick={() => { setEditGalleryOpen(true); refetchGallery(); }} className="w-full h-20 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-sm text-slate-400 hover:border-violet-400 hover:text-violet-500 transition-colors">
+                  + Pick from gallery
+                </button>
+              )}
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
                 <label className="text-sm font-medium">Hashtags</label>
                 <Button
                   variant="ghost"
@@ -401,6 +431,39 @@ export default function ContentLibrary() {
               Use This Variation
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Gallery picker for edit dialog */}
+      <Dialog open={editGalleryOpen} onOpenChange={setEditGalleryOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5 text-violet-600" />
+              Pick Image
+            </DialogTitle>
+          </DialogHeader>
+          {!galleryData || galleryData.images.length === 0 ? (
+            <p className="text-sm text-slate-500 py-8 text-center">No images yet — generate one in the Generator.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              {galleryData.images.map((img) => (
+                <button
+                  key={img.url}
+                  onClick={() => { setEditMediaUrl(img.url); setEditGalleryOpen(false); }}
+                  className={`relative group rounded-xl overflow-hidden border-2 transition-all ${editMediaUrl === img.url ? 'border-violet-500 ring-2 ring-violet-300' : 'border-slate-200 hover:border-violet-400'}`}
+                >
+                  <img src={img.url} alt={img.filename} className="w-full aspect-square object-cover" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-end">
+                    <span className="w-full text-center text-white text-xs py-1 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">Use this</span>
+                  </div>
+                  {editMediaUrl === img.url && (
+                    <div className="absolute top-1 right-1 bg-violet-500 text-white text-xs rounded-full px-1.5 py-0.5">✓</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

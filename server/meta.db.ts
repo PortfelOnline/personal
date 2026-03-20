@@ -44,6 +44,7 @@ export async function upsertMetaAccount(
         .update(metaAccounts)
         .set({
           ...account,
+          isActive: 1,
           updatedAt: new Date(),
         })
         .where(eq(metaAccounts.id, existing[0].id));

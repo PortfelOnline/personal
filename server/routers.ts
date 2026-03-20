@@ -503,6 +503,7 @@ export const appRouter = router({
         hashtags: z.string().optional(),
         status: z.enum(["draft", "scheduled", "published"]).default("draft"),
         scheduledAt: z.date().optional(),
+        mediaUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const result = await createContentPost(ctx.user.id, {
@@ -513,6 +514,7 @@ export const appRouter = router({
           hashtags: input.hashtags,
           status: input.status,
           scheduledAt: input.scheduledAt,
+          mediaUrl: input.mediaUrl,
         });
         const insertId = (result as any)[0]?.insertId ?? (result as any)?.insertId ?? null;
         return { id: insertId as number | null };
@@ -562,6 +564,7 @@ export const appRouter = router({
         hashtags: z.string().optional(),
         status: z.enum(["draft", "scheduled", "published", "archived"]).optional(),
         scheduledAt: z.date().optional().nullable(),
+        mediaUrl: z.string().optional().nullable(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...updates } = input;
@@ -740,6 +743,24 @@ export const appRouter = router({
         const url = `/uploads/${filename}`;
 
         return { url, prompt };
+      }),
+
+    listGeneratedImages: protectedProcedure
+      .query(() => {
+        const localDir = path.join(process.cwd(), "public", "uploads");
+        try {
+          const files = fs.readdirSync(localDir)
+            .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f))
+            .map(f => ({
+              url: `/uploads/${f}`,
+              filename: f,
+              createdAt: fs.statSync(path.join(localDir, f)).mtimeMs,
+            }))
+            .sort((a, b) => b.createdAt - a.createdAt);
+          return { images: files };
+        } catch {
+          return { images: [] };
+        }
       }),
 
     generateVideo: protectedProcedure

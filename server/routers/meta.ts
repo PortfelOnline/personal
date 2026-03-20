@@ -107,11 +107,23 @@ export const metaRouter = router({
           });
         }
 
+        // Extract plain text from JSON carousel content if needed
+        let caption = input.caption;
+        try {
+          const parsed = JSON.parse(input.caption);
+          if (parsed.caption) {
+            const hashtags = Array.isArray(parsed.hashtags) ? '\n\n' + parsed.hashtags.join(' ') : '';
+            caption = parsed.caption + hashtags;
+          }
+        } catch {
+          // Not JSON, use as-is
+        }
+
         // Publish to Instagram
         const result = await metaApi.postToInstagram(
           input.accountId,
           account.accessToken,
-          input.caption,
+          caption,
           input.imageUrl
         );
 
@@ -162,11 +174,23 @@ export const metaRouter = router({
           });
         }
 
+        // Extract plain text from JSON carousel content if needed
+        let message = input.message;
+        try {
+          const parsed = JSON.parse(input.message);
+          if (parsed.caption) {
+            const hashtags = Array.isArray(parsed.hashtags) ? '\n\n' + parsed.hashtags.join(' ') : '';
+            message = parsed.caption + hashtags;
+          }
+        } catch {
+          // Not JSON, use as-is
+        }
+
         // Publish to Facebook
         const result = await metaApi.postToFacebookPage(
           input.pageId,
           account.accessToken,
-          input.message,
+          message,
           input.imageUrl
         );
 

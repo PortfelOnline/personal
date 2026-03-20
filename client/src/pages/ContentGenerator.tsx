@@ -343,6 +343,9 @@ export default function ContentGenerator() {
   const saveTopicMutation = trpc.content.saveTopic.useMutation({ onSuccess: () => refetchTopics() });
   const deleteTopicMutation = trpc.content.deleteTopic.useMutation({ onSuccess: () => refetchTopics() });
 
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const { data: galleryData, refetch: refetchGallery } = trpc.content.listGeneratedImages.useQuery(undefined, { enabled: galleryOpen });
+
   const handleGenerate = async () => {
     setHookVariants([]);
     try {
@@ -387,6 +390,7 @@ export default function ContentGenerator() {
         language: 'english',
         hashtags: generatedHashtags,
         status: 'draft',
+        mediaUrl: generatedImageUrl || undefined,
       });
       setSavedPostId(result.id);
       toast.success('Saved as draft!');
@@ -408,6 +412,7 @@ export default function ContentGenerator() {
         language: 'english',
         hashtags: generatedHashtags,
         status: 'draft',
+        mediaUrl: generatedImageUrl || undefined,
       });
       setSavedPostId(result.id);
       setPublishOpen(true);
@@ -1063,7 +1068,7 @@ export default function ContentGenerator() {
                       </div>
 
                       {/* Gemini visual buttons */}
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <Button
                           onClick={handleGenerateVisual}
                           disabled={visualMutation.isPending}
@@ -1074,6 +1079,15 @@ export default function ContentGenerator() {
                             ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                             : <Image className="w-3 h-3 mr-1" />}
                           Generate Image
+                        </Button>
+                        <Button
+                          onClick={() => { setGalleryOpen(true); refetchGallery(); }}
+                          variant="outline"
+                          className="text-xs border-violet-300 text-violet-700 hover:bg-violet-50"
+                          title="Pick from previously generated images"
+                        >
+                          <Image className="w-3 h-3 mr-1" />
+                          Gallery
                         </Button>
                         <Button
                           onClick={handleGenerateVideo}
@@ -1227,6 +1241,41 @@ export default function ContentGenerator() {
               </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Gallery Dialog */}
+      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Image className="w-5 h-5 text-violet-600" />
+              Image Gallery — Previously Generated
+            </DialogTitle>
+          </DialogHeader>
+          {!galleryData || galleryData.images.length === 0 ? (
+            <p className="text-sm text-slate-500 py-8 text-center">No images yet — generate one first.</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              {galleryData.images.map((img) => (
+                <button
+                  key={img.url}
+                  onClick={() => { setGeneratedImageUrl(img.url); setGalleryOpen(false); toast.success('Image selected!'); }}
+                  className={`relative group rounded-xl overflow-hidden border-2 transition-all ${generatedImageUrl === img.url ? 'border-violet-500 ring-2 ring-violet-300' : 'border-slate-200 hover:border-violet-400'}`}
+                >
+                  <img src={img.url} alt={img.filename} className="w-full aspect-square object-cover" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-end">
+                    <span className="w-full text-center text-white text-xs py-1 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Use this image
+                    </span>
+                  </div>
+                  {generatedImageUrl === img.url && (
+                    <div className="absolute top-1 right-1 bg-violet-500 text-white text-xs rounded-full px-1.5 py-0.5">✓</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

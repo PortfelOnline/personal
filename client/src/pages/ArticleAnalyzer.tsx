@@ -4147,8 +4147,8 @@ export default function ArticleAnalyzer() {
                 className="flex-1 text-xs h-7 gap-1"
                 onClick={() => clearDuplicates(undefined, {
                   onSuccess: (d) => {
-                    toast.success(`Удалено дублей: ${d.deleted}`);
-                    utils.articles.getHistory.invalidate();
+                    if (d.deleted === 0) toast.info('Дублей не найдено');
+                    else { toast.success(`Удалено дублей: ${d.deleted}`); utils.articles.getHistory.invalidate(); }
                   },
                   onError: (e) => toast.error(e.message),
                 })}

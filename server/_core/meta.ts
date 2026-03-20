@@ -1,5 +1,28 @@
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
+import { execFileSync } from 'child_process';
+import FormData from 'form-data';
 import { ENV } from './env';
+
+const SERVER_N_HOST = 'root@5.42.109.72';
+const SERVER_N_UPLOADS_DIR = '/var/www/ai-uploads';
+const SERVER_N_PUBLIC_URL = 'https://get-my-agent.com/ai-uploads';
+const SSH_KEY = (process.env.HOME || '/root') + '/.ssh/id_ed25519';
+
+/**
+ * Upload local image to server n and return public URL for Instagram
+ */
+export function uploadImageToServerN(localPath: string): string {
+  const filename = path.basename(localPath);
+  execFileSync('scp', [
+    '-i', SSH_KEY,
+    '-o', 'StrictHostKeyChecking=no',
+    localPath,
+    `${SERVER_N_HOST}:${SERVER_N_UPLOADS_DIR}/${filename}`,
+  ], { timeout: 30000 });
+  return `${SERVER_N_PUBLIC_URL}/${filename}`;
+}
 
 const META_GRAPH_API_VERSION = 'v18.0';
 const META_GRAPH_API_URL = `https://graph.instagram.com/${META_GRAPH_API_VERSION}`;
@@ -169,11 +192,19 @@ export async function postToInstagram(
   imageUrl?: string
 ): Promise<{ id: string }> {
   try {
+    // If imageUrl is a local path, upload to server n to get a public URL
+    let publicImageUrl = imageUrl;
+    if (imageUrl && imageUrl.startsWith('/uploads/')) {
+      const localPath = path.join(process.cwd(), 'public', imageUrl);
+      publicImageUrl = uploadImageToServerN(localPath);
+      console.log('[Meta] Uploaded image to server n:', publicImageUrl);
+    }
+
     // Create media container first
     const mediaResponse = await axios.post(
       `${META_GRAPH_API_URL}/${instagramAccountId}/media`,
       {
-        image_url: imageUrl,
+        image_url: publicImageUrl,
         caption,
         access_token: accessToken,
       }
@@ -207,25 +238,36 @@ export async function postToFacebookPage(
   imageUrl?: string
 ): Promise<{ id: string }> {
   try {
-    const payload: any = {
-      message,
-      access_token: accessToken,
-    };
-
     if (imageUrl) {
-      payload.picture = imageUrl;
-      payload.link = imageUrl;
+      // imageUrl is a local path like /uploads/visual_xxx.jpg — upload binary to FB
+      const localPath = path.join(process.cwd(), 'public', imageUrl);
+      const form = new FormData();
+      form.append('source', fs.createReadStream(localPath), {
+        filename: path.basename(localPath),
+        contentType: 'image/jpeg',
+      });
+      form.append('message', message);
+      form.append('published', 'true');
+      form.append('access_token', accessToken);
+
+      const response = await axios.post(
+        `${META_FACEBOOK_API_URL}/${pageId}/photos`,
+        form,
+        { headers: form.getHeaders() }
+      );
+      return { id: response.data.id || response.data.post_id };
     }
 
+    // Text-only post
     const response = await axios.post(
       `${META_FACEBOOK_API_URL}/${pageId}/feed`,
-      payload
+      { message, access_token: accessToken }
     );
-
     return { id: response.data.id };
-  } catch (error) {
-    console.error('[Meta API] Failed to post to Facebook:', error);
-    throw new Error('Failed to post to Facebook');
+  } catch (error: any) {
+    const fbError = error?.response?.data?.error;
+    console.error('[Meta API] Failed to post to Facebook:', fbError ?? error);
+    throw new Error(fbError?.message ?? 'Failed to post to Facebook');
   }
 }
 

@@ -76,7 +76,7 @@ export async function generateDalleImage(
   const res = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size, quality: "standard", response_format: "b64_json" }),
+    body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size, quality: "hd", response_format: "b64_json" }),
   });
 
   if (!res.ok) {
@@ -97,7 +97,7 @@ export async function generateDalleImage(
 // (Wati, Privyr, Interakt, Gallabox): WhatsApp mockups + agent scenarios outperform
 // generic property photos in conversion for AI-agent / automation products.
 const INDUSTRY_VISUAL: Record<string, string> = {
-  real_estate: "Split-scene divided by a clean vertical line. LEFT HALF — cinematic photo of a tired Indian male real estate agent in his 30s, asleep on a couch at night, dim warm bedroom light, phone face-down on the table beside him, expression of exhaustion. RIGHT HALF — same man wide awake, smiling confidently, holding phone with bright glowing screen, green notification glow on his face, modern home office background. Photorealistic commercial advertising photo.",
+  real_estate: "Split-scene divided by a clean vertical glowing line down the center. LEFT HALF — Indian male real estate agent in his 30s in a formal suit, slumped forward asleep at his office desk, head resting on his arms, eyes shut, ZZZ floating above him, closed laptop on desk, property floor plans scattered, dim moody lighting, luxury apartment building photos pinned to the wall behind him — ONLY ONE PERSON in this panel. RIGHT HALF — the same desk but empty of people: an open laptop glowing with a WhatsApp chat interface showing green and grey chat bubbles auto-populating (blank rounded shapes, no readable text), a smartphone beside it showing incoming notification glow, city skyline with luxury residential towers visible through a window in the background, bright hopeful lighting. Photorealistic commercial advertising photo. NO text, NO words, NO letters anywhere in the image.",
   retail: "Split-scene divided by a clean vertical line. LEFT HALF — Indian shop owner in his 40s sitting behind counter, head in hands, surrounded by empty shelves, worried expression, late evening. RIGHT HALF — same shop owner smiling broadly, arms crossed proudly, shelves full, cash register glowing, vibrant daylight. Photorealistic commercial advertising photo.",
   restaurant: "Split-scene divided by a clean vertical line. LEFT HALF — Indian restaurant owner in chef apron standing in empty dining room, looking at his watch anxiously, closing time, chairs up on tables. RIGHT HALF — same restaurant packed full of happy Indian diners, owner smiling confidently near the entrance. Photorealistic commercial advertising photo.",
   ecommerce: "Split-scene divided by a clean vertical line. LEFT HALF — young Indian woman seller sitting at desk overwhelmed, staring at laptop screen, stacks of unshipped packages behind her, stressed expression. RIGHT HALF — same woman relaxed and happy, laptop glowing, packages neatly organized, smiling at camera. Photorealistic commercial advertising photo.",
@@ -124,7 +124,7 @@ export function buildVisualPrompt(
     scene,
     `Mood: High-contrast emotional storytelling. Problem vs solution in one frame.`,
     `Style: Photorealistic, high-resolution commercial advertising photo.`,
-    `IMPORTANT: No text of any kind. No letters, no words, no numbers, no signs, no chat bubbles, no phone screens with text, no captions, no watermarks, no logos, no UI elements.`,
+    `CRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO signs anywhere in the entire image. Chat bubbles on the phone screen must be completely empty colored shapes with zero readable content inside them. No watermarks, no logos, no captions, no UI labels.`,
   ].join(" ");
 
   return { prompt, aspectRatio };
