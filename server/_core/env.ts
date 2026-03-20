@@ -12,4 +12,6 @@ export const ENV = {
   metaRedirectUri: process.env.META_REDIRECT_URI ?? "",
   botDir: process.env.BOT_DIR ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  wpSshHost: process.env.WP_SSH_HOST ?? "",
+  wpSshWpPath: process.env.WP_SSH_WP_PATH ?? "/application/",
 };

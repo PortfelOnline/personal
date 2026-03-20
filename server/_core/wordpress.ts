@@ -1,5 +1,11 @@
 import axios from 'axios';
 import https from 'https';
+import FormData from 'form-data';
+import { execFileSync } from 'child_process';
+import { writeFileSync, unlinkSync } from 'fs';
+import { tmpdir } from 'os';
+import path from 'path';
+import { ENV } from './env';
 
 // Custom HTTPS agent: disable keepAlive + ignore cert errors for WP media upload
 // Fixes SSL bad_record_mac errors when uploading large binary payloads
@@ -73,7 +79,10 @@ export async function findPostBySlug(
 }
 
 /**
- * Upload an image (by URL) to WordPress media library
+ * Upload an image (by URL) to WordPress media library.
+ * Uses SSH+WP-CLI sideload when WP_SSH_HOST is configured (server-side download,
+ * avoids LibreSSL bad_record_mac when uploading large binaries from macOS).
+ * Falls back to direct curl upload otherwise.
  */
 export async function uploadMediaFromUrl(
   siteUrl: string,
@@ -82,22 +91,84 @@ export async function uploadMediaFromUrl(
   imageUrl: string,
   filename: string
 ): Promise<{ id: number; url: string }> {
-  // Download image
+  if (ENV.wpSshHost) {
+    return uploadMediaViaSsh(siteUrl, username, appPassword, imageUrl, filename);
+  }
+  return uploadMediaViaCurl(siteUrl, username, appPassword, imageUrl, filename);
+}
+
+/**
+ * Sideload image via SSH+PHP: image is downloaded server-side by PHP curl,
+ * then registered in WP media library. Avoids macOS LibreSSL bad_record_mac
+ * on large binary POSTs.
+ *
+ * Requires /root/wp-tools/sideload.php on the remote server.
+ */
+async function uploadMediaViaSsh(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  imageUrl: string,
+  filename: string
+): Promise<{ id: number; url: string }> {
+  // Escape single quotes in imageUrl and filename for the shell command
+  const safeUrl = imageUrl.replace(/'/g, "'\\''");
+  const safeFilename = filename.replace(/'/g, "'\\''");
+  const safeTitle = filename.replace(/\.[^.]+$/, '').replace(/'/g, "'\\''");
+
+  const result = execFileSync('ssh', [
+    '-i', `${process.env.HOME}/.ssh/id_ed25519`,
+    '-o', 'StrictHostKeyChecking=no',
+    '-o', 'ConnectTimeout=15',
+    ENV.wpSshHost,
+    `php7.4 /root/wp-tools/sideload.php '${safeUrl}' '${safeTitle}' '${safeFilename}' 2>/dev/null`,
+  ], { timeout: 90_000 });
+
+  const output = result.toString().trim();
+  const mediaId = parseInt(output, 10);
+  if (!mediaId || isNaN(mediaId)) {
+    throw new Error(`WP sideload failed: ${output.slice(0, 300)}`);
+  }
+
+  // Fetch the attachment URL via REST API
+  const res = await axios.get(`${apiBase(siteUrl)}/media/${mediaId}`, {
+    headers: { Authorization: basicAuth(username, appPassword) },
+  });
+  return { id: mediaId, url: res.data.source_url };
+}
+
+/**
+ * Fallback: upload image binary via curl subprocess.
+ */
+async function uploadMediaViaCurl(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  imageUrl: string,
+  filename: string
+): Promise<{ id: number; url: string }> {
   const imgResponse = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 30000 });
   const buffer = Buffer.from(imgResponse.data);
   const mimeType = (imgResponse.headers['content-type'] as string) || 'image/jpeg';
 
-  const response = await axios.post(`${apiBase(siteUrl)}/media`, buffer, {
-    headers: {
-      Authorization: basicAuth(username, appPassword),
-      'Content-Type': mimeType,
-      'Content-Disposition': `attachment; filename="${filename}"`,
-    },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity,
-    httpsAgent: wpHttpsAgent,
-  });
-  return { id: response.data.id, url: response.data.source_url };
+  const tmpFile = path.join(tmpdir(), `wp-upload-${Date.now()}.jpg`);
+  try {
+    writeFileSync(tmpFile, buffer);
+    const result = execFileSync('curl', [
+      '-s', '-X', 'POST',
+      `${apiBase(siteUrl)}/media`,
+      '-u', `${username}:${appPassword}`,
+      '-H', `Content-Disposition: attachment; filename="${filename}"`,
+      '-H', `Content-Type: ${mimeType}`,
+      '--data-binary', `@${tmpFile}`,
+      '--max-time', '60',
+    ]);
+    const data = JSON.parse(result.toString()) as { id: number; source_url: string };
+    if (!data.id) throw new Error(`WP media upload: no id in response: ${result.toString().slice(0, 200)}`);
+    return { id: data.id, url: data.source_url };
+  } finally {
+    try { unlinkSync(tmpFile); } catch { /* ignore */ }
+  }
 }
 
 /**
@@ -164,6 +235,41 @@ export async function createRedirect(
     const msg = error?.response?.data?.message || error?.message || 'Redirect creation failed';
     console.error('[WordPress API] createRedirect error:', msg);
     throw new Error(`WordPress redirect failed: ${msg}`);
+  }
+}
+
+/**
+ * Search WP media library by keyword — returns up to `perPage` items.
+ * Used to find relevant thematic images before falling back to DALL-E generation.
+ */
+export async function searchMedia(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  keyword: string,
+  perPage = 10
+): Promise<{ id: number; url: string; width: number; height: number; alt: string; title: string }[]> {
+  try {
+    const response = await axios.get(`${apiBase(siteUrl)}/media`, {
+      params: {
+        search: keyword,
+        per_page: perPage,
+        media_type: 'image',
+        _fields: 'id,source_url,alt_text,title,media_details',
+      },
+      headers: { Authorization: basicAuth(username, appPassword) },
+    });
+    return (response.data as any[]).map((item) => ({
+      id: item.id,
+      url: item.source_url,
+      width: item.media_details?.width ?? 0,
+      height: item.media_details?.height ?? 0,
+      alt: item.alt_text || item.title?.rendered || '',
+      title: item.title?.rendered || '',
+    }));
+  } catch (e: any) {
+    console.warn('[WordPress API] searchMedia error:', e?.message);
+    return [];
   }
 }
 

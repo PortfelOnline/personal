@@ -316,6 +316,151 @@ function stripFirstH1(html: string): string {
   return html.replace(/<h1[^>]*>.*?<\/h1>\s*/i, '');
 }
 
+// ── Extract ordered H2 text labels (no HTML) for image alt texts ─────────────
+function extractH2Texts(html: string): string[] {
+  const results: string[] = [];
+  const re = /<h2[^>]*>(.*?)<\/h2>/gis;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    results.push(m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim());
+  }
+  return results;
+}
+
+// ── Replace hardcoded price tables with [BLOCK_PRICE] shortcode ───────────────
+// LLMs often ignore the [BLOCK_PRICE] instruction and generate real tables.
+function replacePriceTableWithShortcode(html: string): string {
+  return html.replace(/<table[\s\S]*?<\/table>/gi, (match) => {
+    const lower = match.toLowerCase();
+    if (lower.includes('руб') || lower.includes('стоимост') || lower.includes('цен') || lower.includes('price')) {
+      return '\n[BLOCK_PRICE]\n';
+    }
+    return match;
+  });
+}
+
+// ── Vision-based image relevance filter ─────────────────────────────────────
+// Sends all candidate images in a single multimodal LLM call and returns only
+// those that visually match the article topic (score >= threshold).
+async function filterRelevantMedia(
+  topic: string,
+  media: { id: number; url: string; width: number; height: number; alt: string; title: string }[],
+  minScore = 6
+): Promise<{ id: number; url: string; width: number; height: number }[]> {
+  if (media.length === 0) return [];
+
+  const imageContent = media.map((m, i) => [
+    { type: 'text' as const, text: `[Картинка ${i + 1}] title: "${m.title}", alt: "${m.alt}"` },
+    { type: 'image_url' as const, image_url: { url: m.url, detail: 'low' as const } },
+  ]).flat();
+
+  try {
+    const resp = await invokeLLM({
+      messages: [
+        {
+          role: 'system',
+          content: 'Ты эксперт по визуальному контенту. Оцени релевантность изображений для статьи. Отвечай строго JSON-массивом.',
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text' as const, text: `Тема статьи: "${topic}"\n\nОцени каждую картинку от 1 до 10 по релевантности. 10 = идеально подходит по содержанию, 1 = совсем не по теме. Верни JSON: [{"i":1,"score":X,"reason":"..."},...]\n\nКартинки:` },
+            ...imageContent,
+          ],
+        },
+      ],
+      maxTokens: 400,
+    });
+
+    const raw = resp.choices[0]?.message.content;
+    const text = typeof raw === 'string' ? raw : '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('No JSON array in response');
+
+    const scores = JSON.parse(jsonMatch[0]) as { i: number; score: number; reason: string }[];
+    const relevant = scores.filter(s => s.score >= minScore);
+    console.log('[Images] Relevance scores:', scores.map(s => `img${s.i}:${s.score}`).join(', '));
+
+    return relevant
+      .sort((a, b) => b.score - a.score)
+      .map(s => media[s.i - 1])
+      .filter(Boolean)
+      .map(m => ({ id: m.id, url: m.url, width: m.width, height: m.height }));
+  } catch (e: any) {
+    console.warn('[Images] filterRelevantMedia failed:', e.message);
+    return [];  // fall through to DALL-E
+  }
+}
+
+// ── Inject images after specific H2s with unique alts and correct dimensions ──
+// DALL-E 3 = 1792x1024; width/height critical to avoid CLS > 0.7.
+function injectImagesAfterH2s(
+  html: string,
+  media: { id: number; url: string; width?: number; height?: number }[],
+  targetH2Indexes: number[] = [2, 4, 6]
+): string {
+  if (media.length === 0) return html;
+  const h2Texts = extractH2Texts(html);
+  let h2count = 0;
+  return html.replace(/<\/h2>/gi, () => {
+    h2count++;
+    const pos = targetH2Indexes.indexOf(h2count);
+    if (pos !== -1 && media[pos]) {
+      const m = media[pos];
+      const alt = (h2Texts[h2count - 1] || '').replace(/"/g, '&quot;');
+      const w = m.width ?? 1792;
+      const h = m.height ?? 1024;
+      return `</h2>\n<figure style="margin:1.5em 0;text-align:center;"><img src="${m.url}" alt="${alt}" width="${w}" height="${h}" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy"></figure>`;
+    }
+    return '</h2>';
+  });
+}
+
+// ── Wikimedia Commons free image search ──────────────────────────────────────
+// Returns images with negative IDs (id < 0) to mark them as "not yet in WP".
+async function searchWikimediaImages(
+  query: string,
+  limit = 6
+): Promise<{ id: number; url: string; width: number; height: number; alt: string; title: string }[]> {
+  try {
+    const params = new URLSearchParams({
+      action:      'query',
+      generator:   'search',
+      gsrsearch:   query,
+      gsrnamespace: '6',
+      gsrlimit:    String(limit),
+      prop:        'imageinfo',
+      iiprop:      'url|dimensions',
+      iiurlwidth:  '1200',
+      format:      'json',
+      origin:      '*',
+    });
+    const resp = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, {
+      headers: { 'User-Agent': 'KadastrBot/1.0 (kadastrmap.info)' },
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json() as any;
+    const pages = Object.values(data?.query?.pages ?? {}) as any[];
+    return pages
+      .filter(p => p.imageinfo?.[0] && /\.(jpe?g|png|webp)$/i.test(p.imageinfo[0].url ?? ''))
+      .map((p, idx) => {
+        const info = p.imageinfo[0];
+        const fileTitle = (p.title ?? '').replace(/^File:/i, '').replace(/\.[^.]+$/, '');
+        return {
+          id:     -(idx + 1),  // negative = Wikimedia, not yet in WP
+          url:    info.thumburl || info.url,
+          width:  info.thumbwidth  || info.width  || 1200,
+          height: info.thumbheight || info.height || 800,
+          title:  fileTitle,
+          alt:    fileTitle.replace(/[-_]/g, ' '),
+        };
+      });
+  } catch (e: any) {
+    console.warn('[Wikimedia] search failed:', e?.message);
+    return [];
+  }
+}
+
 // ── Internal links from user's article history ───────────────────────────────
 
 async function addInternalLinks(html: string, userId: number, ourDomain: string, currentTitle: string): Promise<string> {
@@ -1632,23 +1777,13 @@ ${competitorContext}
         `padding:16px 48px;border-radius:8px;font-size:16px;font-weight:500;text-decoration:none;">` +
         `${text}</a></div>\n`;
 
-      let htmlContent = injectCtasIntoHtml(beautifyArticleHtml(stripFirstH1(input.content)), ctaTexts, ctaBlock);
+      let htmlContent = replacePriceTableWithShortcode(
+        injectCtasIntoHtml(beautifyArticleHtml(stripFirstH1(input.content)), ctaTexts, ctaBlock)
+      );
 
       // 7. Inject content images after H2 tags (2nd, 4th, 6th occurrence)
       const validMedia = uploadedMedia.filter(Boolean) as { id: number; url: string }[];
-      if (validMedia.length > 0) {
-        let h2count = 0;
-        htmlContent = htmlContent.replace(/<\/h2>/gi, () => {
-          h2count++;
-          const targets: Record<number, number> = { 2: 0, 4: 1, 6: 2 };
-          const mediaIndex = targets[h2count];
-          if (mediaIndex !== undefined && validMedia[mediaIndex]) {
-            const imgUrl = validMedia[mediaIndex].url;
-            return `</h2>\n<figure style="margin:1.5em 0;text-align:center;"><img src="${imgUrl}" alt="${input.title}" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy"></figure>`;
-          }
-          return '</h2>';
-        });
-      }
+      htmlContent = injectImagesAfterH2s(htmlContent, validMedia);
 
       // 8. Update WP post (first image as featured media)
       const featuredMediaId: number | undefined = validMedia[0]?.id;
@@ -1726,8 +1861,16 @@ ${competitorContext}
         .replace(/:\s*.+$/, '')  // remove subtitle after colon
         .trim();
 
-      // Run meta LLM + image prompts generation in parallel, then DALL-E
-      const [metaResp, imagePrompts] = await Promise.all([
+      // Extract title keywords for media library search
+      const titleKeywords = input.title
+        .replace(/[-–—:,]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !/^(полное|руководство|как|что|для|при|про|это|инструкция)$/i.test(w))
+        .slice(0, 3)
+        .join(' ');
+
+      // Run meta LLM + image prompts + WP library + Wikimedia search all in parallel
+      const [metaResp, imagePrompts, libraryImages, wikimediaImages] = await Promise.all([
         invokeLLM({
           messages: [
             { role: 'system', content: 'Ты SEO-копирайтер. Никогда не упоминай Госуслуги, МФЦ, Росреестр как способы заказа. Акцент — заказ через kadastrmap.info.' },
@@ -1736,17 +1879,62 @@ ${competitorContext}
           maxTokens: 200,
         }).catch(() => null),
         generateImagePrompts(input.title),
+        wp.searchMedia(account.siteUrl, account.username, account.appPassword, titleKeywords, 9)
+          .catch(() => [] as { id: number; url: string; width: number; height: number; alt: string; title: string }[]),
+        searchWikimediaImages(titleKeywords, 6)
+          .catch(() => [] as { id: number; url: string; width: number; height: number; alt: string; title: string }[]),
       ]);
+      console.log(`[Draft] WP library: ${libraryImages.length}, Wikimedia: ${wikimediaImages.length}`);
 
-      // DALL-E in parallel with 50s timeout each
-      console.log('[Draft] imagePrompts count:', imagePrompts.length, 'prompts[0]:', imagePrompts[0]?.slice(0, 60));
-      const imageResults = await Promise.all(
-        imagePrompts.map((p: string, i: number) =>
-          generateDallEImage(p).then(url => { console.log(`[Draft] DALL-E[${i}] OK:`, url?.slice(0, 60)); return url; })
-            .catch((e: any) => { console.warn(`[Draft] DALL-E[${i}] failed:`, e?.message); return null; })
-        )
+      // Combine candidates: WP library (positive IDs) first, then Wikimedia (negative IDs)
+      const allCandidates = [...libraryImages, ...wikimediaImages];
+
+      // Vision-filter: keep only images that visually match the article topic
+      const relevantCandidates = allCandidates.length > 0
+        ? await filterRelevantMedia(input.title, allCandidates)
+        : [];
+      console.log(`[Draft] Relevant after vision filter: ${relevantCandidates.length}/${allCandidates.length}`);
+
+      const IMAGES_NEEDED = 3;
+      const selectedCandidates = relevantCandidates.slice(0, IMAGES_NEEDED);
+
+      // WP library images (id > 0) are already uploaded; Wikimedia images (id < 0) need sideload
+      const uploadedCandidates = await Promise.all(
+        selectedCandidates.map(async (m) => {
+          if (m.id > 0) return { id: m.id, url: m.url, width: m.width, height: m.height };
+          try {
+            const ext = m.url.match(/\.(jpe?g|png|webp)/i)?.[1] ?? 'jpg';
+            const filename = `wiki-${slug}-${Date.now()}.${ext}`;
+            const uploaded = await wp.uploadMediaFromUrl(account.siteUrl, account.username, account.appPassword, m.url, filename);
+            console.log(`[Draft] Wikimedia sideloaded → WP id ${uploaded.id}`);
+            return { id: uploaded.id, url: uploaded.url, width: m.width, height: m.height };
+          } catch (e: any) {
+            console.warn('[Draft] Wikimedia upload failed:', e?.message);
+            return null;
+          }
+        })
       );
-      console.log('[Draft] imageResults:', imageResults.map(r => r ? 'OK' : 'null'));
+      const confirmedImages = uploadedCandidates.filter(Boolean) as { id: number; url: string; width: number; height: number }[];
+      const dalleNeeded = Math.max(0, IMAGES_NEEDED - confirmedImages.length);
+
+      let uploadedDalle: ({ id: number; url: string } | null)[] = [];
+      if (dalleNeeded > 0) {
+        console.log(`[Draft] Generating ${dalleNeeded} DALL-E images (confirmed: ${confirmedImages.length})`);
+        const dalleUrls = await Promise.all(
+          imagePrompts.slice(0, dalleNeeded).map((p: string, i: number) =>
+            generateDallEImage(p)
+              .then(url => { console.log(`[Draft] DALL-E[${i}] OK`); return url; })
+              .catch((e: any) => { console.warn(`[Draft] DALL-E[${i}] failed:`, e?.message); return null; })
+          )
+        );
+        uploadedDalle = await Promise.all(
+          dalleUrls.map(async (imgUrl, i) => {
+            if (!imgUrl) return null;
+            try { return await wp.uploadMediaFromUrl(account.siteUrl, account.username, account.appPassword, imgUrl, `${slug}-img-${confirmedImages.length + i + 1}.jpg`); }
+            catch (e: any) { console.warn(`[Draft] DALL-E upload ${i + 1} failed:`, e?.message); return null; }
+          })
+        );
+      }
 
       let metaDesc: string | undefined;
       try {
@@ -1757,30 +1945,17 @@ ${competitorContext}
       const axiosInst = (await import('axios')).default;
       const headers = { Authorization: auth, 'Content-Type': 'application/json' };
 
-      // Upload images to WP media
-      const uploadedMedia: ({ id: number; url: string } | null)[] = await Promise.all(
-        (imageResults as (string | null)[]).map(async (imgUrl, i) => {
-          if (!imgUrl) return null;
-          try { return await wp.uploadMediaFromUrl(account.siteUrl, account.username, account.appPassword, imgUrl, `${slug}-img-${i + 1}.jpg`); }
-          catch (e: any) { console.warn(`[Draft] media upload ${i + 1} failed:`, e?.message); return null; }
-        })
-      );
-      const validMedia = uploadedMedia.filter(Boolean) as { id: number; url: string }[];
+      // Merge: library/Wikimedia images first (real dimensions), then DALL-E uploads
+      const validMedia: { id: number; url: string; width?: number; height?: number }[] = [
+        ...confirmedImages.map(m => ({ id: m.id, url: m.url, width: m.width || undefined, height: m.height || undefined })),
+        ...(uploadedDalle.filter(Boolean) as { id: number; url: string }[]),
+      ];
 
       // Inject images after H2 (2nd, 4th, 6th) and CTA at end
-      let html = beautifyArticleHtml(stripFirstH1(input.content));
-      if (validMedia.length > 0) {
-        let h2count = 0;
-        html = html.replace(/<\/h2>/gi, () => {
-          h2count++;
-          const targets: Record<number, number> = { 2: 0, 4: 1, 6: 2 };
-          const mi = targets[h2count];
-          if (mi !== undefined && validMedia[mi]) {
-            return `</h2>\n<figure style="margin:1.5em 0;text-align:center;"><img src="${validMedia[mi].url}" alt="${input.title}" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy"></figure>`;
-          }
-          return '</h2>';
-        });
-      }
+      let html = replacePriceTableWithShortcode(
+        beautifyArticleHtml(stripFirstH1(input.content))
+      );
+      html = injectImagesAfterH2s(html, validMedia);
       const ctaHtml = `\n<div style="text-align:center;margin:2em 0 2.5em;"><a href="${input.ctaUrl}" style="display:inline-block;background:#4CAF50;color:#fff;padding:16px 48px;border-radius:8px;font-size:16px;font-weight:500;text-decoration:none;">Заказать документ онлайн</a></div>\n`;
       const finalHtml = html + ctaHtml;
 
