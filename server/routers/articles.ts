@@ -397,14 +397,28 @@ async function filterRelevantMedia(
 function injectImagesAfterH2s(
   html: string,
   media: { id: number; url: string; width?: number; height?: number }[],
-  targetH2Indexes: number[] = [2, 4, 6]
+  targetH2Indexes?: number[]
 ): string {
   if (media.length === 0) return html;
   const h2Texts = extractH2Texts(html);
+  const totalH2s = h2Texts.length;
+
+  // Auto-distribute: if no explicit indexes, spread images evenly across H2s
+  // Skip first H2 (intro), place images at even intervals
+  let indexes: number[];
+  if (targetH2Indexes) {
+    indexes = targetH2Indexes;
+  } else {
+    const n = Math.min(media.length, totalH2s - 1);
+    if (n <= 0) return html;
+    const step = Math.max(1, Math.floor((totalH2s - 1) / n));
+    indexes = Array.from({ length: n }, (_, i) => 2 + i * step);
+  }
+
   let h2count = 0;
   return html.replace(/<\/h2>/gi, () => {
     h2count++;
-    const pos = targetH2Indexes.indexOf(h2count);
+    const pos = indexes.indexOf(h2count);
     if (pos !== -1 && media[pos]) {
       const m = media[pos];
       const alt = (h2Texts[h2count - 1] || '').replace(/"/g, '&quot;');
@@ -1959,7 +1973,7 @@ ${competitorContext}
         ...(uploadedDalle.filter(Boolean) as { id: number; url: string }[]),
       ];
 
-      // Inject images after H2 (2nd, 4th, 6th) and CTA at end
+      // Inject images after H2s (auto-distributed evenly) and CTA at end
       let html = replacePriceTableWithShortcode(
         beautifyArticleHtml(stripFirstH1(input.content))
       );
