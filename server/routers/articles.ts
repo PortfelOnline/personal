@@ -243,8 +243,8 @@ async function enhanceIfNeeded(html: string, keyword: string): Promise<string> {
 
   const tasks: string[] = [];
 
-  if (wordCount < 1800) {
-    const needed = 1800 - wordCount;
+  if (wordCount < 3200) {
+    const needed = 3200 - wordCount;
     // Request 1.5x to compensate for LLM undershoot
     const targetWords = Math.round(needed * 1.5);
     const sections = Math.max(3, Math.ceil(targetWords / 200));
@@ -544,7 +544,7 @@ async function analyzeAndSaveArticle(userId: number, url: string): Promise<void>
   const maxCompetitorWords = competitors.length > 0
     ? Math.max(...competitors.map(c => c.wordCount || 0))
     : 1200;
-  const targetWords = Math.max(1800, Math.round(maxCompetitorWords * 1.3));
+  const targetWords = Math.max(3200, Math.round(maxCompetitorWords * 1.3));
 
   const competitorContext = competitors.length > 0
     ? competitors.map((c, i) => `Конкурент #${i + 1} (${c.domain}, ~${c.wordCount} слов):
@@ -628,7 +628,7 @@ ${missingTopicsBlock}${lsiBlock}
 
   const [seoResponse, improvedResponse] = await Promise.all([
     invokeLLM({ messages: [{ role: 'system', content: 'Ты SEO-эксперт по российскому рынку. Отвечай только валидным JSON.' }, { role: 'user', content: seoPrompt }] }),
-    invokeLLM({ messages: [{ role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 1800+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 200 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях.' }, { role: 'user', content: improvePrompt }], maxTokens: 8192 }),
+    invokeLLM({ messages: [{ role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях.' }, { role: 'user', content: improvePrompt }], maxTokens: 8192 }),
   ]);
 
   let seo: SeoAnalysis;
@@ -736,7 +736,7 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
     ? Math.round(competitors.reduce((s, c) => s + c.wordCount, 0) / competitors.length) : 1200;
   const maxCompetitorWords = competitors.length
     ? Math.max(...competitors.map(c => c.wordCount)) : 1200;
-  const targetWords = Math.max(1800, Math.round(maxCompetitorWords * 1.3));
+  const targetWords = Math.max(3200, Math.round(maxCompetitorWords * 1.3));
 
   // Extract unique H2 headings from competitors that our article is missing
   const ourH2s = new Set(
@@ -798,6 +798,10 @@ ${missingTopicsBlock}${lsiBlock}
 10. Название сервиса пиши СТРОГО как "kadastrmap.info" (с буквой r: kadas-TR-map). Никогда не пиши "Kadastmap", "kadastmap", "KadastrMap" — только "kadastrmap.info".
 11. Внешние авторитетные ссылки: добавь 2-3 ссылки на официальные источники — <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a>, ФЗ-218 "О государственной регистрации недвижимости". Это обязательно для E-E-A-T.
 12. СТРОГО по теме запроса "${keyword}" — НЕ включай разделы про другие продукты (выписки ЕГРН, отчёты о недвижимости и т.д.) если они не относятся к теме. Только релевантные разделы.
+13. ОБЯЗАТЕЛЬНЫЕ H3-блоки внутри соответствующих H2-разделов:
+    - В разделе про документ/отчёт добавь <h3>🛡️ Гарантируем возврат средств</h3> с текстом о гарантии и условиях возврата (80-100 слов)
+    - В разделе про виды или форматы добавь <h3>📱 Срочный отчёт в твоём смартфоне</h3> с описанием мобильного доступа (80-100 слов)
+    - В разделе про стоимость добавь <h3>⭐ Отзывы клиентов</h3> с 3-4 краткими отзывами (100-120 слов)
 
 Верни ТОЛЬКО HTML без <html>/<body>.`
     : `Ключ: "${keyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n${lsiBlock}\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${keyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${keyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${keyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${keyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${keyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>Часто задаваемые вопросы</h2>\n[10 вопросов-ответов СТРОГО в формате: <details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details> — первый с атрибутом open, остальные 9 без него. НЕ используй <h3> для вопросов.]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (вставляй как ссылку <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- FAQ ТОЛЬКО через <details class="faq-item">/<summary>, НЕ через <h3>.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
@@ -806,12 +810,12 @@ ${missingTopicsBlock}${lsiBlock}
     invokeLLM({
       messages: [
         { role: 'system', content: 'Ты SEO-эксперт по российскому рынку. Отвечай только валидным JSON.' },
-        { role: 'user', content: `Ты SEO-эксперт. Проанализируй статью и верни JSON:\nЗаголовок: ${parsed.title}\nКлюч: ${keyword}\nОбъём: ${parsed.wordCount} слов (целевой объём: 1800+ слов)\n\nВерни ТОЛЬКО валидный JSON:\n{"metaTitle":"до 60 симв","metaDescription":"до 160 симв","keywords":["ключ1"],"headingsSuggestions":[],"generalSuggestions":["совет"],"score":75}` },
+        { role: 'user', content: `Ты SEO-эксперт. Проанализируй статью и верни JSON:\nЗаголовок: ${parsed.title}\nКлюч: ${keyword}\nОбъём: ${parsed.wordCount} слов (целевой объём: 3500+ слов)\n\nВерни ТОЛЬКО валидный JSON:\n{"metaTitle":"до 60 симв","metaDescription":"до 160 симв","keywords":["ключ1"],"headingsSuggestions":[],"generalSuggestions":["совет"],"score":75}` },
       ],
     }),
     invokeLLM({
       messages: [
-        { role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 1800+ слов для топа поиска. Каждый H2-раздел минимум 200 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен.' },
+        { role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Каждый H2-раздел минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен.' },
         { role: 'user', content: improvePrompt },
       ],
       maxTokens: 8192,
@@ -966,7 +970,7 @@ export const articlesRouter = router({
       const maxCompetitorWords = competitors.length > 0
         ? Math.max(...competitors.map(c => c.wordCount || 0))
         : 1200;
-      const targetWords = Math.max(1800, Math.round(maxCompetitorWords * 1.3));
+      const targetWords = Math.max(3200, Math.round(maxCompetitorWords * 1.3));
 
       // Extract unique H2 topics from competitors missing in our article
       const ourH2s = new Set(
@@ -1013,11 +1017,11 @@ export const articlesRouter = router({
 Статья (ПОСЛЕ улучшения ИИ):
 Заголовок: ${parsed.title}
 Ключевой запрос: ${serpKeyword}
-Объём: ${parsed.wordCount} слов → целевой после улучшения: 1800+ слов
+Объём: ${parsed.wordCount} слов → целевой после улучшения: 3500+ слов
 Структура: ${ourHeadings}
 
 Правила оценки score (0-100):
-- 1800+ слов → +20
+- 3500+ слов → +20
 - 7+ H2 заголовков → +15
 - Ключ в H1 и первом абзаце → +15
 - FAQ раздел (6+ вопросов) → +10
@@ -1052,6 +1056,10 @@ ${missingTopicsBlock}${lsiBlock}
 10. Название сервиса пиши СТРОГО как "kadastrmap.info" (с буквой r: kadas-TR-map). Никогда не пиши "Kadastmap", "kadastmap", "KadastrMap" — только "kadastrmap.info".
 11. Внешние авторитетные ссылки: добавь 2-3 ссылки на официальные источники — <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a>, ФЗ-218 "О государственной регистрации недвижимости". Это обязательно для E-E-A-T.
 12. СТРОГО по теме запроса "${serpKeyword}" — НЕ включай разделы про другие продукты (выписки ЕГРН, отчёты о недвижимости и т.д.) если они не относятся к теме. Только релевантные разделы.
+13. ОБЯЗАТЕЛЬНЫЕ H3-блоки внутри соответствующих H2-разделов:
+    - В разделе про документ/отчёт добавь <h3>🛡️ Гарантируем возврат средств</h3> с текстом о гарантии и условиях возврата (80-100 слов)
+    - В разделе про виды или форматы добавь <h3>📱 Срочный отчёт в твоём смартфоне</h3> с описанием мобильного доступа (80-100 слов)
+    - В разделе про стоимость добавь <h3>⭐ Отзывы клиентов</h3> с 3-4 краткими отзывами (100-120 слов)
 
 Верни ТОЛЬКО HTML без <html>/<body>.`
         : `Ключ: "${serpKeyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${serpKeyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${serpKeyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${serpKeyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${serpKeyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${serpKeyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>Часто задаваемые вопросы</h2>\n[10 вопросов-ответов СТРОГО в формате: <details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details> — первый с open, остальные 9 без него. НЕ используй <h3> для вопросов.]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (<a>-ссылка). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- FAQ ТОЛЬКО через <details class="faq-item">/<summary>, НЕ через <h3>.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
@@ -1065,7 +1073,7 @@ ${missingTopicsBlock}${lsiBlock}
         }),
         invokeLLM({
           messages: [
-            { role: "system", content: "Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 1800+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 200 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях." },
+            { role: "system", content: "Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях." },
             { role: "user", content: improvePrompt },
           ],
           maxTokens: 8192,
@@ -1438,7 +1446,7 @@ ${competitorList}
 ЗАДАЧА: Перепиши нашу статью чтобы она вышла в ТОП-3 по запросу "${input.keyword}".
 
 ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ:
-1. Объём: минимум 1800 слов (конкуренты в топе пишут именно столько)
+1. Объём: минимум 3500 слов (конкуренты в топе пишут именно столько)
 2. Начало: прямой ответ на запрос "${input.keyword}" в первых 2-3 предложениях
 3. Структура: H1 (один), 6-10 H2, H3 где уместно, списки, таблицы где уместно
 4. Покрой ВСЕ темы конкурентов (судя по их заголовкам и сниппетам)
@@ -1549,7 +1557,7 @@ ${competitorSection}
       const avgWords = competitors.length > 0
         ? Math.round(competitors.reduce((s, c) => s + (c.wordCount || 0), 0) / competitors.length)
         : 1500;
-      const targetWords = Math.max(1800, avgWords + 400);
+      const targetWords = Math.max(3200, avgWords + 800);
 
       const competitorContext = competitors.length > 0
         ? competitors.map((c, i) => `Конкурент #${i + 1} (${c.domain}, ~${c.wordCount} слов):
@@ -1895,7 +1903,7 @@ ${competitorContext}
         : [];
       console.log(`[Draft] Relevant after vision filter: ${relevantCandidates.length}/${allCandidates.length}`);
 
-      const IMAGES_NEEDED = 3;
+      const IMAGES_NEEDED = 9;
       const selectedCandidates = relevantCandidates.slice(0, IMAGES_NEEDED);
 
       // WP library images (id > 0) are already uploaded; Wikimedia images (id < 0) need sideload
@@ -2484,7 +2492,7 @@ ${competitorSection}
     }),
 
   /**
-   * Start auto-rewrite batch: fetch SERP, fetch competitor content, rewrite to 1800+ words, save.
+   * Start auto-rewrite batch: fetch SERP, fetch competitor content, rewrite to 3500+ words, save.
    */
   startBatchRewrite: protectedProcedure
     .input(z.object({
