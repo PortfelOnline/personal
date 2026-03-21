@@ -64,6 +64,13 @@
       "when": 1773829297908,
       "tag": "0008_moaning_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1774088243536,
+      "tag": "0009_striped_the_captain",
+      "breakpoints": true
     }
   ]
 }

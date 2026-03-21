@@ -88,13 +88,7 @@ export function PublishToMeta({
     }
   };
 
-  const preferredAccounts = accounts.filter((account) => {
-    if (platform === 'instagram') return account.accountType === 'instagram_business';
-    if (platform === 'facebook') return account.accountType === 'facebook_page';
-    return true;
-  });
-  // Fall back to all accounts if none match the platform
-  const filteredAccounts = preferredAccounts.length > 0 ? preferredAccounts : accounts;
+  const filteredAccounts = accounts;
 
   const isPublishing = isPublishingInstagram || isPublishingFacebook;
 

@@ -24,8 +24,8 @@ export function uploadImageToServerN(localPath: string): string {
   return `${SERVER_N_PUBLIC_URL}/${filename}`;
 }
 
-const META_GRAPH_API_VERSION = 'v18.0';
-const META_GRAPH_API_URL = `https://graph.instagram.com/${META_GRAPH_API_VERSION}`;
+const META_GRAPH_API_VERSION = 'v21.0';
+const META_GRAPH_API_URL = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
 const META_FACEBOOK_API_URL = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
 
 export interface MetaOAuthTokenResponse {
@@ -95,6 +95,30 @@ export async function exchangeMetaCode(code: string): Promise<MetaOAuthTokenResp
   } catch (error: any) {
     console.error('[Meta OAuth] Failed to exchange code:', error?.response?.data || error);
     throw new Error('Failed to authenticate with Meta');
+  }
+}
+
+/**
+ * Exchange short-lived user token for long-lived token (60 days)
+ */
+export async function exchangeForLongLivedToken(shortLivedToken: string): Promise<string> {
+  try {
+    const params = new URLSearchParams({
+      grant_type: 'fb_exchange_token',
+      client_id: ENV.metaAppId,
+      client_secret: ENV.metaAppSecret,
+      fb_exchange_token: shortLivedToken,
+    });
+    const response = await axios.get(
+      `${META_FACEBOOK_API_URL}/oauth/access_token?${params.toString()}`
+    );
+    const longLivedToken = response.data?.access_token;
+    console.log('[Meta OAuth] Long-lived token obtained, expires_in:', response.data?.expires_in, 'sec');
+    return longLivedToken;
+  } catch (error: any) {
+    console.error('[Meta OAuth] Failed to get long-lived token:', error?.response?.data || error);
+    // Fall back to short-lived token if exchange fails
+    return shortLivedToken;
   }
 }
 
@@ -255,7 +279,8 @@ export async function postToFacebookPage(
         form,
         { headers: form.getHeaders() }
       );
-      return { id: response.data.id || response.data.post_id };
+      // post_id is the feed post ID (matches /{page}/feed); id is the photo ID
+      return { id: response.data.post_id || response.data.id };
     }
 
     // Text-only post
@@ -268,6 +293,75 @@ export async function postToFacebookPage(
     const fbError = error?.response?.data?.error;
     console.error('[Meta API] Failed to post to Facebook:', fbError ?? error);
     throw new Error(fbError?.message ?? 'Failed to post to Facebook');
+  }
+}
+
+/**
+ * Fetch uploaded photos from a Facebook page (for sync — handles posts stored with photo_id)
+ */
+export async function getPagePhotos(pageId: string, accessToken: string): Promise<Array<{
+  id: string;
+  link: string;
+}>> {
+  try {
+    const response = await axios.get(`${META_FACEBOOK_API_URL}/${pageId}/photos`, {
+      params: {
+        fields: 'id,link',
+        limit: 100,
+        type: 'uploaded',
+        access_token: accessToken,
+      },
+    });
+    return (response.data?.data ?? []).filter((p: any) => p.link);
+  } catch (error) {
+    console.error('[Meta API] Failed to get page photos:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch published posts from a Facebook page (for sync)
+ */
+export async function getPagePosts(pageId: string, accessToken: string): Promise<Array<{
+  id: string;
+  permalink_url: string;
+  created_time: string;
+}>> {
+  try {
+    const response = await axios.get(`${META_FACEBOOK_API_URL}/${pageId}/feed`, {
+      params: {
+        fields: 'id,permalink_url,created_time',
+        limit: 100,
+        access_token: accessToken,
+      },
+    });
+    return response.data?.data ?? [];
+  } catch (error) {
+    console.error('[Meta API] Failed to get page posts:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch published media from an Instagram business account (for sync)
+ */
+export async function getInstagramMedia(igAccountId: string, accessToken: string): Promise<Array<{
+  id: string;
+  permalink: string;
+  timestamp: string;
+}>> {
+  try {
+    const response = await axios.get(`${META_GRAPH_API_URL}/${igAccountId}/media`, {
+      params: {
+        fields: 'id,permalink,timestamp',
+        limit: 100,
+        access_token: accessToken,
+      },
+    });
+    return response.data?.data ?? [];
+  } catch (error) {
+    console.error('[Meta API] Failed to get Instagram media:', error);
+    return [];
   }
 }
 

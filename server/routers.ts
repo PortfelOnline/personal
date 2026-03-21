@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 import { createContentPost, getUserContentPosts, getContentTemplates, createContentTemplate, updateContentPost, deleteContentPost, getSavedTopics, saveTopic, deleteTopic } from "./db";
@@ -87,6 +88,94 @@ const INDUSTRY_CONTEXT = {
     painSpecific: "Service businesses lose jobs daily to whoever responds first — 67% of customers contact multiple providers simultaneously",
     lossPerMiss: "₹500–5,000 per missed booking",
     industryHashtags: ["ServiceBusiness", "HomeServices", "LocalBusiness"],
+  },
+  insurance_agent: {
+    label: "Insurance Agent",
+    owner: "insurance agent",
+    scenario: "A prospect WhatsApps at 9pm: 'I want to compare term plans for ₹1 crore cover. Which is best for me?' You're off for the evening. By morning, they've already bought from PolicyBazaar.",
+    painSpecific: "Insurance agents lose 50%+ of warm leads to delayed responses — prospects compare and buy online within hours of asking",
+    lossPerMiss: "₹3,000–20,000 per missed policy sale (first-year commission)",
+    industryHashtags: ["InsuranceAgent", "TermInsurance", "LICAgent"],
+  },
+  loan_agent: {
+    label: "Loan / Mortgage Agent",
+    owner: "loan agent",
+    scenario: "A salaried professional WhatsApps: 'I need a home loan of ₹50L. What's your best rate? How fast can you process?' You're in a meeting. Three hours later, their bank's DSA has already filed the application.",
+    painSpecific: "Loan agents lose 40-60% of leads to banks and aggregators simply because they respond slower — borrowers decide within the same day",
+    lossPerMiss: "₹5,000–25,000 per missed loan disbursement (processing fee/commission)",
+    industryHashtags: ["HomeLoan", "LoanAgent", "MortgageBrokerIndia"],
+  },
+  ca_tax: {
+    label: "CA / Tax Consultant",
+    owner: "CA or tax consultant",
+    scenario: "A business owner WhatsApps during filing season: 'We need GST filing done urgently and ITR for 3 directors. What are your charges and how soon?' You're buried in client work. They hire another CA by evening.",
+    painSpecific: "CAs and tax consultants lose 30-50% of new client enquiries during peak seasons (March, July, October) because they're too busy to respond",
+    lossPerMiss: "₹5,000–50,000 per missed annual retainer client",
+    industryHashtags: ["CAIndia", "TaxConsultant", "GSTFiling"],
+  },
+  travel_agent: {
+    label: "Travel Agent",
+    owner: "travel agent",
+    scenario: "A family WhatsApps: 'Planning a Maldives trip for 4 pax in December. 5 nights. What's your best package with flights?' You're handling another booking. They book directly on MakeMyTrip ₹80,000 cheaper because no one answered.",
+    painSpecific: "Travel agents lose 60%+ of package enquiries to OTAs — customers want instant quotes and book elsewhere within hours",
+    lossPerMiss: "₹3,000–15,000 per missed holiday package (commission)",
+    industryHashtags: ["TravelAgent", "HolidayPackages", "TravelIndia"],
+  },
+  wedding_planner: {
+    label: "Wedding Planner",
+    owner: "wedding planner",
+    scenario: "A couple WhatsApps: 'Our wedding is in February. 300 guests. Budget ₹15L. Can you share a portfolio and rough quote?' You're at a venue recce. By next morning, they've shortlisted two other planners who replied instantly.",
+    painSpecific: "Wedding planners lose bookings to faster-responding competitors — couples contact 5-6 planners simultaneously and commit to the first credible reply",
+    lossPerMiss: "₹50,000–2,00,000 per missed wedding contract",
+    industryHashtags: ["WeddingPlanner", "WeddingIndia", "DreamWedding"],
+  },
+  interior_designer: {
+    label: "Interior Designer",
+    owner: "interior designer",
+    scenario: "A homeowner WhatsApps: 'Just got possession of a 2BHK. Want full interior done. Budget ₹8-10L. Can you visit this week?' You're on-site. They book a designer who replied within 30 minutes.",
+    painSpecific: "Interior designers lose 40% of project leads to firms that respond faster — renovation decisions happen fast and clients want immediate engagement",
+    lossPerMiss: "₹20,000–1,00,000 per missed interior project",
+    industryHashtags: ["InteriorDesigner", "HomeInterior", "InteriorDesignIndia"],
+  },
+  clinic_doctor: {
+    label: "Doctor / Clinic",
+    owner: "clinic owner or doctor",
+    scenario: "A patient WhatsApps at 8am: 'My child has fever since 2 days. Can I get an appointment today? What's your slot availability?' No reply by 9am. They book at the nearest Practo-listed clinic.",
+    painSpecific: "Clinics and doctors lose 30-40% of new patient appointments to Practo and faster-responding competitors — patients book the first available slot",
+    lossPerMiss: "₹300–2,000 per missed consultation (plus lifetime patient value)",
+    industryHashtags: ["ClinicIndia", "DoctorIndia", "HealthcareIndia"],
+  },
+  car_dealer: {
+    label: "Car Dealer",
+    owner: "car dealer",
+    scenario: "A buyer WhatsApps: 'Interested in Swift Dzire VXI. What's the on-road price and waiting period? Any exchange offer?' You're on the showroom floor. They visit a competitor showroom that replied with full details in 10 minutes.",
+    painSpecific: "Car dealers lose 25-35% of enquiries to competitors who respond faster with price and availability — buyers visit whichever showroom replies first",
+    lossPerMiss: "₹10,000–50,000 per missed car sale (dealer margin)",
+    industryHashtags: ["CarDealer", "CarSalesIndia", "AutoIndia"],
+  },
+  salon_beauty: {
+    label: "Salon / Beauty",
+    owner: "salon owner",
+    scenario: "A bride-to-be WhatsApps: 'Need bridal makeup and hair for my wedding on 15th March. What's the package cost? Are you available?' You're mid-session. She books another salon that replied within the hour.",
+    painSpecific: "Salons lose 35-50% of premium bookings (bridal, events) to competitors who respond faster on Instagram and WhatsApp",
+    lossPerMiss: "₹2,000–20,000 per missed bridal or event booking",
+    industryHashtags: ["SalonIndia", "BeautyBusiness", "BridalMakeup"],
+  },
+  gym_fitness: {
+    label: "Gym / Fitness",
+    owner: "gym owner",
+    scenario: "Someone WhatsApps: 'Want to join your gym. What are the monthly and annual fees? Do you have personal trainers?' You're training a client. They join the gym down the street that sent a full brochure and discount offer instantly.",
+    painSpecific: "Gyms lose 40-60% of new membership enquiries to competitors — January, April, and October are peak seasons where every delayed reply costs a full-year membership",
+    lossPerMiss: "₹3,000–15,000 per missed annual membership",
+    industryHashtags: ["GymIndia", "FitnessIndia", "PersonalTrainer"],
+  },
+  lawyer: {
+    label: "Lawyer / Legal",
+    owner: "lawyer or legal consultant",
+    scenario: "A client WhatsApps at 11pm: 'My employer terminated me unfairly today. I need legal advice urgently. Are you available tomorrow?' No reply overnight. By morning, stress took over and they found another lawyer through a friend.",
+    painSpecific: "Lawyers lose high-value clients to faster-responding peers — urgent legal matters mean clients commit to the first lawyer who responds with empathy and clarity",
+    lossPerMiss: "₹10,000–1,00,000 per missed case retainer",
+    industryHashtags: ["LawyerIndia", "LegalAdvice", "Advocate"],
   },
 } as const;
 
@@ -347,7 +436,7 @@ export const appRouter = router({
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
         platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]).default("retail"),
         contentAngle: z.enum(["standard", "pov", "transformation", "comparison", "objection", "story"]).default("standard"),
         season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
         language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]).default("english"),
@@ -403,7 +492,7 @@ export const appRouter = router({
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
         platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]).default("retail"),
         season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
         customPrompt: z.string().optional(),
       }))
@@ -471,7 +560,7 @@ export const appRouter = router({
     generateHooks: protectedProcedure
       .input(z.object({
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]).default("retail"),
       }))
       .mutation(async ({ ctx, input }) => {
         const userPrompt = buildHookVariantsPrompt(
@@ -565,6 +654,7 @@ export const appRouter = router({
         status: z.enum(["draft", "scheduled", "published", "archived"]).optional(),
         scheduledAt: z.date().optional().nullable(),
         mediaUrl: z.string().optional().nullable(),
+        postUrl: z.string().optional().nullable(),
       }))
       .mutation(async ({ ctx, input }) => {
         const { id, ...updates } = input;
@@ -610,15 +700,140 @@ export const appRouter = router({
         return { variation };
       }),
 
+    generateReelScript: protectedProcedure
+      .input(z.object({
+        content: z.string(),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]),
+      }))
+      .mutation(async ({ input }) => {
+        const prompt = `You are a top-tier Instagram Reels strategist who has studied every viral business Reel from India in 2024-2025. Your scripts consistently get 500K+ views.
+
+Create a 15-20 second Reel script from this post content. Optimize every second for the Instagram algorithm.
+
+ALGORITHM FACTS (non-negotiable):
+- Completion rate is #1 signal — 15-20 sec MAX, no padding
+- Saves outweigh likes 5x — the save trigger must be genuinely useful, NOT just "save this post"
+- Comments beat likes 3x — comment bait must be a binary YES/NO or fill-in-the-blank, never open-ended "what do you think?"
+- Hook must create a PATTERN INTERRUPT in the first frame — unexpected visual or text that breaks the scroll
+
+HOOK RULES (critical):
+- Must create a curiosity gap OR make a bold/controversial claim
+- Zero brand names in the hook — brand kills curiosity
+- Options: "POV: you just lost a ₹50,000 order because..." / "Nobody tells Indian business owners this..." / "I tested 47 chatbots so you don't have to"
+- Must feel like it was NOT made by a company
+
+SAVE TRIGGER RULES (critical):
+- Must be a CHECKLIST, numbered list, or specific fact people screenshot
+- Bad: "Save this tip: use AI chatbot!" — this is just a CTA disguised as value
+- Good: "Save this: 3 signs you need an AI chatbot — 1) you miss messages at night 2) response time >1 hr 3) losing repeat customers"
+- The viewer should think "I'll screenshot this" before you tell them to save
+
+COMMENT BAIT RULES (critical):
+- Must be binary or one-word answer — high comment volume = more reach
+- Bad: "What do you think?" — too vague, people scroll past
+- Good: "Have you ever lost a customer because you replied too late? YES or NO 👇"
+- Good: "How fast do you reply to leads? Comment your answer time ⬇️"
+- Good: "Tag a business owner who still replies manually 👇"
+
+Original post content:
+${input.content}
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "hook": "ONE sentence, 8 words max — curiosity gap or bold claim, no brand name",
+  "pattern_interrupt": "Specific unusual visual for frame 0: something jarring, unexpected, or counter-intuitive that stops scrolling — be specific about what's on screen",
+  "sections": [
+    {"time": "0:00-0:02", "label": "HOOK", "visual": "exact description of the jarring first frame", "script": "exact 8-word-max hook spoken out loud"},
+    {"time": "0:02-0:08", "label": "PROBLEM", "visual": "specific visual showing the pain — person, scenario, numbers on screen", "script": "2 sentences max — name the exact painful moment with a ₹ or time number"},
+    {"time": "0:08-0:14", "label": "SOLUTION", "visual": "phone screen showing AI replying instantly OR before/after split", "script": "1-2 sentences — the result in specific numbers, not vague benefits"},
+    {"time": "0:14-0:18", "label": "SAVE TRIGGER", "visual": "numbered checklist on screen — 3 items — big readable text", "script": "read the checklist fast, say 'screenshot this' not 'save this post'"},
+    {"time": "0:18-0:20", "label": "CTA", "visual": "close-up of commenter or comment section graphic", "script": "exact binary question — YES or NO format, or tag someone format"}
+  ],
+  "voiceover": "Full 20-second script as one paragraph — conversational Hinglish or English, fast-paced, sounds like a real person not an ad",
+  "text_overlays": ["hook text verbatim", "key ₹ stat", "checklist line 1", "checklist line 2", "checklist line 3", "comment CTA"],
+  "music_vibe": "Specific vibe: e.g. 'trending Bollywood item song, 128 BPM' or 'motivational background beat, no lyrics, 110 BPM'",
+  "save_trigger": "The exact 3-item checklist or numbered fact that makes someone screenshot — write it out completely",
+  "comment_question": "The exact binary or tag-someone question — copy-paste ready, includes emoji and YES/NO prompt or tag instruction",
+  "caption": "First line = hook (same as reel hook). Line 2: expand the problem in 1 sentence. Line 3: the solution + result. Line 4: CTA (link in bio). Empty line. Hashtags on separate line.",
+  "hashtags": ["Reels", "ReelsIndia", "BusinessTips", "SmallBusinessIndia", "AIForBusiness", "GetMyAgent", "ViralReels", "IndianEntrepreneur", "DigitalMarketing", "BusinessGrowth"]
+}`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a viral content strategist specializing in Instagram Reels for the Indian market. Return ONLY valid JSON." },
+            { role: "user", content: prompt },
+          ],
+        });
+
+        const contentText = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content : "";
+
+        let parsed: any = null;
+        try {
+          const jsonStr = contentText.replace(/^```json\s*|\s*```$/g, "").trim();
+          parsed = JSON.parse(jsonStr);
+        } catch {
+          // Return raw text if JSON fails
+        }
+
+        return { script: contentText, parsed };
+      }),
+
+    generateReelVideo: protectedProcedure
+      .input(z.object({
+        mode: z.enum(['slideshow', 'stock']),
+        voiceover: z.string(),
+        textOverlays: z.array(z.string()),
+        sections: z.array(z.object({
+          label: z.string(),
+          visual: z.string(),
+          script: z.string(),
+        })),
+        imageUrls: z.array(z.string()).optional(), // for slideshow mode
+      }))
+      .mutation(async ({ input }) => {
+        const { generateSlideshowVideo, generateStockVideo } = await import('./_core/videoGen');
+        const { ENV } = await import('./_core/env');
+
+        const filename = `reel_${Date.now()}.mp4`;
+
+        if (input.mode === 'slideshow') {
+          const urls = input.imageUrls?.length
+            ? input.imageUrls
+            : [];
+          if (!urls.length) throw new TRPCError({ code: 'BAD_REQUEST', message: 'No images provided for slideshow' });
+
+          const videoUrl = await generateSlideshowVideo({
+            imageUrls: urls,
+            textOverlays: input.textOverlays,
+            voiceover: input.voiceover,
+            outputFilename: filename,
+          });
+          return { videoUrl };
+        }
+
+        // stock mode
+        if (!ENV.pexelsApiKey) throw new TRPCError({ code: 'BAD_REQUEST', message: 'PEXELS_API_KEY not configured' });
+
+        const videoUrl = await generateStockVideo({
+          sections: input.sections,
+          textOverlays: input.textOverlays,
+          voiceover: input.voiceover,
+          pexelsApiKey: ENV.pexelsApiKey,
+          outputFilename: filename,
+        });
+        return { videoUrl };
+      }),
+
     bulkGenerate: protectedProcedure
       .input(z.object({
         pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]),
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]).default("retail"),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]).default("retail"),
         contentAngle: z.enum(["standard", "pov", "transformation", "comparison", "objection", "story"]).default("standard"),
         season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
         platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]).default("instagram"),
-        count: z.number().min(1).max(7).default(7),
+        count: z.number().min(1).max(14).default(7),
         language: z.string().default("english"),
         startDate: z.date().optional(),
       }))
@@ -725,7 +940,7 @@ export const appRouter = router({
 
     generateVisual: protectedProcedure
       .input(z.object({
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]),
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("feed_post"),
         hook: z.string(),
       }))
@@ -765,7 +980,7 @@ export const appRouter = router({
 
     generateVideo: protectedProcedure
       .input(z.object({
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]),
         hook: z.string(),
         durationSeconds: z.number().min(4).max(8).default(8),
       }))
@@ -823,7 +1038,7 @@ export const appRouter = router({
         content: z.string(),
         sourceFormat: z.enum(["carousel", "reel", "story", "feed_post"]),
         targetFormat: z.enum(["carousel", "reel", "story", "feed_post"]),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]),
       }))
       .mutation(async ({ input }) => {
         const schema = FORMAT_SCHEMAS[input.targetFormat];
@@ -850,7 +1065,7 @@ export const appRouter = router({
     rssToPost: protectedProcedure
       .input(z.object({
         rssUrl: z.string().url(),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]),
         contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("feed_post"),
         platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]).default("instagram"),
       }))
@@ -904,7 +1119,7 @@ export const appRouter = router({
     analyzeCompetitors: protectedProcedure
       .input(z.object({
         keyword: z.string().min(2),
-        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services"]),
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]),
         geo: z.enum(["IN", "US", "GB", "AU", "SG"]).default("IN"),
       }))
       .mutation(async ({ input }) => {

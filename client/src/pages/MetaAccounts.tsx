@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,8 @@ import DashboardLayout from '@/components/DashboardLayout';
 export default function MetaAccounts() {
   const { user } = useAuth();
   const [oauthUrl, setOauthUrl] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [polling, setPolling] = useState(false);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const { data: accounts, isLoading, refetch } = trpc.meta.getAccounts.useQuery();
   const { mutate: disconnect } = trpc.meta.disconnectAccount.useMutation({
     onSuccess: () => {
@@ -22,46 +23,54 @@ export default function MetaAccounts() {
       toast.error(error?.message || 'Failed to disconnect account');
     },
   });
+  const { mutate: pollPending } = trpc.meta.pollPendingAuth.useMutation({
+    onSuccess: (data) => {
+      if (data.ready) {
+        stopPolling();
+        toast.success(`Connected ${(data.instagramAccounts ?? 0) + (data.facebookPages ?? 0)} account(s)!`);
+        refetch();
+      }
+    },
+    onError: () => {
+      stopPolling();
+      toast.error('Failed to process Meta authorization');
+    },
+  });
 
   const { data: oauthData } = trpc.meta.getOAuthUrl.useQuery();
 
   useEffect(() => {
-    if (oauthData?.oauthUrl) {
-      setOauthUrl(oauthData.oauthUrl);
-    }
+    if (oauthData?.oauthUrl) setOauthUrl(oauthData.oauthUrl);
   }, [oauthData]);
 
-  // Show result toasts after OAuth redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const success = params.get('meta_success');
-    const error = params.get('meta_error');
-    if (success !== null) {
-      const count = parseInt(success);
-      if (count > 0) {
-        toast.success(`Connected ${count} account(s) successfully!`);
-      } else {
-        toast.warning('OAuth completed but no Facebook Pages or Instagram accounts were found. Make sure your Facebook account manages at least one Page.');
-      }
-      window.history.replaceState({}, '', '/accounts');
-      refetch();
-    } else if (error) {
-      const messages: Record<string, string> = {
-        access_denied: 'Access was denied by Facebook.',
-        no_code: 'No authorization code received.',
-        not_logged_in: 'Session expired. Please log in again.',
-        auth_failed: 'OAuth failed. Check server logs.',
-      };
-      toast.error(messages[error] || `Error: ${error}`);
-      window.history.replaceState({}, '', '/accounts');
+  // Clean up polling on unmount
+  useEffect(() => () => stopPolling(), []);
+
+  const stopPolling = () => {
+    if (pollTimer.current) {
+      clearInterval(pollTimer.current);
+      pollTimer.current = null;
     }
-  }, []);
+    setPolling(false);
+  };
 
   const handleConnectMeta = () => {
-    if (oauthUrl) {
-      setLoading(true);
-      window.location.href = oauthUrl;
-    }
+    if (!oauthUrl) return;
+    // Open OAuth in new tab — current page keeps polling
+    window.open(oauthUrl, '_blank', 'noopener');
+    setPolling(true);
+    toast.info('Authorize in the new tab. This page will update automatically.');
+    // Poll every 2.5 seconds for up to 5 minutes
+    let attempts = 0;
+    pollTimer.current = setInterval(() => {
+      attempts++;
+      if (attempts > 120) {
+        stopPolling();
+        toast.error('Timed out waiting for Meta authorization');
+        return;
+      }
+      pollPending();
+    }, 2500);
   };
 
   const handleDisconnect = (accountId: string) => {
@@ -98,14 +107,15 @@ export default function MetaAccounts() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={handleConnectMeta}
-              disabled={loading || !oauthUrl}
+              onClick={polling ? stopPolling : handleConnectMeta}
+              disabled={!oauthUrl}
+              variant={polling ? 'outline' : 'default'}
               className="gap-2"
             >
-              {loading ? (
+              {polling ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Connecting...
+                  Waiting for authorization… (cancel)
                 </>
               ) : (
                 <>

@@ -5,7 +5,7 @@ import * as metaApi from "../_core/meta";
 import * as metaDb from "../meta.db";
 import { getDb } from "../db";
 import { contentPosts } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, isNotNull } from "drizzle-orm";
 
 export const metaRouter = router({
   /**
@@ -28,17 +28,23 @@ export const metaRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        // Exchange code for access token
+        // Exchange code for short-lived access token
         const tokenResponse = await metaApi.exchangeMetaCode(input.code);
 
+        // Exchange for long-lived token (60 days instead of ~1 hour)
+        const longLivedToken = await metaApi.exchangeForLongLivedToken(tokenResponse.access_token);
+        const tokenToStore = longLivedToken || tokenResponse.access_token;
+        // Long-lived tokens last ~60 days
+        const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+
         // Get user info
-        const user = await metaApi.getMetaUser(tokenResponse.access_token);
+        const user = await metaApi.getMetaUser(tokenToStore);
 
         // Get Instagram accounts
-        const instagramAccounts = await metaApi.getInstagramAccounts(tokenResponse.access_token);
+        const instagramAccounts = await metaApi.getInstagramAccounts(tokenToStore);
 
         // Get Facebook pages
-        const facebookPages = await metaApi.getFacebookPages(tokenResponse.access_token);
+        const facebookPages = await metaApi.getFacebookPages(tokenToStore);
 
         // Store Instagram accounts
         for (const account of instagramAccounts) {
@@ -46,10 +52,8 @@ export const metaRouter = router({
             accountType: "instagram_business",
             accountId: account.id,
             accountName: account.username || account.name,
-            accessToken: tokenResponse.access_token,
-            expiresAt: tokenResponse.expires_in
-              ? new Date(Date.now() + tokenResponse.expires_in * 1000)
-              : undefined,
+            accessToken: tokenToStore,
+            expiresAt,
           });
         }
 
@@ -218,6 +222,122 @@ export const metaRouter = router({
           message: "Failed to publish to Facebook",
         });
       }
+    }),
+
+  /**
+   * Poll server n relay for pending Meta OAuth code and process it
+   */
+  pollPendingAuth: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      try {
+        const res = await fetch("https://app.get-my-agent.com/strategy/meta/pending");
+        const data = await res.json() as any;
+        if (!data.ok || !data.code) {
+          return { ready: false };
+        }
+
+        const { code } = data;
+
+        // Exchange code for short-lived token
+        const tokenResponse = await metaApi.exchangeMetaCode(code);
+
+        // Exchange for long-lived token (60 days)
+        const longLivedToken = await metaApi.exchangeForLongLivedToken(tokenResponse.access_token);
+        const tokenToStore = longLivedToken || tokenResponse.access_token;
+        const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+
+        // Get Facebook pages
+        const facebookPages = await metaApi.getFacebookPages(tokenToStore);
+
+        // Get Instagram accounts from pages
+        const instagramAccounts = await metaApi.getInstagramAccountsFromPages(tokenToStore, facebookPages);
+
+        // Store Facebook pages
+        for (const page of facebookPages) {
+          await metaDb.upsertMetaAccount(ctx.user.id, {
+            accountType: "facebook_page",
+            accountId: page.id,
+            accountName: page.name,
+            accessToken: page.access_token,
+          });
+        }
+
+        // Store Instagram accounts
+        for (const account of instagramAccounts) {
+          await metaDb.upsertMetaAccount(ctx.user.id, {
+            accountType: "instagram_business",
+            accountId: account.id,
+            accountName: account.username || account.name,
+            accessToken: account.pageAccessToken,
+            expiresAt,
+          });
+        }
+
+        return {
+          ready: true,
+          instagramAccounts: instagramAccounts.length,
+          facebookPages: facebookPages.length,
+        };
+      } catch (error) {
+        console.error("[Meta Relay] pollPendingAuth error:", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to process Meta auth" });
+      }
+    }),
+
+  /**
+   * Sync published posts from Meta (FB + IG) — updates status and postUrl by metaPostId
+   */
+  syncPosts: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No DB" });
+
+      const accounts = await metaDb.getUserMetaAccounts(ctx.user.id);
+      let updated = 0;
+
+      // Build map: metaPostId -> postUrl from all connected accounts
+      const remoteMap = new Map<string, string>(); // metaPostId -> permalink
+
+      for (const account of accounts) {
+        if (account.accountType === "facebook_page") {
+          const posts = await metaApi.getPagePosts(account.accountId, account.accessToken);
+          for (const p of posts) {
+            remoteMap.set(p.id, p.permalink_url);
+          }
+          // Also map photo IDs → link (backward compat: old posts stored photo_id not post_id)
+          const photos = await metaApi.getPagePhotos(account.accountId, account.accessToken);
+          for (const ph of photos) {
+            if (!remoteMap.has(ph.id)) remoteMap.set(ph.id, ph.link);
+          }
+        } else if (account.accountType === "instagram_business") {
+          const media = await metaApi.getInstagramMedia(account.accountId, account.accessToken);
+          for (const m of media) {
+            remoteMap.set(m.id, m.permalink);
+          }
+        }
+      }
+
+      if (remoteMap.size === 0) return { updated: 0 };
+
+      // Find our posts that have a metaPostId and match against remote
+      const dbPosts = await db
+        .select()
+        .from(contentPosts)
+        .where(and(eq(contentPosts.userId, ctx.user.id), isNotNull(contentPosts.metaPostId)));
+
+      for (const post of dbPosts) {
+        if (!post.metaPostId) continue;
+        const permalink = remoteMap.get(post.metaPostId);
+        if (!permalink) continue;
+
+        await db
+          .update(contentPosts)
+          .set({ status: "published", publishedAt: post.publishedAt ?? new Date(), postUrl: permalink } as any)
+          .where(eq(contentPosts.id, post.id));
+        updated++;
+      }
+
+      return { updated };
     }),
 
   /**

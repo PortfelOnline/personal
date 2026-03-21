@@ -63,6 +63,7 @@ export const contentPosts = mysqlTable("contentPosts", {
   mediaUrl: varchar("mediaUrl", { length: 512 }),
   engagement: int("engagement").default(0),
   metaPostId: varchar("metaPostId", { length: 255 }),   // Meta Graph API post ID (after publish)
+  postUrl: varchar("postUrl", { length: 512 }),          // Permalink to the published post
   metaReach: int("metaReach"),                           // Cached from Meta Insights
   metaImpressions: int("metaImpressions"),
   metaLikes: int("metaLikes"),

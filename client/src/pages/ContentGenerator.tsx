@@ -21,7 +21,7 @@ const GEO_LABELS: Record<TrendGeo, string> = {
 type PillarType = 'desi_business_owner' | 'five_minute_transformation' | 'roi_calculator';
 type Platform = 'facebook' | 'instagram' | 'whatsapp' | 'youtube';
 type ContentFormat = 'carousel' | 'reel' | 'story' | 'feed_post';
-type Industry = 'retail' | 'real_estate' | 'restaurant' | 'ecommerce' | 'coaching' | 'services';
+type Industry = 'retail' | 'real_estate' | 'restaurant' | 'ecommerce' | 'coaching' | 'services' | 'insurance_agent' | 'loan_agent' | 'ca_tax' | 'travel_agent' | 'wedding_planner' | 'interior_designer' | 'clinic_doctor' | 'car_dealer' | 'salon_beauty' | 'gym_fitness' | 'lawyer';
 type ContentAngle = 'standard' | 'pov' | 'transformation' | 'comparison' | 'objection' | 'story';
 type Season = 'none' | 'diwali' | 'ipl' | 'back_to_school' | 'gst_season' | 'wedding' | 'summer';
 
@@ -52,6 +52,17 @@ const INDUSTRIES: { key: Industry; icon: string; label: string }[] = [
   { key: 'ecommerce', icon: '📦', label: 'E-commerce' },
   { key: 'coaching', icon: '📚', label: 'Coaching' },
   { key: 'services', icon: '🔧', label: 'Services' },
+  { key: 'insurance_agent', icon: '🛡️', label: 'Insurance Agent' },
+  { key: 'loan_agent', icon: '🏦', label: 'Loan / Mortgage' },
+  { key: 'ca_tax', icon: '📋', label: 'CA / Tax Consultant' },
+  { key: 'travel_agent', icon: '✈️', label: 'Travel Agent' },
+  { key: 'wedding_planner', icon: '💒', label: 'Wedding Planner' },
+  { key: 'interior_designer', icon: '🛋️', label: 'Interior Designer' },
+  { key: 'clinic_doctor', icon: '🏥', label: 'Doctor / Clinic' },
+  { key: 'car_dealer', icon: '🚗', label: 'Car Dealer' },
+  { key: 'salon_beauty', icon: '💅', label: 'Salon / Beauty' },
+  { key: 'gym_fitness', icon: '🏋️', label: 'Gym / Fitness' },
+  { key: 'lawyer', icon: '⚖️', label: 'Lawyer / Legal' },
 ];
 
 const SEASONS: { key: Season; icon: string; label: string; months: string }[] = [

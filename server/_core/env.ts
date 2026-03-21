@@ -14,4 +14,5 @@ export const ENV = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   wpSshHost: process.env.WP_SSH_HOST ?? "",
   wpSshWpPath: process.env.WP_SSH_WP_PATH ?? "/application/",
+  pexelsApiKey: process.env.PEXELS_API_KEY ?? "",
 };

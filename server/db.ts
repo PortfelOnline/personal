@@ -1,4 +1,4 @@
-import { eq, and, lte } from "drizzle-orm";
+import { eq, and, lte, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, contentPosts, contentTemplates, savedTopics, InsertContentPost, InsertContentTemplate } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -97,8 +97,16 @@ export async function createContentPost(
   if (!db) throw new Error('Database not available');
   
   const result = await db.insert(contentPosts).values({
-    ...post,
     userId,
+    title: post.title,
+    content: post.content,
+    platform: post.platform,
+    language: post.language,
+    status: post.status,
+    hashtags: post.hashtags,
+    mediaUrl: post.mediaUrl,
+    scheduledAt: post.scheduledAt,
+    templateId: post.templateId,
   });
   
   return result;
@@ -113,10 +121,13 @@ export async function getUserContentPosts(userId: number, status?: string) {
       .where(and(
         eq(contentPosts.userId, userId),
         eq(contentPosts.status, status as any)
-      ));
+      ))
+      .orderBy(desc(contentPosts.createdAt));
   }
-  
-  return db.select().from(contentPosts).where(eq(contentPosts.userId, userId));
+
+  return db.select().from(contentPosts)
+    .where(eq(contentPosts.userId, userId))
+    .orderBy(desc(contentPosts.createdAt));
 }
 
 export async function getContentTemplates(userId: number) {

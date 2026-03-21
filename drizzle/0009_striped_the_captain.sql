@@ -1,0 +1,1 @@
+ALTER TABLE `contentPosts` ADD `postUrl` varchar(512);
