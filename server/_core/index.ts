@@ -41,7 +41,7 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // DEV ONLY: instant login without OAuth — GET /api/dev/login
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" || process.env.ENABLE_DEV_LOGIN === "true") {
     app.get("/api/dev/login", async (req, res) => {
       try {
         const openId = "dev-user-local";
