@@ -400,6 +400,22 @@ function injectImagesAfterH2s(
   targetH2Indexes?: number[]
 ): string {
   if (media.length === 0) return html;
+
+  // Dedup: remove images already present in html (by URL basename) + deduplicate within media array
+  const existingUrls = new Set<string>();
+  const existingMatches = html.matchAll(/src=["']([^"']+)["']/gi);
+  for (const m of existingMatches) existingUrls.add(m[1]);
+
+  const seenUrls = new Set<string>();
+  const uniqueMedia = media.filter(m => {
+    if (existingUrls.has(m.url)) return false;     // already in html
+    if (seenUrls.has(m.url)) return false;          // duplicate in media array
+    seenUrls.add(m.url);
+    return true;
+  });
+  if (uniqueMedia.length === 0) return html;
+  const mediaToUse = uniqueMedia;
+
   const h2Texts = extractH2Texts(html);
   const totalH2s = h2Texts.length;
 
@@ -409,7 +425,7 @@ function injectImagesAfterH2s(
   if (targetH2Indexes) {
     indexes = targetH2Indexes;
   } else {
-    const n = Math.min(media.length, totalH2s - 1);
+    const n = Math.min(mediaToUse.length, totalH2s - 1);
     if (n <= 0) return html;
     const step = Math.max(1, Math.floor((totalH2s - 1) / n));
     indexes = Array.from({ length: n }, (_, i) => 2 + i * step);
@@ -419,8 +435,8 @@ function injectImagesAfterH2s(
   return html.replace(/<\/h2>/gi, () => {
     h2count++;
     const pos = indexes.indexOf(h2count);
-    if (pos !== -1 && media[pos]) {
-      const m = media[pos];
+    if (pos !== -1 && mediaToUse[pos]) {
+      const m = mediaToUse[pos];
       const alt = (h2Texts[h2count - 1] || '').replace(/"/g, '&quot;');
       const w = m.width ?? 1792;
       const h = m.height ?? 1024;
@@ -2570,6 +2586,19 @@ ${competitorSection}
   getProgressStats: protectedProcedure
     .query(async ({ ctx }) => {
       return articlesDb.getProgressStats(ctx.user.id);
+    }),
+
+  // ── Article Library ───────────────────────────────────────────────────────
+
+  getLibrary: protectedProcedure
+    .query(async ({ ctx }) => {
+      return articlesDb.getLibrary(ctx.user.id);
+    }),
+
+  getArticleVersions: protectedProcedure
+    .input(z.object({ url: z.string().url() }))
+    .query(async ({ ctx, input }) => {
+      return articlesDb.getArticleVersions(ctx.user.id, input.url);
     }),
 
 });
