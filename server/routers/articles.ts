@@ -11,19 +11,15 @@ import { createContentPost } from "../db";
 import * as articlesDb from "../articles.db";
 import * as wordpressDb from "../wordpress.db";
 
-// ── In-memory cache: SERP results + competitor pages (TTL 24h) ───────────────
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const serpCache = new Map<string, { data: SerpData; ts: number }>();
-const pageCache = new Map<string, { data: any; ts: number }>();
+// ── In-memory cache: SERP results + competitor pages (no TTL — lives until server restart) ───
+const serpCache = new Map<string, SerpData>();
+const pageCache = new Map<string, any>();
 
-function cacheGet<T>(map: Map<string, { data: T; ts: number }>, key: string): T | null {
-  const entry = map.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > CACHE_TTL_MS) { map.delete(key); return null; }
-  return entry.data;
+function cacheGet<T>(map: Map<string, T>, key: string): T | null {
+  return map.get(key) ?? null;
 }
-function cacheSet<T>(map: Map<string, { data: T; ts: number }>, key: string, data: T): void {
-  map.set(key, { data, ts: Date.now() });
+function cacheSet<T>(map: Map<string, T>, key: string, data: T): void {
+  map.set(key, data);
 }
 
 async function cachedGoogleSerp(keyword: string): Promise<SerpData> {

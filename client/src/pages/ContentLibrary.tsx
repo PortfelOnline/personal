@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Trash2, Edit2, Archive, Send, Sparkles, Calendar, BarChart2, Eye, Heart, RefreshCw, Image, ArrowUpDown, SlidersHorizontal, Clock, Pencil, Video } from 'lucide-react';
+import { Loader2, Trash2, Edit2, Archive, Send, Sparkles, Calendar, BarChart2, Eye, Heart, RefreshCw, Image, ArrowUpDown, SlidersHorizontal, Clock, Pencil, Video, ChevronDown, ChevronUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PublishToMeta } from '@/components/PublishToMeta';
@@ -104,6 +104,8 @@ export default function ContentLibrary() {
   const [reelVideoUrl, setReelVideoUrl] = useState<string | null>(null);
   const [addLinkPostId, setAddLinkPostId] = useState<number | null>(null);
   const [addLinkValue, setAddLinkValue] = useState('');
+  const [expandedPostIds, setExpandedPostIds] = useState<Set<number>>(new Set());
+  const [generatingImagePostId, setGeneratingImagePostId] = useState<number | null>(null);
 
   const { data: posts, isLoading } = trpc.content.listPosts.useQuery({ status: selectedStatus });
 
@@ -158,6 +160,49 @@ export default function ContentLibrary() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const generateVisual = trpc.content.generateVisual.useMutation({
+    onSuccess: async (data, variables) => {
+      // Save the generated image URL back to the post
+      const postId = generatingImagePostId;
+      if (postId) {
+        await updatePost.mutateAsync({ id: postId, mediaUrl: data.url });
+      }
+      setGeneratingImagePostId(null);
+      toast.success('Image generated!');
+    },
+    onError: (e) => {
+      setGeneratingImagePostId(null);
+      toast.error('Image failed: ' + e.message);
+    },
+  });
+
+  // Derive industry enum from post title
+  function inferIndustry(title: string): string {
+    const t = title.toLowerCase();
+    if (t.includes('real estate')) return 'real_estate';
+    if (t.includes('insurance')) return 'insurance_agent';
+    if (t.includes('restaurant') || t.includes('food')) return 'restaurant';
+    if (t.includes('e-commerce') || t.includes('ecommerce') || t.includes('meesho') || t.includes('online sell')) return 'ecommerce';
+    if (t.includes('coaching') || t.includes('education') || t.includes('tutor')) return 'coaching';
+    if (t.includes('travel')) return 'travel_agent';
+    if (t.includes('salon') || t.includes('beauty')) return 'salon_beauty';
+    if (t.includes('gym') || t.includes('fitness')) return 'gym_fitness';
+    if (t.includes('clinic') || t.includes('doctor')) return 'clinic_doctor';
+    if (t.includes('loan')) return 'loan_agent';
+    if (t.includes('wedding')) return 'wedding_planner';
+    return 'retail';
+  }
+
+  function handleGenerateImage(post: Post) {
+    setGeneratingImagePostId(post.id);
+    const hook = extractContentPreview(post.content).slice(0, 200);
+    generateVisual.mutate({
+      industry: inferIndustry(post.title) as any,
+      contentFormat: 'feed_post',
+      hook,
+    });
+  }
 
   const suggestHashtags = trpc.content.suggestHashtags.useMutation({
     onSuccess: (data) => {
@@ -317,9 +362,23 @@ export default function ContentLibrary() {
                     />
                   )}
                   <div className="flex-1">
-                    <p className="text-sm text-slate-700 line-clamp-3 bg-slate-50 p-3 rounded-lg">
-                      {extractContentPreview(post.content)}
-                    </p>
+                    <div className="bg-slate-50 rounded-lg overflow-hidden">
+                      <p className={`text-sm text-slate-700 p-3 whitespace-pre-wrap ${expandedPostIds.has(post.id) ? '' : 'line-clamp-3'}`}>
+                        {extractContentPreview(post.content)}
+                      </p>
+                      <button
+                        className="w-full flex items-center justify-center gap-1 py-1.5 text-xs text-slate-400 hover:text-slate-600 border-t border-slate-100 transition-colors"
+                        onClick={() => setExpandedPostIds(prev => {
+                          const next = new Set(prev);
+                          next.has(post.id) ? next.delete(post.id) : next.add(post.id);
+                          return next;
+                        })}
+                      >
+                        {expandedPostIds.has(post.id)
+                          ? <><ChevronUp className="w-3 h-3" />Collapse</>
+                          : <><ChevronDown className="w-3 h-3" />Show full post</>}
+                      </button>
+                    </div>
                   </div>
 
                   {post.hashtags && (
@@ -478,17 +537,32 @@ export default function ContentLibrary() {
                       {generateReel.isPending && selectedPost?.id === post.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4 mr-1" />}
                       Reel
                     </Button>
+                    {/* Generate Image button — always visible */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-orange-600 hover:text-orange-700 border-orange-200"
+                      title="Generate image for this post"
+                      onClick={() => handleGenerateImage(post)}
+                      disabled={generatingImagePostId === post.id}
+                    >
+                      {generatingImagePostId === post.id
+                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                        : <Image className="w-4 h-4 mr-1" />}
+                      {post.mediaUrl ? 'Regen' : 'Image'}
+                    </Button>
+
                     {post.status === 'draft' && (
                       <>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 text-green-600 hover:text-green-700"
+                          className="flex-1 text-slate-500 hover:text-green-700 hover:border-green-300"
                           title="Already posted manually? Mark as Published"
                           onClick={() => handleMarkPublished(post)}
                           disabled={updatePost.isPending}
                         >
-                          ✓ Published
+                          ✓ Mark done
                         </Button>
                         <Button
                           variant="outline"

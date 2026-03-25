@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -3404,7 +3404,12 @@ function GenerateTopArticle({ initialKeyword }: { initialKeyword?: string }) {
 }
 
 export default function ArticleAnalyzer() {
-  const [activeTab, setActiveTab] = useState<'analyze' | 'catalog' | 'ideas' | 'audit' | 'serp' | 'proxies' | 'generate' | 'keywords' | 'auto'>('catalog');
+  const [activeTab, setActiveTab] = useState<'analyze' | 'catalog' | 'ideas' | 'audit' | 'serp' | 'proxies' | 'generate' | 'keywords' | 'auto' | 'library'>('catalog');
+  const [libraryVersionUrl, setLibraryVersionUrl] = useState<string | null>(null);
+  const [libSearch, setLibSearch] = useState('');
+  const [libSort, setLibSort] = useState<'newest' | 'oldest' | 'best_seo' | 'most_words' | 'most_versions'>('newest');
+  const [libMinSeo, setLibMinSeo] = useState<number | null>(null);
+  const [libHasGoogle, setLibHasGoogle] = useState(false);
   const [generateKeyword, setGenerateKeyword] = useState('');
   const [url, setUrl] = useState('');
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -3457,6 +3462,34 @@ export default function ArticleAnalyzer() {
 
   const { data: history = [], isLoading: historyLoading } = trpc.articles.getHistory.useQuery();
   const analyzedUrls = new Set(history.map(h => h.url));
+
+  const { data: library = [], isLoading: libraryLoading, refetch: refetchLibrary } = trpc.articles.getLibrary.useQuery(undefined, {
+    enabled: activeTab === 'library',
+  });
+  const { data: articleVersions = [], isLoading: versionsLoading } = trpc.articles.getArticleVersions.useQuery(
+    { url: libraryVersionUrl! },
+    { enabled: !!libraryVersionUrl }
+  );
+
+  const filteredLibrary = useMemo(() => {
+    let items = [...library];
+    if (libSearch) {
+      const q = libSearch.toLowerCase();
+      items = items.filter(e =>
+        (e.improvedTitle || e.originalTitle).toLowerCase().includes(q) ||
+        e.url.toLowerCase().includes(q)
+      );
+    }
+    if (libMinSeo !== null) items = items.filter(e => e.bestSeoScore >= libMinSeo);
+    if (libHasGoogle) items = items.filter(e => e.googlePos !== null);
+    switch (libSort) {
+      case 'oldest': items.sort((a, b) => new Date(a.latestCreatedAt).getTime() - new Date(b.latestCreatedAt).getTime()); break;
+      case 'best_seo': items.sort((a, b) => b.bestSeoScore - a.bestSeoScore); break;
+      case 'most_words': items.sort((a, b) => b.latestWordCount - a.latestWordCount); break;
+      case 'most_versions': items.sort((a, b) => b.versionsCount - a.versionsCount); break;
+    }
+    return items;
+  }, [library, libSearch, libSort, libMinSeo, libHasGoogle]);
 
   // Server-side batch (runs on server, browser tab can be closed)
   const { data: serverBatch } = trpc.articles.getBatchStatus.useQuery(undefined, {
@@ -3636,7 +3669,10 @@ export default function ArticleAnalyzer() {
           {/* Main area */}
           <div>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-9">
+              <TabsList className="grid w-full grid-cols-10">
+                <TabsTrigger value="library" className="text-xs data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+                  <CheckCircle className="w-3.5 h-3.5 mr-1" />Готово
+                </TabsTrigger>
                 <TabsTrigger value="catalog" className="text-xs">
                   <List className="w-3.5 h-3.5 mr-1" />Каталог
                 </TabsTrigger>
@@ -3665,6 +3701,203 @@ export default function ArticleAnalyzer() {
                   <Zap className="w-3.5 h-3.5 mr-1" />Авто
                 </TabsTrigger>
               </TabsList>
+
+              {/* Library tab — improved articles */}
+              <TabsContent value="library">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-slate-800">Библиотека улучшенных статей</h2>
+                      <p className="text-sm text-slate-500 mt-0.5">Все статьи, которые уже были улучшены AI. Нажмите на статью чтобы загрузить или посмотреть версии.</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => refetchLibrary()}>
+                      <RefreshCw className="w-4 h-4 mr-1" />Обновить
+                    </Button>
+                  </div>
+
+                  {/* Search, sort, filters */}
+                  {!libraryLoading && library.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex gap-2 flex-wrap">
+                        <div className="relative flex-1 min-w-48">
+                          <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" />
+                          <Input
+                            className="pl-8 h-9 text-sm"
+                            placeholder="Поиск по заголовку или URL..."
+                            value={libSearch}
+                            onChange={(e) => setLibSearch(e.target.value)}
+                          />
+                        </div>
+                        <select
+                          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-ring"
+                          value={libSort}
+                          onChange={(e) => setLibSort(e.target.value as typeof libSort)}
+                        >
+                          <option value="newest">Новые сначала</option>
+                          <option value="oldest">Старые сначала</option>
+                          <option value="best_seo">Лучший SEO</option>
+                          <option value="most_words">Больше слов</option>
+                          <option value="most_versions">Больше версий</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-slate-400 font-medium">Фильтр:</span>
+                        {([null, 60, 70, 80, 90] as (number | null)[]).map((val) => (
+                          <button
+                            key={String(val)}
+                            onClick={() => setLibMinSeo(val)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              libMinSeo === val
+                                ? 'bg-emerald-500 text-white border-emerald-500'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-400'
+                            }`}
+                          >
+                            {val === null ? 'Все SEO' : `SEO ≥ ${val}`}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setLibHasGoogle(!libHasGoogle)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            libHasGoogle
+                              ? 'bg-blue-500 text-white border-blue-500'
+                              : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
+                          }`}
+                        >
+                          Есть позиция Google
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {libraryLoading ? (
+                    <div className="flex justify-center py-16">
+                      <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                    </div>
+                  ) : library.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-16 text-center">
+                        <CheckCircle className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                        <p className="text-slate-500 text-lg font-medium">Библиотека пуста</p>
+                        <p className="text-slate-400 text-sm mt-1">Проанализируйте статьи — они появятся здесь</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      <div className="text-xs text-slate-400 font-medium uppercase tracking-wide">
+                        {filteredLibrary.length !== library.length
+                          ? `${filteredLibrary.length} из ${library.length} статей`
+                          : `${library.length} ${library.length === 1 ? 'статья' : library.length < 5 ? 'статьи' : 'статей'}`}
+                      </div>
+                      {filteredLibrary.length === 0 ? (
+                        <Card>
+                          <CardContent className="py-10 text-center">
+                            <p className="text-slate-400 text-sm">Ничего не найдено. Попробуйте изменить фильтры.</p>
+                          </CardContent>
+                        </Card>
+                      ) : null}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredLibrary.map((entry) => (
+                          <Card
+                            key={entry.url}
+                            className="hover:shadow-md transition-shadow border-l-4 border-l-emerald-400 cursor-pointer"
+                            onClick={() => {
+                              setSelectedHistoryId(entry.latestId);
+                              setUrl(entry.url);
+                              setActiveTab('analyze');
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-semibold text-slate-800 text-sm leading-snug line-clamp-2">
+                                    {entry.improvedTitle || entry.originalTitle}
+                                  </p>
+                                  <a
+                                    href={entry.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-xs text-blue-500 hover:underline truncate block mt-1 max-w-xs"
+                                  >
+                                    {entry.url.replace(/^https?:\/\/[^/]+/, '')}
+                                  </a>
+                                </div>
+                                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                  <ScoreBadge score={entry.bestSeoScore} />
+                                  {entry.versionsCount > 1 && (
+                                    <Badge variant="outline" className="text-xs text-slate-500">
+                                      {entry.versionsCount} версии
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 mt-3 pt-3 border-t text-xs text-slate-500">
+                                <span>{entry.latestWordCount} слов</span>
+                                {entry.googlePos != null && (
+                                  <span className={`font-medium ${entry.googlePos <= 3 ? 'text-green-600' : entry.googlePos <= 10 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                    G#{entry.googlePos}
+                                  </span>
+                                )}
+                                {entry.yandexPos != null && (
+                                  <span className={`font-medium ${entry.yandexPos <= 3 ? 'text-green-600' : entry.yandexPos <= 10 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                    Я#{entry.yandexPos}
+                                  </span>
+                                )}
+                                <span className="ml-auto">
+                                  {new Date(entry.latestCreatedAt).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                </span>
+                                {entry.versionsCount > 1 && (
+                                  <button
+                                    className="text-blue-500 hover:text-blue-700 hover:underline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLibraryVersionUrl(libraryVersionUrl === entry.url ? null : entry.url);
+                                    }}
+                                  >
+                                    {libraryVersionUrl === entry.url ? 'Скрыть' : 'Версии'}
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Version history for this article */}
+                              {libraryVersionUrl === entry.url && (
+                                <div className="mt-3 pt-3 border-t space-y-1.5">
+                                  {versionsLoading ? (
+                                    <div className="flex justify-center py-3">
+                                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                                    </div>
+                                  ) : (
+                                    articleVersions.map((v, i) => (
+                                      <button
+                                        key={v.id}
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-emerald-50 text-left transition-colors"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedHistoryId(v.id);
+                                          setUrl(entry.url);
+                                          setActiveTab('analyze');
+                                        }}
+                                      >
+                                        <span className="text-xs text-slate-400 w-4 shrink-0">v{articleVersions.length - i}</span>
+                                        <ScoreBadge score={v.seoScore} />
+                                        <span className="text-xs text-slate-600 flex-1">{v.wordCount} слов</span>
+                                        <span className="text-xs text-slate-400">
+                                          {new Date(v.createdAt).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </TabsContent>
 
               {/* Catalog tab */}
               <TabsContent value="catalog">

@@ -36,7 +36,12 @@ const puppeteer = require('puppeteer');
   const genBtn = await page.$('button.bg-gradient-to-r');
   await genBtn.click();
   console.log('Generating FB post...');
-  await new Promise(r => setTimeout(r, 14000));
+  // Wait until Generate button stops being disabled (content done)
+  await page.waitForFunction(
+    () => !document.querySelector('button.bg-gradient-to-r')?.disabled,
+    { timeout: 60000 }
+  );
+  await new Promise(r => setTimeout(r, 1000));
 
   // Generate Image
   const allBtns = await page.$$('button');
@@ -45,7 +50,21 @@ const puppeteer = require('puppeteer');
     if (text?.includes('Generate Image')) { await btn.click(); break; }
   }
   console.log('Generating image (DALL-E)...');
-  await new Promise(r => setTimeout(r, 22000));
+  // Wait until the image actually appears in the DOM
+  await page.waitForSelector('img[alt="Generated visual"]', { timeout: 90000 });
+  console.log('Image ready!');
+
+  // Save to Library
+  const saveBtns = await page.$$('button');
+  for (const btn of saveBtns) {
+    const text = await btn.evaluate(el => el.textContent?.trim());
+    if (text?.includes('Save Draft')) {
+      await btn.click();
+      console.log('Saving post...');
+      await new Promise(r => setTimeout(r, 2000));
+      break;
+    }
+  }
 
   // Scroll preview to top
   await page.evaluate(() => {

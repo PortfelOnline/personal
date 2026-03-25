@@ -121,8 +121,8 @@ export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
     return { engine: 'google', keyword, results: [], error: 'SERPAPI_KEY не настроен' };
   }
   try {
-    const data = await fetchViaSerpApi({ engine: 'google', q: keyword, hl: 'ru', gl: 'ru', num: '10' });
-    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 10).map((r: any, i: number) => ({
+    const data = await fetchViaSerpApi({ engine: 'google', q: keyword, hl: 'ru', gl: 'ru', num: '50' });
+    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 50).map((r: any, i: number) => ({
       position: r.position ?? i + 1,
       title: r.title ?? '',
       url: r.link ?? '',
@@ -144,8 +144,8 @@ export async function fetchYandexSerp(keyword: string): Promise<SerpData> {
     return { engine: 'yandex', keyword, results: [], error: 'SERPAPI_KEY не настроен' };
   }
   try {
-    const data = await fetchViaSerpApi({ engine: 'yandex', text: keyword, lr: '213', lang: 'ru', numdoc: '10' });
-    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 10).map((r: any, i: number) => ({
+    const data = await fetchViaSerpApi({ engine: 'yandex', text: keyword, lr: '213', lang: 'ru', numdoc: '50' });
+    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 50).map((r: any, i: number) => ({
       position: r.position ?? i + 1,
       title: r.title ?? '',
       url: r.link ?? '',

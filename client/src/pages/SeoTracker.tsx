@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, Circle, Clock, ExternalLink, TrendingUp, FileText, Target, Image, List, HelpCircle, RefreshCw, Trophy } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
-function PosBadge({ pos, engine }: { pos: number | null | undefined; engine: 'G' | 'Y' }) {
+function posDelta(cur: number | null | undefined, prev: number | null | undefined): string | null {
+  if (cur === undefined || prev === undefined) return null;
+  if (cur === null || prev === null) return null;
+  const d = prev - cur; // positive = moved up (better)
+  if (d === 0) return null;
+  return d > 0 ? `▲${d}` : `▼${Math.abs(d)}`;
+}
+
+function PosBadge({ pos, prev, engine }: { pos: number | null | undefined; prev?: number | null; engine: 'G' | 'Y' }) {
   if (pos === undefined) return null;
   const color = pos === null
     ? 'bg-slate-100 text-slate-400'
@@ -15,12 +23,45 @@ function PosBadge({ pos, engine }: { pos: number | null | undefined; engine: 'G'
       : pos <= 10
         ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
         : 'bg-red-100 text-red-600 border-red-200';
-  const label = pos === null ? `${engine}>10` : `${engine}#${pos}`;
+  const label = pos === null ? `${engine}>50` : `${engine}#${pos}`;
+  const delta = posDelta(pos, prev);
   return (
-    <span className={`inline-flex items-center text-xs font-mono px-1.5 py-0.5 rounded border ${color}`}>
-      {pos !== null && pos <= 3 && <Trophy className="w-3 h-3 mr-0.5" />}
+    <span className={`inline-flex items-center gap-1 text-xs font-mono px-1.5 py-0.5 rounded border ${color}`}>
+      {pos !== null && pos <= 3 && <Trophy className="w-3 h-3" />}
       {label}
+      {delta && (
+        <span className={`text-xs font-sans ${delta.startsWith('▲') ? 'text-green-600' : 'text-red-500'}`}>
+          {delta}
+        </span>
+      )}
     </span>
+  );
+}
+
+function PosHistory({ history }: { history?: PosSnapshot[] }) {
+  if (!history?.length) return null;
+  const last7 = history.slice(-7);
+  return (
+    <div className="flex items-center gap-1 mt-1">
+      <span className="text-xs text-slate-400 mr-0.5">История G:</span>
+      {last7.map((s, i) => {
+        const pos = s.googlePos;
+        const color = pos === null
+          ? 'bg-slate-300'
+          : pos <= 3 ? 'bg-green-500'
+          : pos <= 10 ? 'bg-yellow-400'
+          : 'bg-red-400';
+        const label = pos === null ? '>10' : `#${pos}`;
+        return (
+          <span
+            key={i}
+            title={`${s.date}: G${label}`}
+            className={`w-2.5 h-2.5 rounded-full ${color} cursor-default`}
+          />
+        );
+      })}
+      <span className="text-xs text-slate-400 ml-1">{last7[last7.length - 1]?.date}</span>
+    </div>
   );
 }
 
@@ -35,11 +76,17 @@ function parseNotesBadges(notes: string) {
 import DashboardLayout from '@/components/DashboardLayout';
 import {
   KADMAP_ARTICLES,
+  KADMAP_NEWS,
   type ArticleStatus,
   type ArticleProgress,
+  type NewsProgress,
+  type PosSnapshot,
   loadProgress,
   saveProgress,
+  loadNewsProgress,
+  saveNewsProgress,
   INITIAL_PROGRESS,
+  getMapFlag,
 } from '@/data/kadmapArticles';
 
 const STATUS_CONFIG: Record<ArticleStatus, { label: string; icon: typeof Circle; className: string }> = {
@@ -59,16 +106,34 @@ export default function SeoTracker() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<ArticleProgress>({ status: 'todo' });
   const [checkingId, setCheckingId] = useState<number | null>(null);
+  const [autoChecking, setAutoChecking] = useState(false);
+  const [newsProgress, setNewsProgress] = useState<Record<number, NewsProgress>>({});
   const checkPosMutation = trpc.articles.checkPosition.useMutation();
 
-  async function checkPosition(postId: number, keyword: string) {
-    setCheckingId(postId);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const checkPosition = useCallback(async (postId: number, keyword: string, silent = false) => {
+    if (!silent) setCheckingId(postId);
     try {
+      const cur = progress[postId];
       const data = await checkPosMutation.mutateAsync({ keyword });
+      const snapshot: PosSnapshot = {
+        date: today,
+        googlePos: data.googlePos ?? null,
+        yandexPos: data.yandexPos ?? null,
+      };
+      const history = [...(cur?.posHistory ?? [])];
+      // Append today's snapshot (replace if already checked today)
+      const lastIdx = history.findLastIndex(h => h.date === today);
+      if (lastIdx >= 0) history[lastIdx] = snapshot; else history.push(snapshot);
+
       updateArticle(postId, {
+        prevGooglePos: cur?.googlePos,
+        prevYandexPos: cur?.yandexPos,
         googlePos: data.googlePos,
         yandexPos: data.yandexPos,
         posCheckedAt: new Date().toISOString(),
+        posHistory: history,
         top3Google: data.topCompetitors?.slice(0, 3).map((c, i) => ({
           pos: i + 1,
           domain: c.domain,
@@ -79,28 +144,61 @@ export default function SeoTracker() {
     } catch (e) {
       console.error('[checkPosition]', e);
     } finally {
-      setCheckingId(null);
+      if (!silent) setCheckingId(null);
     }
-  }
+  }, [progress, checkPosMutation, today]);
 
   // Load from localStorage on mount, seed initial if empty
   useEffect(() => {
     const stored = loadProgress();
     const merged = { ...INITIAL_PROGRESS, ...stored };
     setProgress(merged);
-    // Only save initial if nothing was stored yet
     if (!localStorage.getItem('kadmap_article_progress')) {
       saveProgress(merged);
     }
+    setNewsProgress(loadNewsProgress());
   }, []);
 
+  // Auto-check: run once after progress loads, for all articles not yet checked today
+  useEffect(() => {
+    if (autoChecking) return;
+    const articlesNeedCheck = KADMAP_ARTICLES.filter(a => {
+      if (!a.keyword) return false;
+      const p = progress[a.postId];
+      return !p?.posCheckedAt || p.posCheckedAt.slice(0, 10) !== today;
+    });
+    const newsNeedCheck = KADMAP_NEWS.filter(n => {
+      if (!n.keyword) return false;
+      const p = newsProgress[n.postId];
+      return !p?.posCheckedAt || p.posCheckedAt.slice(0, 10) !== today;
+    });
+    const all = [
+      ...articlesNeedCheck.map(a => ({ id: a.postId, kw: a.keyword!, type: 'article' as const })),
+      ...newsNeedCheck.map(n => ({ id: n.postId, kw: n.keyword!, type: 'news' as const })),
+    ];
+    if (all.length === 0) return;
+
+    setAutoChecking(true);
+    let cancelled = false;
+    (async () => {
+      for (const item of all) {
+        if (cancelled) break;
+        if (item.type === 'article') await checkPosition(item.id, item.kw, true);
+        else await checkNewsPosition(item.id, item.kw, true);
+        await new Promise(r => setTimeout(r, 3000)); // 3s between requests
+      }
+      if (!cancelled) setAutoChecking(false);
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Object.keys(progress).length > 0, Object.keys(newsProgress).length >= 0]);
+
   function updateArticle(postId: number, update: Partial<ArticleProgress>) {
-    const next = {
-      ...progress,
-      [postId]: { ...(progress[postId] ?? { status: 'todo' }), ...update },
-    };
-    setProgress(next);
-    saveProgress(next);
+    setProgress(prev => {
+      const next = { ...prev, [postId]: { ...(prev[postId] ?? { status: 'todo' as ArticleStatus }), ...update } };
+      saveProgress(next);
+      return next;
+    });
   }
 
   function cycleStatus(postId: number) {
@@ -109,6 +207,44 @@ export default function SeoTracker() {
     const extra = next === 'done' ? { doneAt: new Date().toISOString().split('T')[0] } : {};
     updateArticle(postId, { status: next, ...extra });
   }
+
+  function updateNews(postId: number, update: Partial<NewsProgress>) {
+    setNewsProgress(prev => {
+      const next = { ...prev, [postId]: { ...(prev[postId] ?? {}), ...update } };
+      saveNewsProgress(next);
+      return next;
+    });
+  }
+
+  const checkNewsPosition = useCallback(async (postId: number, keyword: string, silent = false) => {
+    if (!silent) setCheckingId(postId);
+    try {
+      const cur = newsProgress[postId];
+      const data = await checkPosMutation.mutateAsync({ keyword });
+      const snapshot: PosSnapshot = {
+        date: today,
+        googlePos: data.googlePos ?? null,
+        yandexPos: data.yandexPos ?? null,
+      };
+      const history = [...(cur?.posHistory ?? [])];
+      const lastIdx = history.findLastIndex(h => h.date === today);
+      if (lastIdx >= 0) history[lastIdx] = snapshot; else history.push(snapshot);
+
+      updateNews(postId, {
+        prevGooglePos: cur?.googlePos,
+        prevYandexPos: cur?.yandexPos,
+        googlePos: data.googlePos,
+        yandexPos: data.yandexPos,
+        posCheckedAt: new Date().toISOString(),
+        posHistory: history,
+        top3Google: data.topCompetitors?.slice(0, 3).map((c, i) => ({ pos: i + 1, domain: c.domain, title: c.title })),
+      });
+    } catch (e) {
+      console.error('[checkNewsPosition]', e);
+    } finally {
+      if (!silent) setCheckingId(null);
+    }
+  }, [newsProgress, checkPosMutation, today]);
 
   function openEdit(postId: number) {
     setEditDraft(progress[postId] ?? { status: 'todo' });
@@ -138,7 +274,15 @@ export default function SeoTracker() {
           <TrendingUp className="w-6 h-6 text-blue-600" />
           <div>
             <h1 className="text-2xl font-bold">SEO Tracker — kadastrmap.info</h1>
-            <p className="text-sm text-slate-500">Отслеживание улучшения статей до эталонного стандарта</p>
+            <p className="text-sm text-slate-500">
+              Отслеживание улучшения статей до эталонного стандарта
+              {autoChecking && (
+                <span className="ml-2 inline-flex items-center gap-1 text-blue-500">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  авто-проверка позиций...
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -225,6 +369,16 @@ export default function SeoTracker() {
                           {article.postId > 0 && (
                             <span className="text-xs text-slate-400">#{article.postId}</span>
                           )}
+                          {/* Map block indicator */}
+                          {(() => {
+                            const hasMap = article.needsMap ?? getMapFlag(article.slug);
+                            return (
+                              <span className={`text-xs px-1.5 py-0.5 rounded border font-mono ${hasMap ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                title={hasMap ? 'outmap=1: блок карты показан' : 'outmap=0: блок карты скрыт'}>
+                                🗺 {hasMap ? 'on' : 'off'}
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         <p className={`text-sm font-medium ${p.status === 'done' ? 'line-through text-slate-400' : ''}`}>
@@ -301,8 +455,8 @@ export default function SeoTracker() {
 
                         {/* Position row */}
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <PosBadge pos={p.googlePos} engine="G" />
-                          <PosBadge pos={p.yandexPos} engine="Y" />
+                          <PosBadge pos={p.googlePos} prev={p.prevGooglePos} engine="G" />
+                          <PosBadge pos={p.yandexPos} prev={p.prevYandexPos} engine="Y" />
                           {p.posCheckedAt && (
                             <span className="text-xs text-slate-400">
                               проверено {p.posCheckedAt.slice(0, 10)}
@@ -319,6 +473,8 @@ export default function SeoTracker() {
                             </button>
                           )}
                         </div>
+
+                        <PosHistory history={p.posHistory} />
 
                         {/* Top-3 competitors */}
                         {(p.top3Google?.length || p.top3Yandex?.length) && (
@@ -340,6 +496,88 @@ export default function SeoTracker() {
                       >
                         ✏️
                       </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* News section */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="w-4 h-4 text-orange-500" />
+              Новости
+              <span className="text-xs font-normal text-slate-500 ml-1">конверсия трафика → услуги</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {KADMAP_NEWS.map((news) => {
+                const np = newsProgress[news.postId] ?? {};
+                return (
+                  <div key={news.postId} className="p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="text-xs text-slate-400">#{news.postId}</span>
+                          <span className="text-xs text-slate-400">{news.publishedAt}</span>
+                          {news.images && (
+                            <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
+                              <Image className="w-3 h-3" />{news.images} img
+                            </span>
+                          )}
+                          <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded px-1.5 py-0.5">
+                            BLOCK_PRICE ✓
+                          </span>
+                          <span className="text-xs bg-violet-50 text-violet-600 border border-violet-200 rounded px-1.5 py-0.5">
+                            Читайте также ✓
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium">{news.title}</p>
+                        <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-500">
+                          <a
+                            href={`https://kadastrmap.info/novosti/${news.slug}/`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            открыть
+                          </a>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <PosBadge pos={np.googlePos} prev={np.prevGooglePos} engine="G" />
+                          <PosBadge pos={np.yandexPos} prev={np.prevYandexPos} engine="Y" />
+                          {np.posCheckedAt && (
+                            <span className="text-xs text-slate-400">проверено {np.posCheckedAt.slice(0, 10)}</span>
+                          )}
+                          {news.keyword && (
+                            <button
+                              onClick={() => checkNewsPosition(news.postId, news.keyword!)}
+                              disabled={checkingId === news.postId}
+                              className="inline-flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50"
+                            >
+                              <RefreshCw className={`w-3 h-3 ${checkingId === news.postId ? 'animate-spin' : ''}`} />
+                              {checkingId === news.postId ? 'Проверяю...' : 'Позиции'}
+                            </button>
+                          )}
+                        </div>
+                        <PosHistory history={np.posHistory} />
+
+                        {np.top3Google?.length && (
+                          <div className="mt-2 text-xs text-slate-500 space-y-0.5">
+                            {np.top3Google.slice(0, 3).map((r, i) => (
+                              <div key={i} className="truncate">
+                                <span className="text-slate-400">G#{r.pos}</span> {r.domain}
+                                {r.domain === 'kadastrmap.info' && <span className="ml-1 text-green-600 font-medium">← МЫ</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

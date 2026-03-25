@@ -1,5 +1,55 @@
 export type ArticleStatus = 'todo' | 'in_progress' | 'done';
 
+export interface PosSnapshot {
+  date: string; // YYYY-MM-DD
+  googlePos: number | null;
+  yandexPos: number | null;
+}
+
+// ─── News ────────────────────────────────────────────────────────────────────
+export interface KadmapNews {
+  postId: number;
+  slug: string;
+  title: string;
+  keyword?: string; // for SERP position check
+  publishedAt: string; // YYYY-MM-DD
+  images?: number;
+}
+
+export interface NewsProgress {
+  googlePos?: number | null;
+  yandexPos?: number | null;
+  prevGooglePos?: number | null;
+  prevYandexPos?: number | null;
+  posCheckedAt?: string;
+  posHistory?: PosSnapshot[];
+  top3Google?: { pos: number; domain: string; title: string }[];
+}
+
+export const KADMAP_NEWS: KadmapNews[] = [
+  {
+    postId: 333241,
+    slug: 'rosreestr-2026-proverka-obremenij-stala-obyazatelnoj-pri-ipotechnykh-sdelkakh',
+    title: 'Росреестр 2026: проверка обременений стала обязательной при ипотечных сделках',
+    keyword: 'росреестр 2026 проверка обременений',
+    publishedAt: '2026-03-25',
+    images: 5,
+  },
+];
+
+export const NEWS_STORAGE_KEY = 'kadmap_news_progress';
+
+export function loadNewsProgress(): Record<number, NewsProgress> {
+  try {
+    const raw = localStorage.getItem(NEWS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+export function saveNewsProgress(p: Record<number, NewsProgress>): void {
+  localStorage.setItem(NEWS_STORAGE_KEY, JSON.stringify(p));
+}
+
 export interface KadmapArticle {
   postId: number;
   slug: string;
@@ -9,6 +59,17 @@ export interface KadmapArticle {
   wordsBefore?: number;
   seoScoreBefore?: number;
   reason: string; // why this article matters
+  needsMap?: boolean; // whether wp outmap=1 should be set (map widget shown)
+}
+
+/** Auto-detect if an article should show the map widget (outmap=1 in WordPress) */
+export function getMapFlag(slug: string): boolean {
+  const mapSlugs = ['karta', 'raspolozhenie', 'plan', 'mezhevanie', 'sputnik', 'uchastok', 'kadastr-'];
+  const noMapSlugs = ['obremenenie', 'arest', 'zalog', 'dolg', 'proverit', 'snyat', 'uznat'];
+  const s = slug.toLowerCase();
+  if (noMapSlugs.some(k => s.includes(k))) return false;
+  if (mapSlugs.some(k => s.includes(k))) return true;
+  return false;
 }
 
 export interface ArticleProgress {
@@ -17,9 +78,12 @@ export interface ArticleProgress {
   seoScoreAfter?: number;
   doneAt?: string; // ISO date
   notes?: string;
-  googlePos?: number | null;   // position in Google top-10 (null = not found)
-  yandexPos?: number | null;   // position in Yandex top-10
-  posCheckedAt?: string;       // ISO date of last position check
+  googlePos?: number | null;
+  yandexPos?: number | null;
+  prevGooglePos?: number | null;
+  prevYandexPos?: number | null;
+  posCheckedAt?: string;
+  posHistory?: PosSnapshot[];
   top3Google?: { pos: number; domain: string; title: string }[];
   top3Yandex?: { pos: number; domain: string; title: string }[];
 }
@@ -112,6 +176,40 @@ export const KADMAP_ARTICLES: KadmapArticle[] = [
     priority: 'high',
     reason: 'Залог/ипотека — горячий intent перед сделкой',
   },
+  // ✅ DONE — кадастровая карта / расположение батч 2026-03-25
+  {
+    postId: 732,
+    slug: 'raspolozhenie-po-kadastrovomu-nomeru',
+    title: 'Расположение земельного участка по кадастровому номеру',
+    keyword: 'расположение по кадастровому номеру',
+    priority: 'high',
+    wordsBefore: 200,
+    seoScoreBefore: 55,
+    reason: 'G#3 — уже в топ-3, реврайт поднимет до #1',
+    needsMap: true,
+  },
+  {
+    postId: 1111,
+    slug: 'kadastrovaya-publichnaya-karta-so-sputnika',
+    title: 'Кадастровая публичная карта со спутника',
+    keyword: 'кадастровая публичная карта со спутника',
+    priority: 'high',
+    wordsBefore: 1777,
+    seoScoreBefore: 55,
+    reason: 'G#4 — реврайт до эталона переведёт в топ-1/2',
+    needsMap: true,
+  },
+  {
+    postId: 8751,
+    slug: 'kadastrovyj-plan-kvartiry-po-adresu',
+    title: 'Кадастровый план квартиры по адресу',
+    keyword: 'кадастровый план квартиры по адресу',
+    priority: 'high',
+    wordsBefore: 2586,
+    seoScoreBefore: 50,
+    reason: 'G#4 — низкий SEO score, нужен полный реврайт',
+    needsMap: true,
+  },
   // Средний приоритет — TODO
   {
     postId: 5464,
@@ -176,13 +274,13 @@ export const INITIAL_PROGRESS: Record<number, ArticleProgress> = {
     status: 'done',
     wordsAfter: 3100,
     doneAt: '2026-03-25',
-    notes: '15 H2, 3 H3, 11 FAQ, 9 картинок, how-to информационный интент',
+    notes: '15 H2, 3 H3, 11 FAQ, 9 картинок, how-to информационный интент. CTA=10 (доработано 2026-03-25)',
   },
   5607: {
     status: 'done',
     wordsAfter: 3300,
     doneAt: '2026-03-25',
-    notes: '15 H2, 11 FAQ, 9 картинок, проблемный/срочный интент (арест ФССП)',
+    notes: '15 H2, 11 FAQ, 9 картинок, проблемный/срочный интент (арест ФССП). CTA=10 (доработано 2026-03-25)',
   },
   7129: {
     status: 'done',
@@ -213,5 +311,41 @@ export const INITIAL_PROGRESS: Record<number, ArticleProgress> = {
     wordsAfter: 3100,
     doneAt: '2026-03-25',
     notes: '15 H2, 10 FAQ, 9 картинок, залог/ипотека интент. Особенности по банкам (Сбер/ВТБ/Альфа)',
+  },
+  5464: {
+    status: 'done',
+    wordsAfter: 3200,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 10 FAQ, 8 картинок, ипотечный кластер — снятие обременения. Особенности по банкам Сбер/ВТБ/Альфа. Пошаговый алгоритм',
+  },
+  4312: {
+    status: 'done',
+    wordsAfter: 3300,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 10 FAQ, 8 картинок, покупатели вторичного жилья. Проверка ЖКХ + ФССП + ЕГРН. Образец выписки',
+  },
+  5707: {
+    status: 'done',
+    wordsAfter: 3100,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 10 FAQ, 9 картинок, информационный запрос. 3 способа проверки. CTA=14, BLOCK_PRICE, отзывы',
+  },
+  732: {
+    status: 'done',
+    wordsAfter: 2450,
+    doneAt: '2026-03-25',
+    notes: '24 H2, 11 FAQ, 9 картинок, BLOCK_PRICE, CTA=9. Охранные зоны, межевание, реестровая ошибка, таблица способов. G#3 → цель #1',
+  },
+  1111: {
+    status: 'done',
+    wordsAfter: 1800,
+    doneAt: '2026-03-25',
+    notes: '17 H2, 11 FAQ, 9 картинок, BLOCK_PRICE, CTA=9. Спутниковый режим, охранные зоны, сравнение с Google Maps, таблица. G#4 → цель #1/2',
+  },
+  8751: {
+    status: 'done',
+    wordsAfter: 3500,
+    doneAt: '2026-03-25',
+    notes: '20 H2, 5 H3, 10 FAQ, 9 картинок, BLOCK_PRICE, CTA=9. Перепланировка, наследование, суд/раздел имущества. G#4 → цель #1/2',
   },
 };
