@@ -3,18 +3,18 @@ import * as path from 'path';
 import * as os from 'os';
 import { getBotDir, startBot, getRunningBots, getBotState } from './bots';
 
-// RAM per bot: ~500MB Firefox + ~80MB Python
-const RAM_PER_BOT_BYTES = 580 * 1024 * 1024;
+// RAM per bot: ~250MB (measured: 1.2GB / 5 bots)
+const RAM_PER_BOT_BYTES = 250 * 1024 * 1024;
 
-
-// Dynamic limit: use `pct`% of currently free RAM + CPU cores
-export function dynamicMaxConcurrent(pct = 50): number {
+// Dynamic limit: based on actually measured per-bot usage (~50% 1 core, ~250MB RAM)
+export function dynamicMaxConcurrent(pct = 80): number {
   const freeMem = os.freemem();
   const cpuCount = os.cpus().length;
   const ratio = pct / 100;
+  // RAM: 250MB per bot
   const ramBased = Math.floor(freeMem * ratio / RAM_PER_BOT_BYTES);
-  // Each bot uses ~2 threads; cap at `pct`% of CPU cores
-  const cpuBased = Math.max(1, Math.floor(cpuCount * ratio / 2));
+  // CPU: each bot uses ~0.5 core (measured: 5 bots = 250% of 600%)
+  const cpuBased = Math.max(1, Math.floor(cpuCount * ratio / 0.5));
   return Math.max(1, Math.min(ramBased, cpuBased));
 }
 
@@ -71,7 +71,7 @@ export interface OrchestratorStatus {
 const DEFAULT_CONFIG: OrchestratorConfig = {
   enabled: false,
   maxConcurrent: detectMaxConcurrent(),
-  resourcePct: 50,
+  resourcePct: 80,
   restartDelayMin: 30,
   dailyStartHour: 0,
   dailyEndHour: 24,
@@ -170,19 +170,25 @@ function tick(): void {
     }
   }
 
-  // 3. Handle enabled bots
+  // 3. Handle enabled bots — add unqueued bots in shuffled order for even warmup
+  const newEntries: PendingEntry[] = [];
   for (const b of config.bots) {
     if (!b.enabled) continue;
     if (runningIds.has(b.botId)) {
-      // Adopt externally-started bots so we track them for restart
       if (!managedBots.has(b.botId)) managedBots.add(b.botId);
       continue;
     }
     if (managedBots.has(b.botId)) continue;
     if (pendingRestart.has(b.botId)) continue;
     if (queue.some(q => q.botId === b.botId)) continue;
-    queue.push({ botId: b.botId, website: b.website });
+    newEntries.push({ botId: b.botId, website: b.website });
   }
+  // Shuffle new entries so warmup is evenly distributed across all bots
+  for (let i = newEntries.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newEntries[i], newEntries[j]] = [newEntries[j], newEntries[i]];
+  }
+  queue.push(...newEntries);
 
   // 4. Remove disabled bots from queue
   const enabledIds = new Set(config.bots.filter(b => b.enabled).map(b => b.botId));
@@ -191,7 +197,7 @@ function tick(): void {
   }
 
   // 5. Start from queue up to min(config.maxConcurrent, dynamic free resources)
-  const effectiveMax = Math.min(config.maxConcurrent, dynamicMaxConcurrent(config.resourcePct ?? 50));
+  const effectiveMax = Math.min(config.maxConcurrent, dynamicMaxConcurrent(config.resourcePct ?? 80));
   let runningCount = runningIds.size;
   while (runningCount < effectiveMax && queue.length > 0) {
     const next = queue.shift()!;

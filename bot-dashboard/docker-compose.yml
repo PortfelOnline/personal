@@ -3,10 +3,10 @@ services:
     image: yandex_bot:latest       # сборка отдельно: cd ~/yandex_bot && docker build -t yandex_bot .
     container_name: yandex_bot
     volumes:
-      - bot_work:/app/work          # Firefox профили ботов
-      - bot_logs:/app/logs          # Логи
-      - bot_outputs:/app/outputs    # Состояния, кэш прокси
-      - ./proxies.txt:/app/proxies.txt  # Прокси (монтируем из bot-dashboard/)
+      - /root/yandex_bot/work:/app/work          # Firefox профили ботов
+      - /root/yandex_bot/logs:/app/logs           # Логи
+      - /root/yandex_bot/outputs:/app/outputs     # Состояния, кэш прокси
+      - /root/yandex_bot/proxies.txt:/app/proxies.txt
     shm_size: '2gb'
     restart: unless-stopped
     # Resource limit: не более 50% свободного CPU и RAM
@@ -30,15 +30,11 @@ services:
       - BOT_CONTAINER=yandex_bot
       - PORT=4000
     volumes:
-      - bot_work:/bot_work           # доступ к профилям/состоянию ботов
-      - bot_logs:/bot_work/logs
-      - bot_outputs:/bot_work/outputs
-      - ./proxies.txt:/bot_work/proxies.txt
+      - /root/yandex_bot/outputs:/bot_work/outputs  # разделяем с yandex_bot
+      - /root/yandex_bot/logs:/bot_work/logs
+      - /root/yandex_bot/work:/bot_work/work
+      - /root/yandex_bot/proxies.txt:/bot_work/proxies.txt
+      - /var/run/docker.sock:/var/run/docker.sock   # для docker exec
     depends_on:
       - yandex_bot
     restart: unless-stopped
-
-volumes:
-  bot_work:
-  bot_logs:
-  bot_outputs:

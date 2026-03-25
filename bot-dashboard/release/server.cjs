@@ -103,7 +103,7 @@ var require_main = __commonJS({
     var fs3 = require("fs");
     var path4 = require("path");
     var os3 = require("os");
-    var crypto = require("crypto");
+    var crypto2 = require("crypto");
     var packageJson = require_package();
     var version2 = packageJson.version;
     var TIPS = [
@@ -354,7 +354,7 @@ var require_main = __commonJS({
       const authTag = ciphertext.subarray(-16);
       ciphertext = ciphertext.subarray(12, -16);
       try {
-        const aesgcm = crypto.createDecipheriv("aes-256-gcm", key, nonce);
+        const aesgcm = crypto2.createDecipheriv("aes-256-gcm", key, nonce);
         aesgcm.setAuthTag(authTag);
         return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
       } catch (error48) {
@@ -19140,14 +19140,14 @@ var require_etag = __commonJS({
   "node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports2, module2) {
     "use strict";
     module2.exports = etag;
-    var crypto = require("crypto");
+    var crypto2 = require("crypto");
     var Stats = require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto2.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -22039,11 +22039,11 @@ var require_request = __commonJS({
 // node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "node_modules/.pnpm/cookie-signature@1.0.7/node_modules/cookie-signature/index.js"(exports2) {
-    var crypto = require("crypto");
+    var crypto2 = require("crypto");
     exports2.sign = function(val, secret) {
       if ("string" !== typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto2.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports2.unsign = function(val, secret) {
       if ("string" !== typeof val) throw new TypeError("Signed cookie string must be provided.");
@@ -22052,7 +22052,7 @@ var require_cookie_signature = __commonJS({
       return sha1(mac3) == sha1(val) ? str : false;
     };
     function sha1(str) {
-      return crypto.createHash("sha1").update(str).digest("hex");
+      return crypto2.createHash("sha1").update(str).digest("hex");
     }
   }
 });
@@ -23020,6 +23020,119 @@ var require_express2 = __commonJS({
   }
 });
 
+// node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js
+var require_cookie_signature2 = __commonJS({
+  "node_modules/.pnpm/cookie-signature@1.0.6/node_modules/cookie-signature/index.js"(exports2) {
+    var crypto2 = require("crypto");
+    exports2.sign = function(val, secret) {
+      if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
+      if ("string" != typeof secret) throw new TypeError("Secret string must be provided.");
+      return val + "." + crypto2.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+    };
+    exports2.unsign = function(val, secret) {
+      if ("string" != typeof val) throw new TypeError("Signed cookie string must be provided.");
+      if ("string" != typeof secret) throw new TypeError("Secret string must be provided.");
+      var str = val.slice(0, val.lastIndexOf(".")), mac3 = exports2.sign(str, secret);
+      return sha1(mac3) == sha1(val) ? str : false;
+    };
+    function sha1(str) {
+      return crypto2.createHash("sha1").update(str).digest("hex");
+    }
+  }
+});
+
+// node_modules/.pnpm/cookie-parser@1.4.7/node_modules/cookie-parser/index.js
+var require_cookie_parser = __commonJS({
+  "node_modules/.pnpm/cookie-parser@1.4.7/node_modules/cookie-parser/index.js"(exports2, module2) {
+    "use strict";
+    var cookie = require_cookie();
+    var signature = require_cookie_signature2();
+    module2.exports = cookieParser2;
+    module2.exports.JSONCookie = JSONCookie;
+    module2.exports.JSONCookies = JSONCookies;
+    module2.exports.signedCookie = signedCookie;
+    module2.exports.signedCookies = signedCookies;
+    function cookieParser2(secret, options) {
+      var secrets = !secret || Array.isArray(secret) ? secret || [] : [secret];
+      return function cookieParser3(req, res, next) {
+        if (req.cookies) {
+          return next();
+        }
+        var cookies = req.headers.cookie;
+        req.secret = secrets[0];
+        req.cookies = /* @__PURE__ */ Object.create(null);
+        req.signedCookies = /* @__PURE__ */ Object.create(null);
+        if (!cookies) {
+          return next();
+        }
+        req.cookies = cookie.parse(cookies, options);
+        if (secrets.length !== 0) {
+          req.signedCookies = signedCookies(req.cookies, secrets);
+          req.signedCookies = JSONCookies(req.signedCookies);
+        }
+        req.cookies = JSONCookies(req.cookies);
+        next();
+      };
+    }
+    function JSONCookie(str) {
+      if (typeof str !== "string" || str.substr(0, 2) !== "j:") {
+        return void 0;
+      }
+      try {
+        return JSON.parse(str.slice(2));
+      } catch (err) {
+        return void 0;
+      }
+    }
+    function JSONCookies(obj) {
+      var cookies = Object.keys(obj);
+      var key;
+      var val;
+      for (var i = 0; i < cookies.length; i++) {
+        key = cookies[i];
+        val = JSONCookie(obj[key]);
+        if (val) {
+          obj[key] = val;
+        }
+      }
+      return obj;
+    }
+    function signedCookie(str, secret) {
+      if (typeof str !== "string") {
+        return void 0;
+      }
+      if (str.substr(0, 2) !== "s:") {
+        return str;
+      }
+      var secrets = !secret || Array.isArray(secret) ? secret || [] : [secret];
+      for (var i = 0; i < secrets.length; i++) {
+        var val = signature.unsign(str.slice(2), secrets[i]);
+        if (val !== false) {
+          return val;
+        }
+      }
+      return false;
+    }
+    function signedCookies(obj, secret) {
+      var cookies = Object.keys(obj);
+      var dec;
+      var key;
+      var ret = /* @__PURE__ */ Object.create(null);
+      var val;
+      for (var i = 0; i < cookies.length; i++) {
+        key = cookies[i];
+        val = obj[key];
+        dec = signedCookie(val, secret);
+        if (val !== dec) {
+          ret[key] = dec;
+          delete obj[key];
+        }
+      }
+      return ret;
+    }
+  }
+});
+
 // node_modules/.pnpm/dotenv@17.3.1/node_modules/dotenv/config.js
 (function() {
   require_main().config(
@@ -23033,6 +23146,7 @@ var require_express2 = __commonJS({
 
 // server/prod.ts
 var import_express = __toESM(require_express2(), 1);
+var import_cookie_parser = __toESM(require_cookie_parser(), 1);
 var import_path2 = __toESM(require("path"), 1);
 
 // node_modules/.pnpm/@trpc+server@11.11.0_typescript@5.9.3/node_modules/@trpc/server/dist/codes-DagpWZLc.mjs
@@ -39591,8 +39705,10 @@ function startBot(botId, mode, website) {
   if (runningBots.has(botId)) {
     throw new Error(`Bot ${botId} is already running`);
   }
-  const proc = (0, import_child_process.spawn)("python3", [
-    import_path.default.join(BOT_DIR, "yandex_bot.py"),
+  const container = process.env.BOT_CONTAINER;
+  const [spawnCmd, spawnPrefix] = container ? ["docker", ["exec", container, "python3", "/app/yandex_bot.py"]] : ["python3", [import_path.default.join(BOT_DIR, "yandex_bot.py")]];
+  const proc = (0, import_child_process.spawn)(spawnCmd, [
+    ...spawnPrefix,
     "--bot-id",
     String(botId),
     "--mode",
@@ -39782,6 +39898,13 @@ var fs2 = __toESM(require("fs"), 1);
 var path2 = __toESM(require("path"), 1);
 var os2 = __toESM(require("os"), 1);
 var RAM_PER_BOT_BYTES = 580 * 1024 * 1024;
+function dynamicMaxConcurrent() {
+  const freeMem = os2.freemem();
+  const cpuCount = os2.cpus().length;
+  const ramBased = Math.floor(freeMem * 0.5 / RAM_PER_BOT_BYTES);
+  const cpuBased = Math.max(1, Math.floor(cpuCount * 0.5 / 2));
+  return Math.max(1, Math.min(ramBased, cpuBased));
+}
 function detectMaxConcurrent() {
   const totalRam = os2.totalmem();
   const cpuCount = os2.cpus().length;
@@ -39885,8 +40008,9 @@ function tick() {
   for (let i = queue.length - 1; i >= 0; i--) {
     if (!enabledIds.has(queue[i].botId)) queue.splice(i, 1);
   }
+  const effectiveMax = Math.min(config2.maxConcurrent, dynamicMaxConcurrent());
   let runningCount = runningIds.size;
-  while (runningCount < config2.maxConcurrent && queue.length > 0) {
+  while (runningCount < effectiveMax && queue.length > 0) {
     const next = queue.shift();
     if (runningIds.has(next.botId) || managedBots.has(next.botId)) continue;
     const mode = autoMode(next.botId);
@@ -39906,14 +40030,19 @@ function initOrchestrator() {
 }
 function getDetectedResources() {
   const totalRam = os2.totalmem();
+  const freeMem = os2.freemem();
   const cpuCount = os2.cpus().length;
   const platform2 = os2.platform();
   const recommended = detectMaxConcurrent();
+  const dynamic = dynamicMaxConcurrent();
   return {
     cpuCount,
     totalRamGb: Math.round(totalRam / 1024 ** 3 * 10) / 10,
+    freeRamGb: Math.round(freeMem / 1024 ** 3 * 10) / 10,
+    freeRamPct: Math.round(freeMem / totalRam * 100),
     platform: platform2,
-    recommended
+    recommended,
+    dynamicMax: dynamic
   };
 }
 function getOrchestratorStatus() {
@@ -40010,20 +40139,86 @@ var botsRouter = t.router({
   })
 });
 
+// server/auth.ts
+var crypto = __toESM(require("crypto"), 1);
+var COOKIE_NAME = "bd_session";
+var COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1e3;
+var validTokens = /* @__PURE__ */ new Set();
+function getPassword() {
+  return process.env.AUTH_PASSWORD || "admin";
+}
+function createToken() {
+  const token = crypto.randomBytes(32).toString("hex");
+  validTokens.add(token);
+  return token;
+}
+function login(password, res) {
+  if (password !== getPassword()) return false;
+  const token = createToken();
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    maxAge: COOKIE_MAX_AGE,
+    sameSite: "strict"
+  });
+  return true;
+}
+function logout(res) {
+  validTokens.clear();
+  res.clearCookie(COOKIE_NAME);
+}
+function isAuthenticated(req) {
+  const token = req.cookies?.[COOKIE_NAME];
+  return typeof token === "string" && validTokens.has(token);
+}
+function requireAuth(req, res, next) {
+  if (isAuthenticated(req)) {
+    next();
+    return;
+  }
+  if (req.path.startsWith("/api/")) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  res.redirect("/login");
+}
+
 // server/prod.ts
 var PORT = parseInt(process.env.PORT || "4000");
 var STATIC = import_path2.default.join(__dirname, "public");
 var app = (0, import_express.default)();
 app.use(import_express.default.json());
-app.use("/api/trpc", createExpressMiddleware({
+app.use((0, import_cookie_parser.default)());
+app.post("/api/auth/login", (req, res) => {
+  const { password } = req.body || {};
+  if (!password) {
+    res.status(400).json({ error: "password required" });
+    return;
+  }
+  const ok = login(password, res);
+  if (ok) {
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ error: "Wrong password" });
+  }
+});
+app.post("/api/auth/logout", (_req, res) => {
+  logout(res);
+  res.json({ ok: true });
+});
+app.get("/api/auth/me", (req, res) => {
+  res.json({ authenticated: isAuthenticated(req) });
+});
+app.use("/api/trpc", requireAuth, createExpressMiddleware({
   router: botsRouter,
   createContext: () => ({})
 }));
-app.use(import_express.default.static(STATIC));
-app.use("*", (_req, res) => res.sendFile(import_path2.default.join(STATIC, "index.html")));
+app.get("/login", (_req, res) => res.sendFile(import_path2.default.join(STATIC, "index.html")));
+app.use(requireAuth, import_express.default.static(STATIC));
+app.use("*", requireAuth, (_req, res) => res.sendFile(import_path2.default.join(STATIC, "index.html")));
 app.listen(PORT, () => {
   console.log(`
-\u2705  Bot Dashboard: http://localhost:${PORT}
+\u2705  Bot Dashboard: http://localhost:${PORT}`);
+  console.log(`Auth: ${process.env.AUTH_PASSWORD ? "custom password set" : "default 'admin' \u2014 set AUTH_PASSWORD in .env!"}
 `);
   initOrchestrator();
 });
@@ -40329,6 +40524,14 @@ serve-static/index.js:
    * Copyright(c) 2010 Sencha Inc.
    * Copyright(c) 2011 TJ Holowaychuk
    * Copyright(c) 2014-2016 Douglas Christopher Wilson
+   * MIT Licensed
+   *)
+
+cookie-parser/index.js:
+  (*!
+   * cookie-parser
+   * Copyright(c) 2014 TJ Holowaychuk
+   * Copyright(c) 2015 Douglas Christopher Wilson
    * MIT Licensed
    *)
 

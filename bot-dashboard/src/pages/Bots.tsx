@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Play, Square, Terminal, RefreshCw, Plus, Bot, Shield, Trash2, Upload, RotateCcw, ExternalLink, Save, FileText, Zap, Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
+import { Loader2, Play, Square, Terminal, RefreshCw, Plus, Bot, Shield, Trash2, Upload, RotateCcw, ExternalLink, Save, FileText, Zap, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -195,14 +195,6 @@ export default function Bots() {
       utils.orchestratorStatus.invalidate();
     },
     onError: (e) => toast.error(e.message),
-  });
-
-
-  const vncStart = trpc.vncStart.useMutation({
-    onSuccess: (_, vars) => {
-      window.open(`/novnc/viewer.html?bot=${vars.botId}`, `vnc-${vars.botId}`, 'width=1280,height=820');
-    },
-    onError: (e) => toast.error('VNC: ' + e.message),
   });
 
   const bots: BotEntry[] = data?.bots ?? [];
@@ -427,16 +419,6 @@ export default function Bots() {
                                   >
                                     <Terminal className="w-3.5 h-3.5" />
                                   </button>
-                                  {isRunning && (
-                                    <button
-                                      className="p-1 rounded hover:bg-blue-100 text-blue-500"
-                                      onClick={() => vncStart.mutate({ botId: bot.botId })}
-                                      disabled={vncStart.isPending}
-                                      title="Смотреть"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
                                 </div>
                               </td>
                             </tr>
