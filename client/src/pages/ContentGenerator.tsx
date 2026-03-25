@@ -354,12 +354,25 @@ export default function ContentGenerator() {
   const saveTopicMutation = trpc.content.saveTopic.useMutation({ onSuccess: () => refetchTopics() });
   const deleteTopicMutation = trpc.content.deleteTopic.useMutation({ onSuccess: () => refetchTopics() });
 
+  const { data: existingPostsData } = trpc.content.listPosts.useQuery({});
+  // Set of "industry|pillar" combinations that already have content
+  const usedCombinations = new Set<string>(
+    (existingPostsData ?? []).map((p: any) => {
+      const industryLabel = INDUSTRIES.find(i => p.title?.startsWith(i.label))?.key ?? '';
+      const pillarLabel = Object.entries(PILLARS).find(([, v]) => p.title?.includes(v.title))?.[0] ?? '';
+      return `${industryLabel}|${pillarLabel}`;
+    }).filter((k: string) => k !== '|')
+  );
+  const currentComboKey = `${industry}|${selectedPillar}`;
+  const currentComboExists = usedCombinations.has(currentComboKey);
+
   const [galleryOpen, setGalleryOpen] = useState(false);
   const { data: galleryData, refetch: refetchGallery } = trpc.content.listGeneratedImages.useQuery(undefined, { enabled: galleryOpen });
 
   const handleGenerate = async () => {
     setHookVariants([]);
     try {
+      const existingTitles = (existingPostsData ?? []).map((p: any) => p.title).filter(Boolean);
       const result = await generateMutation.mutateAsync({
         pillarType: selectedPillar,
         platform: selectedPlatform,
@@ -369,6 +382,7 @@ export default function ContentGenerator() {
         season,
         language: 'english',
         customPrompt: customPrompt || undefined,
+        existingTitles: existingTitles.length > 0 ? existingTitles : undefined,
       });
       setGeneratedContent(result.content);
       setParsedContent(result.parsed ?? null);
@@ -633,13 +647,19 @@ export default function ContentGenerator() {
               </CardHeader>
               <CardContent className="px-5 pb-5 space-y-4">
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {INDUSTRIES.map(ind => (
-                    <button key={ind.key} onClick={() => setIndustry(ind.key)}
-                      className={`p-2.5 rounded-lg border-2 transition-all text-center ${industry === ind.key ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-300'}`}>
-                      <div className="text-xl mb-1">{ind.icon}</div>
-                      <div className="text-xs font-medium text-slate-700 leading-tight">{ind.label}</div>
-                    </button>
-                  ))}
+                  {INDUSTRIES.map(ind => {
+                    const anyPillarDone = Object.keys(PILLARS).some(p => usedCombinations.has(`${ind.key}|${p}`));
+                    return (
+                      <button key={ind.key} onClick={() => setIndustry(ind.key)}
+                        className={`relative p-2.5 rounded-lg border-2 transition-all text-center ${industry === ind.key ? 'border-orange-500 bg-orange-50' : 'border-slate-200 bg-white hover:border-orange-300'}`}>
+                        {anyPillarDone && (
+                          <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-green-500 rounded-full flex items-center justify-center text-white text-[8px] font-bold leading-none">✓</span>
+                        )}
+                        <div className="text-xl mb-1">{ind.icon}</div>
+                        <div className="text-xs font-medium text-slate-700 leading-tight">{ind.label}</div>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div>
@@ -942,6 +962,13 @@ export default function ContentGenerator() {
                 {/* Hook variants */}
                 {hookVariants.length > 0 && (
                   <HookVariants hooks={hookVariants} onSelect={text => setCustomPrompt(`Start with this hook: "${text}"`)} />
+                )}
+
+                {currentComboExists && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs mb-1">
+                    <span>⚠️</span>
+                    <span>This combo already exists in Library. Generate anyway to get a fresh angle.</span>
+                  </div>
                 )}
 
                 <div className="flex gap-2">

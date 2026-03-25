@@ -441,6 +441,7 @@ export const appRouter = router({
         season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
         language: z.enum(["hinglish", "hindi", "english", "tamil", "telugu", "bengali"]).default("english"),
         customPrompt: z.string().optional(),
+        existingTitles: z.array(z.string()).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const userPrompt = buildGenerationPrompt(
@@ -452,10 +453,14 @@ export const appRouter = router({
           input.customPrompt
         );
 
+        const avoidNote = input.existingTitles && input.existingTitles.length > 0
+          ? `\n\nIMPORTANT — these post concepts already exist in the library. Do NOT repeat them. Use a fresh angle, different hook, and different scenario:\n${input.existingTitles.map(t => `- ${t}`).join("\n")}`
+          : "";
+
         const response = await invokeLLM({
           messages: [
             { role: "system", content: CONTENT_SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
+            { role: "user", content: userPrompt + avoidNote },
           ],
         });
 
