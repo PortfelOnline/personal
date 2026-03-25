@@ -346,13 +346,21 @@ const FORMAT_SCHEMAS = {
 
 // ── Prompt builder ───────────────────────────────────────────────────────────
 
+const PLATFORM_HASHTAG_RULES: Record<string, string> = {
+  facebook: `HASHTAG RULES FOR FACEBOOK: Use 3-5 hashtags max. Avoid Instagram-specific tags (#InstaSeller, #InstaShop, #Reels, #IGPost, #InstaBusiness). Use broad community tags like #SmallBusiness #IndianEntrepreneur #BusinessTips.`,
+  instagram: `HASHTAG RULES FOR INSTAGRAM: Use 8-12 hashtags. Mix broad (#SmallBusiness) + niche (#MeeshoSeller) + platform-specific (#InstaSeller #IGPost). Include at least 2 hashtags specific to Instagram culture.`,
+  whatsapp: `HASHTAG RULES: Use 3-5 hashtags max. Keep them simple and broad.`,
+  youtube: `HASHTAG RULES: Use 3-5 hashtags. Focus on search-optimized tags.`,
+};
+
 function buildGenerationPrompt(
   pillarType: keyof typeof PILLAR_CONTEXT,
   contentFormat: keyof typeof FORMAT_SCHEMAS,
   industry: keyof typeof INDUSTRY_CONTEXT,
   contentAngle: keyof typeof ANGLE_CONTEXT,
   season: keyof typeof SEASON_CONTEXT = "none",
-  customPrompt?: string
+  customPrompt?: string,
+  platform?: string
 ): string {
   const pillar = PILLAR_CONTEXT[pillarType];
   const schema = FORMAT_SCHEMAS[contentFormat];
@@ -368,6 +376,8 @@ SEASONAL STAT: ${seasonData.stat}
 → Weave this seasonal timing and urgency throughout the post. The season makes the pain MORE URGENT right now.`
     : "";
 
+  const hashtagRule = platform ? `\n\n${PLATFORM_HASHTAG_RULES[platform] ?? ""}` : "";
+
   return `${schema}
 
 INDUSTRY: ${ind.label} (${ind.owner})
@@ -379,7 +389,7 @@ CONTENT ANGLE — ${angle.label.toUpperCase()}: ${angle.instruction}
 
 PILLAR FOCUS — ${pillar.focus}
 HOOK CONCEPT: ${pillar.hook}
-KEY PROOF: ${pillar.proof}${seasonBlock}
+KEY PROOF: ${pillar.proof}${seasonBlock}${hashtagRule}
 
 ${SOCIAL_PROOF.instruction}${customPrompt ? `\n\nEXTRA INSTRUCTIONS: ${customPrompt}` : ""}
 
@@ -450,7 +460,8 @@ export const appRouter = router({
           input.industry as keyof typeof INDUSTRY_CONTEXT,
           input.contentAngle as keyof typeof ANGLE_CONTEXT,
           input.season as keyof typeof SEASON_CONTEXT,
-          input.customPrompt
+          input.customPrompt,
+          input.platform
         );
 
         const avoidNote = input.existingTitles && input.existingTitles.length > 0
@@ -511,7 +522,8 @@ export const appRouter = router({
               input.industry as keyof typeof INDUSTRY_CONTEXT,
               angle,
               input.season as keyof typeof SEASON_CONTEXT,
-              input.customPrompt
+              input.customPrompt,
+              input.platform
             );
             const response = await invokeLLM({
               messages: [
@@ -855,6 +867,8 @@ Return ONLY valid JSON (no markdown fences):
               input.industry as keyof typeof INDUSTRY_CONTEXT,
               angle,
               input.season as keyof typeof SEASON_CONTEXT,
+              undefined,
+              input.platform
             );
             const response = await invokeLLM({
               messages: [
@@ -1007,8 +1021,8 @@ Return ONLY valid JSON (no markdown fences):
       .mutation(async ({ input }) => {
         const response = await invokeLLM({
           messages: [
-            { role: "system", content: "You are a social media hashtag expert for the Indian market. Suggest relevant, trending hashtags." },
-            { role: "user", content: `Suggest 10 relevant hashtags for this ${input.platform} post. Return ONLY the hashtags separated by spaces, no explanations:\n\n${input.content}` },
+            { role: "system", content: `You are a social media hashtag expert for the Indian market. Suggest relevant, trending hashtags.\n${PLATFORM_HASHTAG_RULES[input.platform] ?? ""}` },
+            { role: "user", content: `Suggest hashtags for this ${input.platform} post. ${input.platform === 'facebook' ? 'Use 3-5 hashtags only. NO Instagram-specific tags.' : 'Use 8-12 hashtags.'} Return ONLY the hashtags separated by spaces, no explanations:\n\n${input.content}` },
           ],
         });
         const hashtags = typeof response.choices[0]?.message.content === 'string'
