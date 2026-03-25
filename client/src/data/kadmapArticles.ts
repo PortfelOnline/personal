@@ -115,12 +115,36 @@ export const INITIAL_PROGRESS: Record<number, ArticleProgress> = {
     wordsAfter: 3440,
     seoScoreAfter: 100,
     doneAt: '2026-03-01',
-    notes: 'Эталонная статья — все PageSpeed/SEO оптимизации применены',
+    notes: 'Эталонная статья — все PageSpeed/SEO оптимизации применены. Метадеск исправлен 2026-03-25 (убран хардкод цены)',
   },
   5535: {
     status: 'done',
     wordsAfter: 2877,
     doneAt: '2026-03-25',
     notes: '17 H2, 10 FAQ, 9 тематических картинок, метадеск обновлён',
+  },
+  4299: {
+    status: 'done',
+    wordsAfter: 3200,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 11 FAQ, 9 картинок, транзакционный интент. BLOCK_PRICE, [PRICE_3_DISC], отзывы',
+  },
+  4305: {
+    status: 'done',
+    wordsAfter: 3100,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 3 H3, 11 FAQ, 9 картинок, how-to информационный интент',
+  },
+  5607: {
+    status: 'done',
+    wordsAfter: 3300,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 11 FAQ, 9 картинок, проблемный/срочный интент (арест ФССП)',
+  },
+  7129: {
+    status: 'done',
+    wordsAfter: 3000,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 11 FAQ, 9 картинок, BOFU-сравнение сервисов. Таблица сравнения способов',
   },
 };
