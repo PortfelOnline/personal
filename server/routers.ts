@@ -829,14 +829,11 @@ Return ONLY valid JSON (no markdown fences):
           return { videoUrl };
         }
 
-        // stock mode
-        if (!ENV.pexelsApiKey) throw new TRPCError({ code: 'BAD_REQUEST', message: 'PEXELS_API_KEY not configured' });
-
+        // stock mode — uses DALL-E per section, no Pexels needed
         const videoUrl = await generateStockVideo({
           sections: input.sections,
           textOverlays: input.textOverlays,
           voiceover: input.voiceover,
-          pexelsApiKey: ENV.pexelsApiKey,
           outputFilename: filename,
         });
         return { videoUrl };

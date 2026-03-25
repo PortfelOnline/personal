@@ -32,7 +32,6 @@ interface StockVideoOptions {
   sections: Array<{ label: string; visual: string; script: string }>;
   textOverlays: string[];
   voiceover: string;
-  pexelsApiKey: string;
   outputFilename: string;
 }
 
@@ -223,7 +222,27 @@ export async function generateSlideshowVideo(opts: SlideshowVideoOptions): Promi
   }
 }
 
-// ── Stock video (Pexels + FFmpeg) ─────────────────────────────────────────────
+// ── AI Image Slideshow (DALL-E per section) ────────────────────────────────────
+// Generates one DALL-E image per reel section — Indian context, AI-agent narrative
+
+async function generateSectionImage(section: { label: string; visual: string; script: string }, tmpDir: string, idx: number): Promise<string> {
+  const { generateDalleImage } = await import("./gemini");
+  const prompt = [
+    `Photorealistic split-scene commercial photo for Indian small business market.`,
+    `Scene: ${section.visual}`,
+    `Context: ${section.script.slice(0, 150)}`,
+    `LEFT: Indian business owner stressed/missing messages/losing money — problem side.`,
+    `RIGHT: AI chatbot (WhatsApp-style green chat bubbles, auto-replies, phone glowing) — solution side.`,
+    `Indian people, Indian setting, warm lighting, high-contrast emotional storytelling.`,
+    `CRITICAL: NO text, NO letters, NO numbers anywhere in the image. Photorealistic, commercial quality.`,
+  ].join(" ");
+
+  const { b64, mimeType } = await generateDalleImage(prompt, "1024x1792");
+  const ext = mimeType.includes("png") ? "png" : "jpg";
+  const imgPath = path.join(tmpDir, `section_${idx}.${ext}`);
+  fs.writeFileSync(imgPath, Buffer.from(b64, "base64"));
+  return imgPath;
+}
 
 export async function generateStockVideo(opts: StockVideoOptions): Promise<string> {
   fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -239,44 +258,35 @@ export async function generateStockVideo(opts: StockVideoOptions): Promise<strin
     const audioDuration = getAudioDuration(audioPath);
     const clipDuration = audioDuration / Math.max(opts.sections.length, 1);
 
-    // 2. Fetch + process each Pexels clip
+    // 2. Generate DALL-E image per section + encode as clip with pan motion
     const clipPaths: string[] = [];
     for (let i = 0; i < opts.sections.length; i++) {
       const section = opts.sections[i];
-      const pexelsRes = await fetch(
-        `https://api.pexels.com/videos/search?query=${encodeURIComponent(section.visual.slice(0, 60))}&per_page=1&orientation=portrait`,
-        { headers: { Authorization: opts.pexelsApiKey } }
-      );
-      const pexelsData: any = await pexelsRes.json();
-      const videoFiles: any[] = pexelsData?.videos?.[0]?.video_files ?? [];
-      const file = videoFiles.find((f: any) => f.quality === "hd") ?? videoFiles[0];
-
       const clipOut = path.join(tmpDir, `clip_${i}.mp4`);
 
-      if (!file?.link) {
-        // Fallback: black clip
+      let imgPath: string;
+      try {
+        imgPath = await generateSectionImage(section, tmpDir, i);
+      } catch (err) {
+        console.warn(`[videoGen] DALL-E failed for section ${i}, using black: ${err}`);
         execFileSync(FFMPEG, [
-          "-y", "-f", "lavfi",
-          "-i", `color=black:size=1080x1920:rate=30`,
-          "-t", clipDuration.toFixed(1),
-          "-c:v", "libx264",
-          clipOut,
+          "-y", "-f", "lavfi", "-i", `color=black:size=1080x1920:rate=30`,
+          "-t", clipDuration.toFixed(1), "-c:v", "libx264", clipOut,
         ], { stdio: "pipe" });
-      } else {
-        const clipRes = await fetch(file.link);
-        const rawClip = path.join(tmpDir, `raw_${i}.mp4`);
-        fs.writeFileSync(rawClip, Buffer.from(await clipRes.arrayBuffer()));
-        const label = escapeDrawtext(section.label);
-        execFileSync(FFMPEG, [
-          "-y", "-i", rawClip,
-          "-t", clipDuration.toFixed(1),
-          "-vf", isDrawtextSupported()
-            ? `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,drawtext=text='${label}':fontsize=48:fontcolor=white:shadowcolor=black:shadowx=2:shadowy=2:x=(w-text_w)/2:y=h*0.85`
-            : `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920`,
-          "-c:v", "libx264", "-preset", "fast", "-crf", "24", "-an",
-          clipOut,
-        ], { stdio: "pipe", timeout: 60_000 });
+        clipPaths.push(clipOut);
+        continue;
       }
+
+      // Pan left→right with 150% pre-scale for cinematic motion
+      const dur = clipDuration.toFixed(2);
+      const panVf = `fps=30,scale=1620:2880:force_original_aspect_ratio=increase,crop=1080:1920:'(iw-out_w)*min(t/${dur}\\,1)':'(ih-out_h)*0.3'`;
+      execFileSync(FFMPEG, [
+        "-y", "-loop", "1", "-t", dur,
+        "-i", imgPath,
+        "-vf", panVf,
+        "-c:v", "libx264", "-preset", "fast", "-crf", "24", "-an", "-pix_fmt", "yuv420p",
+        clipOut,
+      ], { stdio: "pipe", timeout: 60_000 });
       clipPaths.push(clipOut);
     }
 
