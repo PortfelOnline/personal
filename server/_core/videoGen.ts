@@ -175,10 +175,12 @@ export async function generateSlideshowVideo(opts: SlideshowVideoOptions): Promi
     const imgPath = await resolveImagePath(opts.imageUrls[0], tmpDir, 0);
 
     // 3. Build vf chain
-    const scale = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920";
-    // Aggressive Ken Burns: 25% zoom + horizontal drift left→right for cinematic energy
-    const zoomStep = (0.25 / frames).toFixed(6);
-    const kb = `zoompan=z='min(zoom+${zoomStep}\\,1.25)':x='iw/2-(iw/zoom/2)+(iw*0.08)*(zoom-1)/0.25':y='ih/2-(ih/zoom/2)':d=${frames}:s=1080x1920:fps=30`;
+    // Scale to 150% of target so crop has room to pan — fast pan-and-zoom via crop(t)
+    // Much faster than zoompan and works reliably on all ffmpeg builds
+    const scaleLarge = "scale=1620:2880:force_original_aspect_ratio=increase";
+    const dur = totalDuration.toFixed(2);
+    // Pan from left to right + slight top-to-bottom drift for cinematic energy
+    const kb = `fps=30,${scaleLarge},crop=1080:1920:'(iw-out_w)*min(t/${dur}\\,1)':'(ih-out_h)*0.3'`;
 
     // Text overlays — evenly spaced (skipped if drawtext/libfreetype not available)
     const overlayFilters: string[] = [];
@@ -194,7 +196,7 @@ export async function generateSlideshowVideo(opts: SlideshowVideoOptions): Promi
       });
     }
 
-    const vf = [scale, kb, ...overlayFilters].join(",");
+    const vf = [kb, ...overlayFilters].join(",");
 
     // 4. FFmpeg assemble
     execFileSync(FFMPEG, [
