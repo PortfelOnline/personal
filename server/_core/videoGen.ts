@@ -22,33 +22,80 @@ interface StockVideoOptions {
   outputFilename: string;
 }
 
-// ── TTS via OpenAI ────────────────────────────────────────────────────────────
+// ── TTS via Gemini 2.5 Flash ──────────────────────────────────────────────────
+// Returns raw PCM (L16, 24kHz mono) which FFmpeg converts to MP3
 
 async function generateTTSAudio(text: string, outputPath: string): Promise<void> {
-  const apiKey = ENV.forgeApiKey;
-  if (!apiKey) throw new Error("OPENAI_API_KEY not configured for TTS");
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY not configured for TTS");
 
-  const res = await fetch("https://api.openai.com/v1/audio/speech", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "tts-1",
-      voice: "nova",
-      input: text.slice(0, 4000),
-      response_format: "mp3",
-    }),
-  });
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: text.slice(0, 5000) }], role: "user" }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: "Puck" }, // upbeat male, good for Indian market reels
+            },
+          },
+        },
+      }),
+    }
+  );
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`TTS failed: ${res.status} ${err}`);
+    // Fallback to OpenAI TTS if Gemini fails
+    console.warn(`[TTS] Gemini failed (${res.status}), falling back to OpenAI TTS: ${err.slice(0, 200)}`);
+    await generateTTSAudioOpenAI(text, outputPath);
+    return;
   }
 
-  const buf = Buffer.from(await res.arrayBuffer());
-  fs.writeFileSync(outputPath, buf);
+  const data: any = await res.json();
+  const part = data.candidates?.[0]?.content?.parts?.[0];
+  if (!part?.inlineData?.data) {
+    console.warn("[TTS] Gemini returned no audio data, falling back to OpenAI TTS");
+    await generateTTSAudioOpenAI(text, outputPath);
+    return;
+  }
+
+  // Gemini returns raw PCM L16 24kHz mono — pipe through FFmpeg to get MP3
+  const pcmBuf = Buffer.from(part.inlineData.data, "base64");
+  const pcmPath = outputPath.replace(/\.mp3$/, ".pcm");
+  fs.writeFileSync(pcmPath, pcmBuf);
+
+  execFileSync(FFMPEG, [
+    "-y",
+    "-f", "s16le",      // signed 16-bit little-endian PCM
+    "-ar", "24000",     // 24kHz sample rate
+    "-ac", "1",         // mono
+    "-i", pcmPath,
+    "-c:a", "libmp3lame",
+    "-b:a", "128k",
+    outputPath,
+  ], { stdio: "pipe", timeout: 30_000 });
+
+  fs.unlinkSync(pcmPath);
+}
+
+// Fallback: OpenAI TTS
+async function generateTTSAudioOpenAI(text: string, outputPath: string): Promise<void> {
+  const apiKey = ENV.forgeApiKey;
+  if (!apiKey) throw new Error("No TTS API key available");
+
+  const res = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: "tts-1", voice: "nova", input: text.slice(0, 4000), response_format: "mp3" }),
+  });
+
+  if (!res.ok) throw new Error(`OpenAI TTS failed: ${res.status}`);
+  fs.writeFileSync(outputPath, Buffer.from(await res.arrayBuffer()));
 }
 
 // ── Get audio duration ────────────────────────────────────────────────────────
