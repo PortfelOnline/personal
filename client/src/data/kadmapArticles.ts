@@ -113,7 +113,7 @@ export const KADMAP_ARTICLES: KadmapArticle[] = [
   },
   {
     postId: 4299,
-    slug: 'proverit-kvartiru-na-obremenenie-online',
+    slug: 'proverit-kvartiru-na-obremenenie-onlajn',
     title: 'Проверить квартиру на обременение онлайн',
     keyword: 'проверить квартиру на обременение онлайн',
     priority: 'high',
@@ -146,7 +146,7 @@ export const KADMAP_ARTICLES: KadmapArticle[] = [
   // ✅ DONE — второй батч 2026-03-25
   {
     postId: 4302,
-    slug: 'kak-uznat-obremenenie-na-kvartiru',
+    slug: 'kak-uznat-est-li-obremenenie-na-kvartiru',
     title: 'Как узнать обременение на квартиру через интернет',
     keyword: 'как узнать обременение на квартиру',
     priority: 'high',
@@ -212,9 +212,9 @@ export const KADMAP_ARTICLES: KadmapArticle[] = [
   },
   // Средний приоритет — TODO
   {
-    postId: 5464,
-    slug: 'snyat-obremenenie-s-kvartiry-posle-pogasheniya-ipoteki',
-    title: 'Снять обременение с квартиры после погашения ипотеки',
+    postId: 331661,
+    slug: 'kak-snyat-obremenenie-posle-pogasheniya-ipoteki',
+    title: 'Как снять обременение после погашения ипотеки',
     priority: 'medium',
     reason: 'Ипотечный кластер — переход к заказу выписки',
   },
@@ -223,11 +223,11 @@ export const KADMAP_ARTICLES: KadmapArticle[] = [
     slug: 'proverit-kvartiru-na-dolgi-pered-pokupkoy',
     title: 'Проверить квартиру на долги перед покупкой',
     priority: 'medium',
-    reason: 'Покупатели вторичного жилья',
+    reason: 'Покупатели вторичного жилья — ID=4312 это attachment, не post! Требует создания нового поста',
   },
   {
     postId: 5707,
-    slug: 'kak-uznat-est-li-obremenenie-na-kvartiru',
+    slug: 'vypiska-egrp-obremeneniem',
     title: 'Как узнать есть ли обременение на квартиру',
     priority: 'medium',
     reason: 'Высокочастотный информационный запрос',
@@ -312,17 +312,13 @@ export const INITIAL_PROGRESS: Record<number, ArticleProgress> = {
     doneAt: '2026-03-25',
     notes: '15 H2, 10 FAQ, 9 картинок, залог/ипотека интент. Особенности по банкам (Сбер/ВТБ/Альфа)',
   },
-  5464: {
-    status: 'done',
-    wordsAfter: 3200,
-    doneAt: '2026-03-25',
-    notes: '15 H2, 10 FAQ, 8 картинок, ипотечный кластер — снятие обременения. Особенности по банкам Сбер/ВТБ/Альфа. Пошаговый алгоритм',
+  331661: {
+    status: 'todo',
+    notes: 'ID исправлен (был 5464 = revision). Требует реврайта до эталонного стандарта',
   },
   4312: {
-    status: 'done',
-    wordsAfter: 3300,
-    doneAt: '2026-03-25',
-    notes: '15 H2, 10 FAQ, 8 картинок, покупатели вторичного жилья. Проверка ЖКХ + ФССП + ЕГРН. Образец выписки',
+    status: 'todo',
+    notes: 'ID=4312 — attachment (изображение), не статья. Требует создания нового поста с правильным postId',
   },
   5707: {
     status: 'done',
