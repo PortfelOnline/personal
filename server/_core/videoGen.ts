@@ -226,7 +226,7 @@ export async function generateSlideshowVideo(opts: SlideshowVideoOptions): Promi
 // Generates one DALL-E image per reel section — Indian context, AI-agent narrative
 
 async function generateSectionImage(section: { label: string; visual: string; script: string }, tmpDir: string, idx: number): Promise<string> {
-  const { generateDalleImage } = await import("./gemini");
+  const { generateGeminiImage } = await import("./gemini");
   const prompt = [
     `Photorealistic split-scene commercial photo for Indian small business market.`,
     `Scene: ${section.visual}`,
@@ -237,7 +237,7 @@ async function generateSectionImage(section: { label: string; visual: string; sc
     `CRITICAL: NO text, NO letters, NO numbers anywhere in the image. Photorealistic, commercial quality.`,
   ].join(" ");
 
-  const { b64, mimeType } = await generateDalleImage(prompt, "1024x1792");
+  const { b64, mimeType } = await generateGeminiImage(prompt, "9:16");
   const ext = mimeType.includes("png") ? "png" : "jpg";
   const imgPath = path.join(tmpDir, `section_${idx}.${ext}`);
   fs.writeFileSync(imgPath, Buffer.from(b64, "base64"));
