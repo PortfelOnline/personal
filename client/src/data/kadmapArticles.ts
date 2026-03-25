@@ -147,4 +147,28 @@ export const INITIAL_PROGRESS: Record<number, ArticleProgress> = {
     doneAt: '2026-03-25',
     notes: '15 H2, 11 FAQ, 9 картинок, BOFU-сравнение сервисов. Таблица сравнения способов',
   },
+  4302: {
+    status: 'done',
+    wordsAfter: 3100,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 11 FAQ, 9 картинок, информационный+транзакционный интент. image016 из 2017/04/',
+  },
+  4308: {
+    status: 'done',
+    wordsAfter: 3200,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 3 H3, 10 FAQ, 9 картинок, острая проблема — арест на квартиру',
+  },
+  5522: {
+    status: 'done',
+    wordsAfter: 3000,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 10 FAQ, 9 картинок, бинарный вопрос. Таблица Арест vs Запрет',
+  },
+  5558: {
+    status: 'done',
+    wordsAfter: 3100,
+    doneAt: '2026-03-25',
+    notes: '15 H2, 10 FAQ, 9 картинок, залог/ипотека интент. Особенности по банкам (Сбер/ВТБ/Альфа)',
+  },
 };
