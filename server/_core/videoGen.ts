@@ -174,12 +174,11 @@ export async function generateSlideshowVideo(opts: SlideshowVideoOptions): Promi
     const imgPath = await resolveImagePath(opts.imageUrls[0], tmpDir, 0);
 
     // 3. Build vf chain
-    // Scale to 150% of target so crop has room to pan — fast pan-and-zoom via crop(t)
-    // Much faster than zoompan and works reliably on all ffmpeg builds
-    const scaleLarge = "scale=1620:2880:force_original_aspect_ratio=increase";
+    // Scale to 200% for more dramatic pan — fast crop-based Ken Burns
+    const scaleLarge = "scale=2160:3840:force_original_aspect_ratio=increase";
     const dur = totalDuration.toFixed(2);
-    // Pan from left to right + slight top-to-bottom drift for cinematic energy
-    const kb = `fps=30,${scaleLarge},crop=1080:1920:'(iw-out_w)*min(t/${dur}\\,1)':'(ih-out_h)*0.3'`;
+    // Start top-left, end bottom-right — full diagonal sweep for maximum energy
+    const kb = `fps=30,${scaleLarge},crop=1080:1920:'(iw-out_w)*min(t/${dur}\\,1)':'(ih-out_h)*min(t/${dur}\\,1)*0.6'`;
 
     // Text overlays — evenly spaced (skipped if drawtext/libfreetype not available)
     const overlayFilters: string[] = [];
@@ -225,17 +224,36 @@ export async function generateSlideshowVideo(opts: SlideshowVideoOptions): Promi
 // ── AI Image Slideshow (DALL-E per section) ────────────────────────────────────
 // Generates one DALL-E image per reel section — Indian context, AI-agent narrative
 
+// Narrative arc: scene 0 = problem, scene 1 = transformation, scene 2 = triumph
+const SECTION_PROMPTS = [
+  // Scene 0 — overwhelmed owner, phone flooded with missed messages
+  [
+    `Photorealistic vertical photo, Indian small business owner (30s, South Asian features) sitting at a busy shop counter,`,
+    `expression of stress and overwhelm. In his hands a smartphone screen showing dozens of unread WhatsApp messages piling up —`,
+    `green notification badges, chat list overflowing. Warm shop interior background (jewellery or textile store), shallow depth of field.`,
+    `Cinematic lighting. NO text overlays, NO letters visible on screen, pure photorealistic commercial style.`,
+  ],
+  // Scene 1 — phone glowing with AI auto-replies streaming in
+  [
+    `Photorealistic vertical photo, close-up of a smartphone held by Indian hands, screen showing a WhatsApp conversation:`,
+    `green chat bubbles appearing one after another as if auto-typing — instant replies flowing in real time.`,
+    `A blurred Indian small-business background (salon, restaurant, or shop). Phone screen glows with green light.`,
+    `Shallow focus, cinematic look. NO readable text, NO letters on screen, pure visual storytelling.`,
+  ],
+  // Scene 2 — relieved owner, shop thriving, phone shows happy chat
+  [
+    `Photorealistic vertical photo, Indian small business owner (30s, South Asian features) smiling with relief,`,
+    `relaxed posture, holding a smartphone showing a WhatsApp chat with green checkmarks and happy customer conversation.`,
+    `Bright warm shop background (customers visible, busy and prosperous). Confident, triumphant mood.`,
+    `Cinematic lighting, shallow DOF. NO readable text, NO letters visible, pure photorealistic commercial style.`,
+  ],
+];
+
 async function generateSectionImage(section: { label: string; visual: string; script: string }, tmpDir: string, idx: number): Promise<string> {
   const { generateGeminiImage } = await import("./gemini");
-  const prompt = [
-    `Photorealistic split-scene commercial photo for Indian small business market.`,
-    `Scene: ${section.visual}`,
-    `Context: ${section.script.slice(0, 150)}`,
-    `LEFT: Indian business owner stressed/missing messages/losing money — problem side.`,
-    `RIGHT: AI chatbot (WhatsApp-style green chat bubbles, auto-replies, phone glowing) — solution side.`,
-    `Indian people, Indian setting, warm lighting, high-contrast emotional storytelling.`,
-    `CRITICAL: NO text, NO letters, NO numbers anywhere in the image. Photorealistic, commercial quality.`,
-  ].join(" ");
+  // Use narrative arc prompts (0=problem, 1=AI transformation, 2=triumph), cycling for extra sections
+  const promptLines = SECTION_PROMPTS[idx % SECTION_PROMPTS.length];
+  const prompt = promptLines.join(" ");
 
   const { b64, mimeType } = await generateGeminiImage(prompt, "9:16");
   const ext = mimeType.includes("png") ? "png" : "jpg";
@@ -277,9 +295,17 @@ export async function generateStockVideo(opts: StockVideoOptions): Promise<strin
         continue;
       }
 
-      // Pan left→right with 150% pre-scale for cinematic motion
+      // Dynamic pan/zoom — 200% scale, alternating directions per section for cinematic energy
       const dur = clipDuration.toFixed(2);
-      const panVf = `fps=30,scale=1620:2880:force_original_aspect_ratio=increase,crop=1080:1920:'(iw-out_w)*min(t/${dur}\\,1)':'(ih-out_h)*0.3'`;
+      // Even sections: left→right + top→bottom drift
+      // Odd sections: right→left + bottom→top drift
+      const xExpr = i % 2 === 0
+        ? `(iw-out_w)*min(t/${dur}\\,1)`
+        : `(iw-out_w)*(1-min(t/${dur}\\,1))`;
+      const yExpr = i % 2 === 0
+        ? `(ih-out_h)*min(t/${dur}\\,1)*0.6`
+        : `(ih-out_h)*(1-min(t/${dur}\\,1)*0.6)`;
+      const panVf = `fps=30,scale=2160:3840:force_original_aspect_ratio=increase,crop=1080:1920:'${xExpr}':'${yExpr}'`;
       execFileSync(FFMPEG, [
         "-y", "-loop", "1", "-t", dur,
         "-i", imgPath,
