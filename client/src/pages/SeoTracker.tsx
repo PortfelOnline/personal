@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, Circle, Clock, ExternalLink, TrendingUp, FileText, Target } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ExternalLink, TrendingUp, FileText, Target, Image, List, HelpCircle } from 'lucide-react';
+
+function parseNotesBadges(notes: string) {
+  const h2 = notes.match(/(\d+)\s*H2/i)?.[1];
+  const h3 = notes.match(/(\d+)\s*H3/i)?.[1];
+  const faq = notes.match(/(\d+)\s*FAQ/i)?.[1];
+  const img = notes.match(/(\d+)\s*(?:картинок|img|изображений)/i)?.[1];
+  const intent = notes.match(/(транзакционный|информационный|BOFU|бинарный|срочный|проблемный|острая\s+проблема|залог|ипотека)[^,.]*/i)?.[0];
+  return { h2, h3, faq, img, intent };
+}
 import DashboardLayout from '@/components/DashboardLayout';
 import {
   KADMAP_ARTICLES,
@@ -212,6 +220,38 @@ export default function SeoTracker() {
                           )}
                         </div>
 
+                        {p.notes && p.status === 'done' && (() => {
+                          const { h2, h3, faq, img, intent } = parseNotesBadges(p.notes!);
+                          return (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {h2 && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded px-1.5 py-0.5">
+                                  <List className="w-3 h-3" />{h2} H2
+                                </span>
+                              )}
+                              {h3 && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 border border-indigo-200 rounded px-1.5 py-0.5">
+                                  {h3} H3
+                                </span>
+                              )}
+                              {faq && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
+                                  <HelpCircle className="w-3 h-3" />{faq} FAQ
+                                </span>
+                              )}
+                              {img && (
+                                <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">
+                                  <Image className="w-3 h-3" />{img} img
+                                </span>
+                              )}
+                              {intent && (
+                                <span className="inline-flex items-center text-xs bg-violet-50 text-violet-700 border border-violet-200 rounded px-1.5 py-0.5">
+                                  {intent.trim()}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {p.notes && (
                           <p className="text-xs text-slate-400 mt-1 italic">{p.notes}</p>
                         )}
