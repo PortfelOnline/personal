@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,6 +101,62 @@ const PRIORITY_CONFIG = {
   low:    { label: 'Низкий',  className: 'bg-slate-100 text-slate-500' },
 };
 
+// keys.so keyword → postId mapping
+const KEYWORD_TO_POST_ID: Record<string, number> = {
+  // Обременение
+  'как проверить квартиру на обременение при покупке': 5535,
+  'проверить квартиру на обременение онлайн': 4299,
+  'как проверить квартиру на обременение': 4305,
+  'проверить квартиру арест судебных приставов': 5607,
+  'где проверить квартиру на обременение': 7129,
+  'как узнать обременение на квартиру': 4302,
+  'как узнать наложен ли арест на квартиру': 4308,
+  'как узнать квартира в аресте или нет': 5522,
+  'как узнать квартира в залоге или нет': 5558,
+  'выписка егрп обременение': 5707,
+  'выписка егрн обременение': 5707,
+  'заказать справку об обременении': 332861,
+  // Кадастровая карта
+  'расположение по кадастровому номеру': 732,
+  'кадастровая публичная карта со спутника': 1111,
+  'кадастровый план квартиры по адресу': 8751,
+  // Снять обременение / арест
+  'как снять обременение после погашения ипотеки': 331661,
+  'снять обременение с квартиры': 333041,
+  'как снять обременение с ипотечной квартиры': 332987,
+  'как снять арест с квартиры': 332787,
+  // Собственник
+  'как узнать владельца квартиры по адресу': 333052,
+  'проверить собственника по кадастровому номеру': 332955,
+  // Кадастровая стоимость
+  'кадастровая стоимость недвижимости по адресу': 333008,
+  'кадастровая стоимость по кадастровому номеру': 332921,
+  // Выписка ЕГРН
+  'заказать выписку из егрн онлайн': 332874,
+  'кадастровая выписка егрн что это': 333098,
+  // Кадастровый номер
+  'узнать сведения по кадастровому номеру': 333070,
+};
+
+function parseKeysosCsv(text: string): { date: string; positions: Record<number, number | null> } | null {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 5) return null;
+  // Row 4 (index 3) is the column header: "запросы;w;"!w";"[!w]";URL;2026-03-25"
+  const headerCols = lines[3].split(';');
+  const date = headerCols[5]?.replace(/"/g, '').trim() || new Date().toISOString().slice(0, 10);
+  const positions: Record<number, number | null> = {};
+  for (let i = 4; i < lines.length; i++) {
+    const cols = lines[i].split(';');
+    const keyword = cols[0]?.replace(/^"|"$/g, '').trim().toLowerCase();
+    const posRaw = cols[5]?.replace(/"/g, '').trim();
+    if (!keyword || !posRaw) continue;
+    const postId = KEYWORD_TO_POST_ID[keyword];
+    if (!postId) continue;
+    positions[postId] = posRaw === '--' || posRaw === '' ? null : parseInt(posRaw, 10) || null;
+  }
+  return { date, positions };
+}
+
 export default function SeoTracker() {
   const [progress, setProgress] = useState<Record<number, ArticleProgress>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -108,6 +164,8 @@ export default function SeoTracker() {
   const [checkingId, setCheckingId] = useState<number | null>(null);
   const [autoChecking, setAutoChecking] = useState(false);
   const [newsProgress, setNewsProgress] = useState<Record<number, NewsProgress>>({});
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const checkPosMutation = trpc.articles.checkPosition.useMutation();
 
   const today = new Date().toISOString().slice(0, 10);
@@ -246,6 +304,39 @@ export default function SeoTracker() {
     }
   }, [newsProgress, checkPosMutation, today]);
 
+  function handleCsvImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const result = parseKeysosCsv(text);
+      if (!result) { setImportMsg('Ошибка: не удалось распарсить CSV'); return; }
+      const { date, positions } = result;
+      let updated = 0;
+      setProgress(prev => {
+        const next = { ...prev };
+        for (const [postIdStr, newPos] of Object.entries(positions)) {
+          const postId = Number(postIdStr);
+          const cur = next[postId] ?? { status: 'todo' as ArticleStatus };
+          next[postId] = {
+            ...cur,
+            prevYandexPos: cur.yandexPos,
+            yandexPos: newPos,
+            posCheckedAt: date + 'T00:00:00.000Z',
+          };
+          updated++;
+        }
+        saveProgress(next);
+        return next;
+      });
+      setImportMsg(`Импортировано: ${updated} статей из keys.so (${date})`);
+      setTimeout(() => setImportMsg(null), 5000);
+    };
+    reader.readAsText(file, 'utf-8');
+    e.target.value = '';
+  }
+
   function openEdit(postId: number) {
     setEditDraft(progress[postId] ?? { status: 'todo' });
     setEditingId(postId);
@@ -336,6 +427,26 @@ export default function SeoTracker() {
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Статьи
+              <div className="ml-auto flex items-center gap-2">
+                {importMsg && (
+                  <span className="text-xs text-green-600 font-normal">{importMsg}</span>
+                )}
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleCsvImport}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7 px-2"
+                  onClick={() => csvInputRef.current?.click()}
+                >
+                  ↑ keys.so CSV
+                </Button>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -388,6 +499,14 @@ export default function SeoTracker() {
 
                         {/* Metrics row */}
                         <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-500">
+                          {article.wordstatW !== undefined && article.wordstatW > 0 && (
+                            <span title="Яндекс Wordstat базовая / точная частотность">
+                              📊 <strong>{article.wordstatW.toLocaleString('ru-RU')}</strong>
+                              {article.wordstatExact !== undefined && article.wordstatExact > 0 && (
+                                <span className="text-slate-400"> / {article.wordstatExact}</span>
+                              )}
+                            </span>
+                          )}
                           {article.wordsBefore && (
                             <span>До: <strong>{article.wordsBefore}</strong> слов</span>
                           )}

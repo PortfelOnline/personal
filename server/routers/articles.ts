@@ -184,7 +184,7 @@ function countWords(html: string): number {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length;
 }
 
-// Generate 3 contextual DALL-E image prompts based on article title
+// Generate 6 contextual DALL-E image prompts based on article title
 async function generateImagePrompts(title: string): Promise<string[]> {
   const skinNote = `All people must have light/fair Slavic skin tone (Russian appearance). No dark-skinned people.`;
   const noText = `NO text, NO letters, NO words, NO labels, NO watermarks anywhere in the image.`;
@@ -193,6 +193,9 @@ async function generateImagePrompts(title: string): Promise<string[]> {
     `Photorealistic wide-format photo: a person sitting at a bright modern desk looking at official documents and a laptop, warm natural light, clean minimalist interior. ${skinNote} ${noText}`,
     `Aerial drone view of a Russian city residential neighborhood, rows of apartment buildings, courtyards with trees, clear blue sky, warm daylight. ${noText}`,
     `Photorealistic close-up: a person's hands holding an official stamped document over a wooden desk with a blurred laptop in the background, warm light. ${skinNote} ${noText}`,
+    `Photorealistic wide-format photo: modern Russian apartment interior with bright living room, large windows overlooking city, clean furniture. ${noText}`,
+    `Photorealistic image: a person at a bank counter reviewing mortgage or property documents with a bank employee, professional office setting. ${skinNote} ${noText}`,
+    `Photorealistic photo: official government building exterior in Russia, blue sky, people entering, professional urban setting. ${noText}`,
   ];
 
   try {
@@ -208,24 +211,24 @@ async function generateImagePrompts(title: string): Promise<string[]> {
 
 The article is about ordering official Russian property/cadastral documents (EGRN extracts, encumbrance certificates, cadastral passports etc.) via kadastrmap.info online service.
 
-Write exactly 3 different DALL-E image prompts that visually match different sections of this specific article. Each prompt must:
+Write exactly 6 different DALL-E image prompts that visually match different sections of this specific article. Each prompt must:
 - Be photorealistic, wide-format
 - Directly relate to the article topic (e.g. for "обременение" show mortgaged property, bank documents, chains on property icon; for "кадастровый паспорт" show blueprint/floor plan)
-- Show different scenes: 1) the problem/need (why the document is needed), 2) the online ordering process (person on laptop/phone using a service), 3) the result/benefit (receiving the document, happy outcome)
+- Show different scenes: 1) the problem/need, 2) the online ordering process (person on laptop/phone), 3) the result/benefit (receiving document), 4) related document/office scene, 5) property exterior or interior context, 6) happy outcome with family or person
 - All people: light/fair Slavic skin tone. ${noText}
 - Be concise (1-2 sentences max)
 
-Return ONLY a JSON array of 3 strings: ["prompt1", "prompt2", "prompt3"]`,
+Return ONLY a JSON array of 6 strings: ["prompt1", "prompt2", "prompt3", "prompt4", "prompt5", "prompt6"]`,
         },
       ],
-      maxTokens: 600,
+      maxTokens: 900,
     });
 
     const content = resp?.choices[0]?.message.content;
     const raw = (typeof content === 'string' ? content : '').trim();
     const cleaned = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed) && parsed.length >= 3) return parsed.slice(0, 3);
+    if (Array.isArray(parsed) && parsed.length >= 6) return parsed.slice(0, 6);
   } catch {
     // fall through to fallback
   }
