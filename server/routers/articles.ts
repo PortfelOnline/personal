@@ -248,29 +248,83 @@ Return ONLY a JSON array of ${targetCount} strings: ["prompt1", ...]`,
   return fallback;
 }
 
-async function enhanceIfNeeded(html: string, keyword: string): Promise<string> {
+// ── Article quality check: log pass/fail per criterion ───────────────────────
+interface ArticleQualityReport {
+  url: string;
+  wordCount: number;
+  targetWords: number;
+  faqCount: number;
+  targetFaq: number;
+  h2Count: number;
+  hasTable: boolean;
+  hasExternalLinks: boolean;
+  pass: boolean;
+  issues: string[];
+}
+
+function checkArticleQuality(
+  html: string,
+  url: string,
+  targetWords: number,
+  targetFaq: number,
+): ArticleQualityReport {
+  const wordCount = countWords(html);
+  const faqCount = (html.match(/<details\b/gi) || []).length;
+  const hasTable = /<table\b/i.test(html);
+  const h2Count = (html.match(/<h2\b/gi) || []).length;
+  const hasExternalLinks = /href="https?:\/\/(?!kadastrmap\.info)[^"]+"/i.test(html);
+
+  const issues: string[] = [];
+  if (wordCount < targetWords) issues.push(`слов: ${wordCount}/${targetWords}`);
+  if (faqCount < targetFaq)    issues.push(`FAQ: ${faqCount}/${targetFaq}`);
+  if (h2Count < 7)             issues.push(`H2: ${h2Count} (нужно 7+)`);
+  if (!hasTable)               issues.push('нет таблицы');
+  if (!hasExternalLinks)       issues.push('нет внешних ссылок (E-E-A-T)');
+
+  const pass = issues.length === 0;
+  const label = pass ? '✅ PASS' : `❌ FAIL [${issues.join(', ')}]`;
+  console.log(`[QA] ${url} → ${label}`);
+  return { url, wordCount, targetWords, faqCount, targetFaq, h2Count, hasTable, hasExternalLinks, pass, issues };
+}
+
+async function enhanceIfNeeded(
+  html: string,
+  keyword: string,
+  targetWords = 3500,
+  targetFaq = 10,
+): Promise<string> {
   const wordCount = countWords(html);
   const faqItems = (html.match(/<details/gi) || []).length;
   const hasTable = /<table/i.test(html);
+  const h2Count = (html.match(/<h2\b/gi) || []).length;
+  const hasExternalLinks = /href="https?:\/\/(?!kadastrmap\.info)[^"]+"/i.test(html);
 
   const tasks: string[] = [];
 
-  if (wordCount < 3200) {
-    const needed = 3200 - wordCount;
+  if (wordCount < targetWords) {
+    const needed = targetWords - wordCount;
     // Request 1.5x to compensate for LLM undershoot
-    const targetWords = Math.round(needed * 1.5);
-    const sections = Math.max(3, Math.ceil(targetWords / 200));
-    tasks.push(`Напиши ${sections} новых подробных раздела (<h2>Заголовок</h2><p>минимум 200 слов каждый</p>) которых ещё НЕТ в статье. Суммарно минимум ${targetWords} слов. Используй H2/H3, не H1.`);
+    const wordsToAdd = Math.round(needed * 1.5);
+    const sections = Math.max(3, Math.ceil(wordsToAdd / 250));
+    tasks.push(`Напиши ${sections} новых подробных раздела (<h2>Заголовок</h2><p>минимум 250 слов каждый</p>) которых ещё НЕТ в статье. Суммарно минимум ${wordsToAdd} слов. Используй H2/H3, не H1.`);
   }
-  if (faqItems < 10) {
-    const faqNeeded = Math.max(10 - faqItems, 5);
+  if (faqItems < targetFaq) {
+    const faqNeeded = Math.max(targetFaq - faqItems, 5);
     tasks.push(`Добавь раздел FAQ: <h2>Часто задаваемые вопросы</h2> с ${faqNeeded} вопросами в формате:\n<details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details>\n(первый элемент с атрибутом open, остальные без него). НЕ используй <h3> для вопросов.`);
   }
   if (!hasTable) {
     tasks.push(`Добавь таблицу <table> сравнения способов получения документа: колонки — Способ/Срок/Стоимость/Удобство. Цены — только через [BLOCK_PRICE].`);
   }
+  if (h2Count < 7) {
+    tasks.push(`Добавь ${7 - h2Count} новых H2-раздела по теме "${keyword}" которых ещё нет в статье (минимум 250 слов каждый).`);
+  }
+  if (!hasExternalLinks) {
+    tasks.push(`Добавь 2 внешние ссылки на авторитетные источники: <a href="https://rosreestr.gov.ru" target="_blank" rel="noopener">rosreestr.gov.ru</a> и упоминание ФЗ-218 "О государственной регистрации недвижимости". Вставь органично в контекст.`);
+  }
 
   if (tasks.length === 0) return html;
+
+  console.log(`[Enhance] ${keyword}: fixing ${tasks.length} issues (words:${wordCount}/${targetWords}, FAQ:${faqItems}/${targetFaq}, H2:${h2Count}, table:${hasTable}, extLinks:${hasExternalLinks})`);
 
   // APPEND approach: generate only new blocks, concatenate to existing html
   const response = await invokeLLM({
@@ -687,9 +741,12 @@ ${missingTopicsBlock}${lsiBlock}
         .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
     : parsed.content;
 
-  improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword);
+  improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword, targetWords, 10);
   improvedContent = stripFirstH1(normalizeHeadings(improvedContent));
   improvedContent = beautifyArticleHtml(improvedContent);
+
+  // QA log
+  checkArticleQuality(improvedContent, url, targetWords, 10);
 
   const improvedWordCount = improvedContent
     ? improvedContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length
@@ -896,10 +953,13 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
         .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
     : parsed.content;
 
-  // Post-generation quality check: add missing FAQ questions or table
-  improvedContent = await enhanceIfNeeded(improvedContent, keyword);
+  // Post-generation quality check: fix missing content vs competitor targets
+  improvedContent = await enhanceIfNeeded(improvedContent, keyword, targetWords, targetFaq);
   improvedContent = stripFirstH1(normalizeHeadings(improvedContent));
   improvedContent = beautifyArticleHtml(improvedContent);
+
+  // QA log: verify article meets TOP-3 standards
+  checkArticleQuality(improvedContent, url, targetWords, targetFaq);
 
   // Add internal links to related articles on the same site
   improvedContent = await addInternalLinks(improvedContent, userId, ourDomain, parsed.title);
@@ -1184,10 +1244,13 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
             .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
         : parsed.content;
 
-      // Post-generation: fix missing FAQ questions or table
-      improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword);
+      // Post-generation: fix missing content vs competitor targets
+      improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword, targetWords, targetFaq);
       improvedContent = normalizeHeadings(improvedContent);
       improvedContent = beautifyArticleHtml(improvedContent);
+
+      // QA log: verify article meets TOP-3 standards
+      checkArticleQuality(improvedContent, input.url, targetWords, targetFaq);
 
       // Add internal links to related articles on the same site
       improvedContent = await addInternalLinks(improvedContent, ctx.user.id, ourDomain, parsed.title);
