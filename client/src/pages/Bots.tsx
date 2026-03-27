@@ -522,23 +522,20 @@ export default function Bots() {
                     <CardDescription>Документ с поисковыми запросами для каждого сайта</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {Object.entries(docsEdits.websites).map(([site, url]) => (
+                    {Object.entries(docsEdits.websites).map(([site, queries]) => (
                       <div key={site}>
                         <label className="text-sm font-medium text-slate-700">{site}</label>
-                        <div className="flex gap-2 mt-1">
-                          <Input
-                            className="font-mono text-xs"
-                            value={url}
-                            onChange={e => setDocsEdits(d => d ? {
-                              ...d, websites: { ...d.websites, [site]: e.target.value }
-                            } : d)}
-                          />
-                          <Button variant="ghost" size="sm" className="shrink-0" asChild>
-                            <a href={url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          </Button>
-                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5 mb-1">
+                          {queries.split('\n').filter(Boolean).length} запросов
+                        </p>
+                        <Textarea
+                          className="font-mono text-xs min-h-[160px]"
+                          value={queries}
+                          onChange={e => setDocsEdits(d => d ? {
+                            ...d, websites: { ...d.websites, [site]: e.target.value }
+                          } : d)}
+                          placeholder="Каждый запрос с новой строки"
+                        />
                       </div>
                     ))}
                   </CardContent>

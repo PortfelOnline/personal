@@ -24,7 +24,7 @@ const googleDocsSchema = z.object({
     queries: z.string().url(),
     warmup_queries: z.string().url(),
   }),
-  websites: z.record(z.string(), z.string().url()),
+  websites: z.record(z.string(), z.string()),
 });
 
 export const botsRouter = router({

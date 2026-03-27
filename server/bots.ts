@@ -206,7 +206,33 @@ const DEFAULT_GOOGLE_DOCS: GoogleDocsConfig = {
     'https://shared-brains.ru': 'https://docs.google.com/document/d/1pcMQljv073k1va7Op8tcZp66MwAVo4gNbnyzL_i-yTA',
     'https://brain-skill.ru': 'https://docs.google.com/document/d/1pcMQljv073k1va7Op8tcZp66MwAVo4gNbnyzL_i-yTA',
     'https://edu.shared-brains.ru': 'https://docs.google.com/document/d/1pcMQljv073k1va7Op8tcZp66MwAVo4gNbnyzL_i-yTA',
-    'https://kadastrmap.info': 'https://docs.google.com/document/d/14IKdB6QhaLmwRi62XjgVDoEGCx-pNmuMhK4dNzrLA2w',
+    'https://kadastrmap.info': `заказать выписку ЕГРН онлайн
+справка об обременении недвижимости
+выписка из ЕГРН на квартиру
+проверить недвижимость по кадастровому номеру
+кадастровая стоимость объекта недвижимости
+выписка ЕГРН цена
+заказать кадастровый паспорт онлайн
+проверить квартиру перед покупкой
+снять обременение с недвижимости
+выписка о переходе прав на недвижимость
+узнать собственника квартиры онлайн
+обременение на квартиру ипотека
+выписка ЕГРН Москва
+документы для продажи квартиры список
+проверка юридической чистоты квартиры
+кадастровый номер по адресу
+форма 7 выписка из домовой книги
+расширенная выписка ЕГРН
+справка о кадастровой стоимости
+технический паспорт на квартиру онлайн
+как узнать есть ли обременение на квартиру
+залог недвижимости проверить
+арест на квартиру как узнать
+выписка ЕГРН для ипотеки
+сроки получения выписки ЕГРН
+стоимость выписки из ЕГРН 2025
+заказать выписку онлайн быстро`,
     'https://мцск.рф': 'https://docs.google.com/document/d/1vKkmHdT6i42siz3joUtKhpMTbphgLtq84nthOl5FkQs',
   },
 };
