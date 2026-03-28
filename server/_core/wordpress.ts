@@ -323,3 +323,33 @@ export async function publishPost(
     throw new Error(`WordPress publish failed: ${msg}`);
   }
 }
+
+/**
+ * Update ACF/post meta fields via SSH+PHP (ACF Free doesn't expose fields via REST API).
+ * Falls back to no-op when WP_SSH_HOST is not configured.
+ */
+export function updatePostMetaSsh(postId: number, meta: Record<string, string>): void {
+  if (!ENV.wpSshHost) return;
+
+  const pairs = Object.entries(meta)
+    .map(([k, v]) => `update_post_meta(${postId}, '${k.replace(/'/g, "\\'")}', '${v.replace(/'/g, "\\'")}');`)
+    .join(' ');
+
+  const php = `<?php
+define('DOING_CRON', true);
+$_SERVER['HTTP_HOST'] = 'kadastrmap.info';
+$_SERVER['HTTPS'] = 'on';
+require_once('${ENV.wpSshWpPath}wp-load.php');
+${pairs}
+echo 'ok';
+`;
+
+  const tmpFile = path.join(tmpdir(), `wp_meta_${postId}_${Date.now()}.php`);
+  try {
+    writeFileSync(tmpFile, php);
+    execFileSync('scp', ['-i', `${process.env.HOME}/.ssh/id_ed25519`, '-o', 'StrictHostKeyChecking=no', tmpFile, `${ENV.wpSshHost}:${tmpFile}`], { timeout: 15_000 });
+    execFileSync('ssh', ['-i', `${process.env.HOME}/.ssh/id_ed25519`, '-o', 'StrictHostKeyChecking=no', ENV.wpSshHost, `php7.4 ${tmpFile} && rm -f ${tmpFile}`], { timeout: 30_000 });
+  } finally {
+    try { unlinkSync(tmpFile); } catch { /* ignore */ }
+  }
+}

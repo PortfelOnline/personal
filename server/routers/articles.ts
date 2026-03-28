@@ -11,6 +11,24 @@ import { createContentPost } from "../db";
 import * as articlesDb from "../articles.db";
 import * as wordpressDb from "../wordpress.db";
 
+// ── IndexNow: submit URLs to Yandex + Bing for fast re-indexing ──────────────
+async function submitToIndexNow(url: string): Promise<void> {
+  const key = process.env.INDEXNOW_API_KEY;
+  if (!key) return;
+  const host = (() => { try { return new URL(url).hostname; } catch { return ''; } })();
+  if (!host) return;
+  const body = JSON.stringify({ host, key, keyLocation: `https://${host}/${key}.txt`, urlList: [url] });
+  try {
+    await Promise.all([
+      fetch('https://yandex.com/indexnow', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+      fetch('https://api.indexnow.org/indexnow', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+    ]);
+    console.log(`[IndexNow] Submitted: ${url}`);
+  } catch (err) {
+    console.warn(`[IndexNow] Failed for ${url}:`, err);
+  }
+}
+
 // ── In-memory cache: SERP results + competitor pages (no TTL — lives until server restart) ───
 const serpCache = new Map<string, SerpData>();
 const pageCache = new Map<string, any>();
@@ -50,6 +68,19 @@ const REAL_PRICES = `Актуальные цены kadastrmap.info:
 - Ситуационный план (газификация/электрификация) — 2 490 руб.
 - План поэтажный с экспликацией БТИ — 3 990 руб.
 Срок получения: 5 минут – 24 часа. Получение онлайн (скачать или открыть в личном кабинете), без доставки.`;
+
+// ─── Определяет нужна ли кадастровая карта на странице статьи ────────────────
+// Правило: статьи про просмотр/поиск объектов на карте → outmap=true
+// Статьи про заказ документов (выписки, справки, обременения) → outmap=false
+export function shouldShowMap(slug: string): boolean {
+  const s = slug.toLowerCase().replace(/\//g, '-');
+  return (
+    /\bkarta\b/.test(s) ||                      // любая "karta" в slug
+    /raspolozhenie-po-kadastrovomu/.test(s) ||  // расположение по кадастровому номеру
+    /kadastrovyj-plan.*-po-adresu/.test(s) ||   // кадастровый план по адресу
+    /kadastr-[a-z]+$/.test(s)                   // kadastr-<город> (напр. kadastr-simferopol)
+  );
+}
 
 // ─── WordPress shortcodes — определяются по ключевому запросу статьи ─────────
 function getShortcodesHint(keyword: string): string {
@@ -293,59 +324,73 @@ async function enhanceIfNeeded(
   targetWords = 3500,
   targetFaq = 10,
 ): Promise<string> {
-  const wordCount = countWords(html);
-  const faqItems = (html.match(/<details/gi) || []).length;
-  const hasTable = /<table/i.test(html);
-  const h2Count = (html.match(/<h2\b/gi) || []).length;
-  const hasExternalLinks = /href="https?:\/\/(?!kadastrmap\.info)[^"]+"/i.test(html);
+  const MAX_PASSES = 4;
 
-  const tasks: string[] = [];
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    const wordCount = countWords(html);
+    const faqItems = (html.match(/<details/gi) || []).length;
+    const hasTable = /<table/i.test(html);
+    const h2Count = (html.match(/<h2\b/gi) || []).length;
+    const extLinksCount = (html.match(/href="https?:\/\/(?!kadastrmap\.info)[^"]+"/gi) || []).length;
 
-  if (wordCount < targetWords) {
-    const needed = targetWords - wordCount;
-    // Request 1.5x to compensate for LLM undershoot
-    const wordsToAdd = Math.round(needed * 1.5);
-    const sections = Math.max(3, Math.ceil(wordsToAdd / 250));
-    tasks.push(`Напиши ${sections} новых подробных раздела (<h2>Заголовок</h2><p>минимум 250 слов каждый</p>) которых ещё НЕТ в статье. Суммарно минимум ${wordsToAdd} слов. Используй H2/H3, не H1.`);
+    const tasks: string[] = [];
+
+    if (wordCount < targetWords) {
+      const needed = targetWords - wordCount;
+      const wordsToAdd = Math.round(needed * 1.5);
+      if (h2Count >= 15) {
+        // Enough H2s — expand existing sections instead of adding new headers
+        tasks.push(`Расширь существующие разделы статьи: добавь подробные абзацы (<p>) и подзаголовки <h3> (не H2) внутри уже существующих H2-разделов. Суммарно добавь минимум ${wordsToAdd} слов. Не добавляй новые H2.`);
+      } else {
+        const sections = Math.max(2, Math.ceil(wordsToAdd / 300));
+        tasks.push(`Напиши ${sections} новых подробных раздела (<h2>Заголовок</h2><p>минимум 300 слов каждый</p>) которых ещё НЕТ в статье. Суммарно минимум ${wordsToAdd} слов.`);
+      }
+    }
+    if (faqItems < targetFaq) {
+      const faqNeeded = Math.max(targetFaq - faqItems, 5);
+      tasks.push(`Добавь раздел FAQ: <h2>Часто задаваемые вопросы</h2> с ${faqNeeded} вопросами в формате:\n<details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details>\n(первый элемент с атрибутом open, остальные без него). НЕ используй <h3> для вопросов.`);
+    }
+    if (!hasTable) {
+      tasks.push(`Добавь таблицу <table> сравнения способов получения документа: колонки — Способ/Срок/Стоимость/Удобство. Цены — только через [BLOCK_PRICE].`);
+    }
+    if (h2Count < 7) {
+      tasks.push(`Добавь ${7 - h2Count} новых H2-раздела по теме "${keyword}" которых ещё нет в статье (минимум 300 слов каждый).`);
+    }
+    if (extLinksCount < 2) {
+      const needed = 2 - extLinksCount;
+      tasks.push(`Добавь ${needed === 2 ? 'две внешние ссылки' : 'одну внешнюю ссылку'} на авторитетные источники: <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a>${needed === 2 ? ' и <a href="https://consultantplus.ru">ФЗ-218 "О государственной регистрации недвижимости"</a>' : ''}. Вставь органично в контекст статьи.`);
+    }
+
+    if (tasks.length === 0) break;
+
+    console.log(`[Enhance pass ${pass + 1}] ${keyword}: fixing ${tasks.length} issues (words:${wordCount}/${targetWords}, FAQ:${faqItems}/${targetFaq}, H2:${h2Count}, table:${hasTable}, extLinks:${extLinksCount}/2)`);
+
+    // APPEND approach: generate only new blocks, concatenate to existing html
+    // Use fast 8B model for enhance passes (saves TPD budget for main generation)
+    const enhanceModel = process.env.LLM_ENHANCE_MODEL ?? 'llama-3.1-8b-instant';
+    const response = await invokeLLM({
+      model: enhanceModel,
+      messages: [
+        { role: 'system', content: 'Ты SEO-копирайтер. Генерируешь ДОПОЛНИТЕЛЬНЫЙ HTML-контент для добавления в статью. НЕ пересказывай существующий текст. Используй только H2/H3 (не H1). Цены — через [BLOCK_PRICE]. Все упоминания заказа — ТОЛЬКО через /spravki/. НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа. Возвращай ТОЛЬКО новые HTML-блоки.' },
+        { role: 'user', content: `Тема: "${keyword}". Существующая статья (${wordCount} слов, начало):\n${html.slice(0, 1500)}...\n\nСгенерируй ДОПОЛНИТЕЛЬНЫЙ HTML (не дублируй то что уже есть):\n${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\nВерни ТОЛЬКО новые HTML-блоки без <html>/<body>.` },
+      ],
+      maxTokens: 6000,
+    }).catch(() => null);
+
+    const rawContent = response?.choices[0]?.message.content;
+    const addition = typeof rawContent === 'string'
+      ? rawContent.trim().replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
+      : '';
+    if (!addition || countWords(addition) < 50) break;
+
+    // Insert before conclusion H2, or append at end
+    const conclusionMatch = html.match(/(<h2[^>]*>[^<]*(?:[Вв]ывод|[Зз]аключ)[^<]*<\/h2>)/);
+    html = conclusionMatch
+      ? html.replace(conclusionMatch[0], addition + '\n' + conclusionMatch[0])
+      : html + '\n' + addition;
   }
-  if (faqItems < targetFaq) {
-    const faqNeeded = Math.max(targetFaq - faqItems, 5);
-    tasks.push(`Добавь раздел FAQ: <h2>Часто задаваемые вопросы</h2> с ${faqNeeded} вопросами в формате:\n<details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details>\n(первый элемент с атрибутом open, остальные без него). НЕ используй <h3> для вопросов.`);
-  }
-  if (!hasTable) {
-    tasks.push(`Добавь таблицу <table> сравнения способов получения документа: колонки — Способ/Срок/Стоимость/Удобство. Цены — только через [BLOCK_PRICE].`);
-  }
-  if (h2Count < 7) {
-    tasks.push(`Добавь ${7 - h2Count} новых H2-раздела по теме "${keyword}" которых ещё нет в статье (минимум 250 слов каждый).`);
-  }
-  if (!hasExternalLinks) {
-    tasks.push(`Добавь 2 внешние ссылки на авторитетные источники: <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a> и упоминание ФЗ-218 "О государственной регистрации недвижимости" со ссылкой на официальный текст закона. Вставь органично в контекст.`);
-  }
 
-  if (tasks.length === 0) return html;
-
-  console.log(`[Enhance] ${keyword}: fixing ${tasks.length} issues (words:${wordCount}/${targetWords}, FAQ:${faqItems}/${targetFaq}, H2:${h2Count}, table:${hasTable}, extLinks:${hasExternalLinks})`);
-
-  // APPEND approach: generate only new blocks, concatenate to existing html
-  const response = await invokeLLM({
-    messages: [
-      { role: 'system', content: 'Ты SEO-копирайтер. Генерируешь ДОПОЛНИТЕЛЬНЫЙ HTML-контент для добавления в статью. НЕ пересказывай существующий текст. Используй только H2/H3 (не H1). Цены — через [BLOCK_PRICE]. Все упоминания заказа — ТОЛЬКО через /spravki/. НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа. Возвращай ТОЛЬКО новые HTML-блоки.' },
-      { role: 'user', content: `Тема: "${keyword}". Существующая статья (${wordCount} слов, начало):\n${html.slice(0, 1500)}...\n\nСгенерируй ДОПОЛНИТЕЛЬНЫЙ HTML (не дублируй то что уже есть):\n${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\nВерни ТОЛЬКО новые HTML-блоки без <html>/<body>.` },
-    ],
-    maxTokens: 4096,
-  }).catch(() => null);
-
-  const rawContent = response?.choices[0]?.message.content;
-  const addition = typeof rawContent === 'string'
-    ? rawContent.trim().replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
-    : '';
-  if (!addition || countWords(addition) < 50) return html;
-
-  // Insert before conclusion H2, or append at end
-  const conclusionMatch = html.match(/(<h2[^>]*>[^<]*(?:[Вв]ывод|[Зз]аключ)[^<]*<\/h2>)/);
-  return conclusionMatch
-    ? html.replace(conclusionMatch[0], addition + '\n' + conclusionMatch[0])
-    : html + '\n' + addition;
+  return html;
 }
 
 // ── Extract headings from generated HTML ─────────────────────────────────────
@@ -553,6 +598,35 @@ async function searchWikimediaImages(
       });
   } catch (e: any) {
     console.warn('[Wikimedia] search failed:', e?.message);
+    return [];
+  }
+}
+
+// ── Pexels free image search ─────────────────────────────────────────────────
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY ?? '';
+async function searchPexelsImages(
+  query: string,
+  limit = 6
+): Promise<{ id: number; url: string; width: number; height: number; alt: string; title: string }[]> {
+  if (!PEXELS_API_KEY) return [];
+  try {
+    const params = new URLSearchParams({ query, per_page: String(limit), locale: 'ru-RU' });
+    const resp = await fetch(`https://api.pexels.com/v1/search?${params}`, {
+      headers: { Authorization: PEXELS_API_KEY },
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json() as any;
+    const photos: any[] = data?.photos ?? [];
+    return photos.map((p, idx) => ({
+      id:     -(1000 + idx + 1),  // negative offset to avoid clash with Wikimedia IDs
+      url:    p.src?.large2x || p.src?.large || p.src?.original,
+      width:  p.width || 1200,
+      height: p.height || 800,
+      title:  p.alt || query,
+      alt:    p.alt || query,
+    })).filter(m => m.url);
+  } catch (e: any) {
+    console.warn('[Pexels] search failed:', e?.message);
     return [];
   }
 }
@@ -778,6 +852,9 @@ ${missingTopicsBlock}${lsiBlock}
     googlePos,
     yandexPos,
   });
+
+  // Notify search engines about the updated article
+  void submitToIndexNow(url);
 }
 
 async function runBatchJob(userId: number, urls: string[]): Promise<void> {
@@ -817,11 +894,15 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   const ourDomain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
   const keyword = extractKeywordFromTitle(parsed.title);
 
-  // Google + Яндекс параллельно
-  const [googleSerp, yandexSerp] = await Promise.all([
-    cachedGoogleSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
-    cachedYandexSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
-  ]);
+  // Google + Яндекс параллельно (пропускаем если SKIP_SERP=1 — экономим API-кредиты)
+  const skipSerp = process.env.SKIP_SERP === '1';
+  const emptySerp = { results: [] as any[], error: 'skipped' };
+  const [googleSerp, yandexSerp] = skipSerp
+    ? [emptySerp, emptySerp]
+    : await Promise.all([
+        cachedGoogleSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
+        cachedYandexSerp(keyword).catch(() => ({ results: [] as any[], error: '' })),
+      ]);
 
   // Дедупликация по домену
   const seenDomains = new Set(googleSerp.results.map((r: any) => r.domain));
@@ -919,23 +1000,38 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
     - В разделе про виды или форматы добавь <h3>📱 Срочный отчёт в твоём смартфоне</h3> с описанием мобильного доступа (80-100 слов)
     - В разделе про стоимость добавь <h3>⭐ Отзывы клиентов</h3> с 3-4 краткими отзывами (100-120 слов)
 14. ИЗОБРАЖЕНИЯ: в статье будет ${targetImages} изображений, равномерно после каждого 2-го H2-раздела. Пиши достаточно подробно в каждом H2 — минимум 300 слов — чтобы картинка имела контекст.
+15. ЭМОДЗИ В ТЕКСТЕ: активно используй эмодзи внутри параграфов и списков — минимум 25-35 на всю статью:
+    - 💡 — для советов и лайфхаков ("💡 Совет: ...")
+    - ⚠️ — для предупреждений ("⚠️ Важно: ...")
+    - ✅ — для преимуществ и успешных шагов
+    - 📌 — для ключевых фактов
+    - ★ — для выделения важных выводов
+    - 📊 💰 ⏱️ 🔍 📋 📄 🏠 🏦 — по контексту раздела
+    Эмодзи ставь в начале предложения или перед ключевым словом. В каждом H2-разделе должно быть 2-3 эмодзи в тексте.
 
 Верни ТОЛЬКО HTML без <html>/<body>.`
-    : `Ключ: "${keyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n${lsiBlock}\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${keyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${keyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${keyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${keyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${keyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>Часто задаваемые вопросы</h2>\n[10 вопросов-ответов СТРОГО в формате: <details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details> — первый с атрибутом open, остальные 9 без него. НЕ используй <h3> для вопросов.]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (вставляй как ссылку <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- FAQ ТОЛЬКО через <details class="faq-item">/<summary>, НЕ через <h3>.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
+    : `Ключ: "${keyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n${lsiBlock}\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${keyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${keyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${keyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${keyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${keyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>Часто задаваемые вопросы</h2>\n[10 вопросов-ответов СТРОГО в формате: <details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details> — первый с атрибутом open, остальные 9 без него. НЕ используй <h3> для вопросов.]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (вставляй как ссылку <a>). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- FAQ ТОЛЬКО через <details class="faq-item">/<summary>, НЕ через <h3>.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.\n- ЭМОДЗИ: активно используй в тексте (минимум 25): 💡 советы, ⚠️ предупреждения, ✅ преимущества, 📌 факты, ★ выводы, 📊 💰 ⏱️ по контексту.`;
+
+  // SEO analysis: fast 8B (simple JSON task)
+  // Article generation: best available model for TOP-3 quality
+  const mainModel = process.env.LLM_MAIN_MODEL ?? 'openai/gpt-oss-120b';
+  const seoModel  = process.env.LLM_SEO_MODEL  ?? 'llama-3.1-8b-instant';
 
   const [seoResponse, improvedResponse] = await Promise.all([
     invokeLLM({
+      model: seoModel,
       messages: [
         { role: 'system', content: 'Ты SEO-эксперт по российскому рынку. Отвечай только валидным JSON.' },
         { role: 'user', content: `Ты SEO-эксперт. Проанализируй статью и верни JSON:\nЗаголовок: ${parsed.title}\nКлюч: ${keyword}\nОбъём: ${parsed.wordCount} слов (целевой объём: 3500+ слов)\n\nВерни ТОЛЬКО валидный JSON:\n{"metaTitle":"до 60 симв","metaDescription":"до 160 симв","keywords":["ключ1"],"headingsSuggestions":[],"generalSuggestions":["совет"],"score":75}` },
       ],
     }),
     invokeLLM({
+      model: mainModel,
       messages: [
         { role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Каждый H2-раздел минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен.' },
         { role: 'user', content: improvePrompt },
       ],
-      maxTokens: 8192,
+      maxTokens: 6000,
     }),
   ]);
 
@@ -991,6 +1087,171 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
     googlePos: findPos(googleSerp.results),
     yandexPos: findPos(yandexSerp.results),
   });
+
+  // Auto-publish to WordPress (batch mode: no image generation)
+  await autoPublishToWP(userId, url, seo.metaTitle || parsed.title, improvedContent).catch(
+    (e: any) => console.error(`[WP] Auto-publish failed for ${url}:`, e?.message ?? e)
+  );
+
+  // Notify search engines about the updated article
+  void submitToIndexNow(url);
+}
+
+/**
+ * Find, upload and inject images into article HTML.
+ * Priority: WP Media Library → Pexels → Wikimedia → FLUX generation (if IMAGE_API_KEY set).
+ * Returns updated HTML with images injected after H2s, and the featured media ID.
+ */
+async function findAndInjectImages(
+  siteUrl: string,
+  username: string,
+  appPassword: string,
+  slug: string,
+  title: string,
+  html: string,
+  imagesNeeded = 6,
+): Promise<{ html: string; featuredMediaId: number | undefined }> {
+  const titleKeywords = title
+    .replace(/[-–—:,]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !/^(полное|руководство|как|что|для|при|про|это|инструкция)$/i.test(w))
+    .slice(0, 3)
+    .join(' ');
+
+  // Search all sources in parallel
+  const [libraryImages, pexelsImages, wikimediaImages] = await Promise.all([
+    wp.searchMedia(siteUrl, username, appPassword, titleKeywords, 8)
+      .catch(() => [] as { id: number; url: string; width: number; height: number; alt: string; title: string }[]),
+    searchPexelsImages(titleKeywords, 8)
+      .catch(() => [] as { id: number; url: string; width: number; height: number; alt: string; title: string }[]),
+    searchWikimediaImages(titleKeywords, 6)
+      .catch(() => [] as { id: number; url: string; width: number; height: number; alt: string; title: string }[]),
+  ]);
+
+  console.log(`[Img] WP library: ${libraryImages.length}, Pexels: ${pexelsImages.length}, Wikimedia: ${wikimediaImages.length}`);
+
+  // WP library images need no upload; Pexels and Wikimedia need sideloading
+  const allCandidates = [...libraryImages, ...pexelsImages, ...wikimediaImages];
+
+  // Vision-filter for relevance
+  const relevant = allCandidates.length > 0
+    ? await filterRelevantMedia(title, allCandidates).catch(() => allCandidates.slice(0, imagesNeeded))
+    : [];
+  console.log(`[Img] Relevant after filter: ${relevant.length}/${allCandidates.length}`);
+
+  // Upload external images (id < 0) to WP
+  const uploaded = await Promise.all(
+    relevant.slice(0, imagesNeeded).map(async (m, i) => {
+      if (m.id > 0) return { id: m.id, url: m.url, width: m.width, height: m.height };
+      try {
+        const ext = m.url.match(/\.(jpe?g|png|webp)/i)?.[1] ?? 'jpg';
+        const source = m.id <= -1000 ? 'pexels' : 'wiki';
+        const filename = `${source}-${slug}-${i + 1}.${ext}`;
+        const up = await wp.uploadMediaFromUrl(siteUrl, username, appPassword, m.url, filename);
+        console.log(`[Img] ${source} sideloaded → WP id ${up.id}`);
+        return { id: up.id, url: up.url, width: m.width, height: m.height };
+      } catch (e: any) {
+        console.warn('[Img] upload failed:', e?.message);
+        return null;
+      }
+    })
+  );
+
+  let validMedia = uploaded.filter(Boolean) as { id: number; url: string; width?: number; height?: number }[];
+
+  // Fallback: generate via FLUX if we have fewer than 3 images
+  if (validMedia.length < 3 && process.env.IMAGE_API_KEY) {
+    const dalleNeeded = Math.min(imagesNeeded - validMedia.length, 3);
+    const h2Sections = extractH2Texts(html).slice(0, 9);
+    const prompts = await generateImagePrompts(title, titleKeywords, h2Sections);
+    console.log(`[Img] Generating ${dalleNeeded} FLUX images`);
+    const fluxUploads = await Promise.all(
+      prompts.slice(0, dalleNeeded).map(async (p: string, i: number) => {
+        try {
+          const imgUrl = await generateDallEImage(p);
+          return await wp.uploadMediaFromUrl(siteUrl, username, appPassword, imgUrl, `${slug}-flux-${i + 1}.jpg`);
+        } catch (e: any) {
+          console.warn(`[Img] FLUX[${i}] failed:`, e?.message);
+          return null;
+        }
+      })
+    );
+    validMedia = [...validMedia, ...fluxUploads.filter(Boolean) as { id: number; url: string }[]];
+  }
+
+  if (validMedia.length === 0) {
+    console.log('[Img] No images found, skipping injection');
+    return { html, featuredMediaId: undefined };
+  }
+
+  console.log(`[Img] Injecting ${validMedia.length} images into article`);
+  const htmlWithImages = injectImagesAfterH2s(html, validMedia);
+  return { html: htmlWithImages, featuredMediaId: validMedia[0]?.id };
+}
+
+/**
+ * Publish an article to WordPress automatically (batch mode).
+ * Finds/uploads images from WP Library, Pexels, Wikimedia, or generates via FLUX.
+ */
+async function autoPublishToWP(
+  userId: number,
+  url: string,
+  title: string,
+  content: string,
+): Promise<void> {
+  const accounts = await wordpressDb.getUserWordpressAccounts(userId);
+  const account = accounts[0];
+  if (!account) { console.log(`[WP] No WP account for userId=${userId}, skipping auto-publish`); return; }
+
+  const slug = new URL(url).pathname.replace(/\/$/, '').split('/').pop() || '';
+  if (!slug) { console.log(`[WP] Could not extract slug from ${url}`); return; }
+
+  const post = await wp.findPostBySlug(account.siteUrl, account.username, account.appPassword, slug);
+  if (!post) { console.log(`[WP] Post not found for slug "${slug}", skipping`); return; }
+
+  const ctaUrl = `${account.siteUrl.replace(/\/$/, '')}/spravki/`;
+  const ctaTexts = ['Заказать документ онлайн', 'Получить справку сейчас', 'Проверить объект на kadastrmap.info'];
+  const ctaBlock = (text: string) =>
+    `\n<div style="text-align:center;margin:2em 0 2.5em;">` +
+    `<a href="${ctaUrl}" style="display:inline-block;background:#4CAF50;color:#fff;` +
+    `padding:16px 48px;border-radius:8px;font-size:16px;font-weight:500;text-decoration:none;">` +
+    `${text}</a></div>\n`;
+
+  // Base HTML: beautify + CTAs
+  let htmlContent = replacePriceTableWithShortcode(
+    injectCtasIntoHtml(content, ctaTexts, ctaBlock)
+  );
+
+  // Find and inject images
+  const { html: htmlWithImages, featuredMediaId } = await findAndInjectImages(
+    account.siteUrl, account.username, account.appPassword,
+    slug, title, htmlContent,
+  ).catch((e: any) => {
+    console.warn('[WP] Image injection failed:', e?.message);
+    return { html: htmlContent, featuredMediaId: undefined };
+  });
+  htmlContent = htmlWithImages;
+
+  await wp.updatePost(account.siteUrl, account.username, account.appPassword, post.id, {
+    title,
+    content: htmlContent,
+    categories: detectCategoryIds(url),
+    ...(featuredMediaId ? { featured_media: featuredMediaId } : {}),
+  });
+
+  // Update outsearch + outmap flags via custom WP endpoint
+  const showMap = shouldShowMap(slug);
+  const siteBase = account.siteUrl.replace(/\/$/, '');
+  const auth = 'Basic ' + Buffer.from(`${account.username}:${account.appPassword}`).toString('base64');
+  const axiosInst = (await import('axios')).default;
+  await axiosInst.post(
+    `${siteBase}/wp-json/kadastrmap/v1/post-meta/${post.id}`,
+    { meta: { outsearch: '1', outmap: showMap ? '1' : '0' } },
+    { headers: { Authorization: auth, 'Content-Type': 'application/json' } }
+  ).catch((e: any) => console.warn('[WP] meta update failed:', e?.message));
+  console.log(`[WP] outmap=${showMap} for slug="${slug}"`);
+
+  console.log(`[WP] Published: ${url} → ${account.siteUrl}`);
 }
 
 export async function runBatchRewrite(userId: number, urls: string[]): Promise<void> {
@@ -1202,7 +1463,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
 14. ИЗОБРАЖЕНИЯ: в статье будет ${targetImages} изображений, равномерно после каждого 2-го H2. Пиши каждый H2-раздел полностью (300+ слов) — это обеспечивает контекст для картинки.
 
 Верни ТОЛЬКО HTML без <html>/<body>.`
-        : `Ключ: "${serpKeyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${serpKeyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${serpKeyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${serpKeyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${serpKeyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${serpKeyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>Часто задаваемые вопросы</h2>\n[10 вопросов-ответов СТРОГО в формате: <details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details> — первый с open, остальные 9 без него. НЕ используй <h3> для вопросов.]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (<a>-ссылка). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- FAQ ТОЛЬКО через <details class="faq-item">/<summary>, НЕ через <h3>.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.`;
+        : `Ключ: "${serpKeyword}"\n\nОригинальная статья (${parsed.wordCount} слов):\n${parsed.title}\n${parsed.content.slice(0, 5000)}\n\nНапиши расширенную SEO-статью строго по следующей структуре. Каждый раздел ОБЯЗАТЕЛЕН и должен содержать указанный минимум слов:\n\n<h1>${parsed.title}</h1>\n<p>[Прямой ответ: что такое "${serpKeyword}" — 120-150 слов, featured snippet]</p>\n\n<h2>Что такое ${serpKeyword}</h2>\n<p>[Подробное определение, правовая база, зачем нужно — 200-250 слов]</p>\n\n<h2>Когда требуется ${serpKeyword}</h2>\n<p>[5-7 конкретных случаев с пояснением — 200-250 слов]</p>\n\n<h2>Какие сведения содержит ${serpKeyword}</h2>\n<p>[Список с пояснениями — 200-250 слов, используй <ul>]</p>\n\n<h2>Как заказать ${serpKeyword} онлайн через kadastrmap.info</h2>\n<p>[Пошаговая инструкция заказа через <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 250-300 слов, используй <ol>]</p>\n\n<h2>Сроки и стоимость</h2>\n<p>[Вступление к разделу — 1-2 предложения]</p>\n[BLOCK_PRICE]\n<p>[Краткое пояснение — 60-80 слов]</p>\n\n<h2>Преимущества заказа через kadastrmap.info</h2>\n<p>[Почему удобнее заказать на нашем сайте: скорость, простота, электронная доставка — 200-250 слов]</p>\n\n<h2>Типичные ошибки при заказе</h2>\n<p>[4-5 частых ошибок с советами — 150-200 слов]</p>\n\n<h2>Часто задаваемые вопросы</h2>\n[10 вопросов-ответов СТРОГО в формате: <details class="faq-item" open><summary>Вопрос?</summary><p>Ответ 70-100 слов</p></details> — первый с open, остальные 9 без него. НЕ используй <h3> для вопросов.]\n\n<h2>Вывод</h2>\n<p>[Итог + CTA: заказать на <a href="/spravki/">base.kadastrmap.info/spravki/</a> — 100-120 слов]</p>\n\nПравила:\n- Все упоминания заказа документов — ТОЛЬКО через /spravki/ (<a>-ссылка). НЕ упоминай Росреестр, Госуслуги, МФЦ как способы заказа.\n- Конкретные факты, законы РФ, сроки. Цены — ТОЛЬКО через [BLOCK_PRICE], не вставляй цифры.\n- FAQ ТОЛЬКО через <details class="faq-item">/<summary>, НЕ через <h3>.\n- Только HTML без <html>/<body>.\n- Не сокращай разделы — каждый должен быть полным.\n- ЭМОДЗИ: активно используй в тексте (минимум 25): 💡 советы, ⚠️ предупреждения, ✅ преимущества, 📌 факты, ★ выводы, 📊 💰 ⏱️ по контексту.`;
 
       const [seoResponse, improvedResponse] = await Promise.all([
         invokeLLM({
@@ -1216,7 +1477,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
             { role: "system", content: "Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Никогда не сокращай разделы — каждый H2 минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен в рублях." },
             { role: "user", content: improvePrompt },
           ],
-          maxTokens: 8192,
+          maxTokens: 6000,
         }),
       ]);
 
@@ -1601,7 +1862,7 @@ ${competitorList}
 
 Верни ТОЛЬКО HTML-текст: <h1>, <h2>, <h3>, <p>, <ul>, <ol>, <li>, <table>, <strong>, <em>. Без <html>/<body> тегов.` },
         ],
-        maxTokens: 8192,
+        maxTokens: 6000,
       });
 
       const improvedContent = typeof response.choices[0]?.message.content === 'string'
@@ -1737,7 +1998,7 @@ ${competitorContext}
           { role: 'system', content: 'Ты SEO-копирайтер. Пишешь длинные экспертные статьи для топа поиска. Всегда возвращаешь только HTML.' },
           { role: 'user', content: prompt },
         ],
-        maxTokens: 8192,
+        maxTokens: 6000,
       });
 
       const articleHtml = typeof response.choices[0]?.message.content === 'string'
@@ -2606,7 +2867,7 @@ ${competitorSection}
           { role: 'system', content: 'Ты SEO-эксперт. Анализируй реальные данные. Отвечай только валидным JSON-массивом.' },
           { role: 'user', content: prompt },
         ],
-        maxTokens: 8192,
+        maxTokens: 6000,
       });
 
       let keywords: any[] = [];
@@ -2718,6 +2979,49 @@ ${competitorSection}
       return articlesDb.getArticleVersions(ctx.user.id, input.url);
     }),
 
+  getLibrarySerpData: protectedProcedure
+    .query(async ({ ctx }) => {
+      const library = await articlesDb.getLibrary(ctx.user.id);
+      return library
+        .filter(e => e.googlePos !== null || e.yandexPos !== null)
+        .map(e => ({
+          url: e.url,
+          title: e.improvedTitle || e.originalTitle,
+          googlePos: e.googlePos,
+          yandexPos: e.yandexPos,
+          checkedAt: e.latestCreatedAt.toISOString(),
+        }));
+    }),
+
+  auditImprovedArticles: protectedProcedure
+    .query(async ({ ctx }) => {
+      const library = await articlesDb.getLibrary(ctx.user.id);
+      const results = await Promise.all(
+        library
+          .filter(entry => entry.latestId > 0)
+          .map(async (entry) => {
+            const analysis = await articlesDb.getAnalysisById(ctx.user.id, entry.latestId);
+            if (!analysis?.improvedContent) return null;
+            const report = checkArticleQuality(analysis.improvedContent, entry.url, 2800, 10);
+            return {
+              ...report,
+              title: entry.improvedTitle || entry.originalTitle,
+              id: entry.latestId,
+            };
+          })
+      );
+      const filtered = results.filter(Boolean) as (ArticleQualityReport & { title: string; id: number })[];
+      const pass = filtered.filter(r => r.pass).length;
+      return {
+        results: filtered,
+        stats: {
+          total: filtered.length,
+          pass,
+          fail: filtered.length - pass,
+        },
+      };
+    }),
+
 });
 // ROUTER_END — do not remove this marker
 
@@ -2802,7 +3106,7 @@ function beautifyArticleHtml(html: string): string {
     if (/^\p{Emoji}/u.test(text.trim())) return;
     const emoji = pickHeadingEmoji(text);
     $(h2).replaceWith(
-      `<h2 style="text-align:left;` +
+      `<h2 style="text-align:center;` +
       `margin:2em 0 0.75em;font-size:1.35em;font-weight:700;line-height:1.3;color:#1a202c;">` +
       `${emoji} ${inner}</h2>`
     );
@@ -2815,7 +3119,7 @@ function beautifyArticleHtml(html: string): string {
     if (/^\p{Emoji}/u.test(text.trim())) return;
     const emoji = pickHeadingEmoji(text);
     $(h3).replaceWith(
-      `<h3 style="color:#166534;font-size:1.1em;font-weight:600;margin:1.5em 0 0.5em;">` +
+      `<h3 style="color:#166534;font-size:1.1em;font-weight:600;margin:1.5em 0 0.5em;text-align:center;">` +
       `${emoji} ${inner}</h3>`
     );
   });

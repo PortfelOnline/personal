@@ -1611,6 +1611,36 @@ function SerpMonitor({ onAnalyze }: { onAnalyze: (url: string) => void }) {
   const isRunRef     = useRef(false);
   const PAGE = 50;
 
+  // Auto-sync positions from library (DB) into localStorage SERP cache on mount
+  const { data: libSerpData } = trpc.articles.getLibrarySerpData.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+  useEffect(() => {
+    if (!libSerpData || libSerpData.length === 0) return;
+    setCache(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const entry of libSerpData) {
+        const existing = prev[entry.url];
+        // Only overwrite if DB entry is newer or missing
+        if (!existing || new Date(entry.checkedAt) > new Date(existing.checkedAt)) {
+          next[entry.url] = {
+            keyword: existing?.keyword || extractKeyword(entry.title),
+            googlePos: entry.googlePos,
+            yandexPos: entry.yandexPos,
+            googleError: null,
+            yandexError: null,
+            topCompetitors: existing?.topCompetitors ?? [],
+            checkedAt: entry.checkedAt,
+          };
+          changed = true;
+        }
+      }
+      if (changed) saveSerpCache(next);
+      return changed ? next : prev;
+    });
+  }, [libSerpData]);
+
   const articles = loadCachedArticles();
 
   const { mutate: checkPos } = trpc.articles.checkPosition.useMutation({
@@ -3471,6 +3501,13 @@ export default function ArticleAnalyzer() {
     { enabled: !!libraryVersionUrl }
   );
 
+  const [qaEnabled, setQaEnabled] = useState(false);
+  const [qaFilter, setQaFilter] = useState<'all' | 'pass' | 'fail'>('all');
+  const { data: qaReport, isFetching: qaLoading, refetch: refetchQa } = trpc.articles.auditImprovedArticles.useQuery(
+    undefined,
+    { enabled: qaEnabled, staleTime: 0 }
+  );
+
   const filteredLibrary = useMemo(() => {
     let items = [...library];
     if (libSearch) {
@@ -3896,6 +3933,75 @@ export default function ArticleAnalyzer() {
                       </div>
                     </>
                   )}
+
+                  {/* QA улучшенных статей */}
+                  <div className="mt-6 border-t pt-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          <ClipboardList className="w-4 h-4 text-orange-500" />
+                          QA улучшенных статей
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Проверка всех сохранённых статей по стандарту: слова, FAQ, H2, таблица, внешние ссылки</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={qaLoading}
+                        onClick={() => { setQaEnabled(true); refetchQa(); }}
+                        className="gap-1.5"
+                      >
+                        {qaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ClipboardList className="w-3.5 h-3.5" />}
+                        {qaLoading ? 'Проверяю...' : 'Проверить все'}
+                      </Button>
+                    </div>
+
+                    {qaReport && (
+                      <>
+                        <div className="flex gap-3 mb-3 text-sm">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">{qaReport.stats.total} статей</span>
+                          <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">✅ {qaReport.stats.pass} OK</span>
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">❌ {qaReport.stats.fail} проблем</span>
+                          <div className="ml-auto flex gap-1.5">
+                            {(['all', 'pass', 'fail'] as const).map(f => (
+                              <button
+                                key={f}
+                                onClick={() => setQaFilter(f)}
+                                className={`px-2 py-0.5 rounded-full text-xs border transition-colors ${
+                                  qaFilter === f ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                                }`}
+                              >
+                                {f === 'all' ? 'Все' : f === 'pass' ? '✅ OK' : '❌ Проблемы'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 max-h-96 overflow-y-auto pr-1">
+                          {qaReport.results
+                            .filter(r => qaFilter === 'all' || (qaFilter === 'pass' ? r.pass : !r.pass))
+                            .map(r => (
+                              <div
+                                key={r.id}
+                                className={`rounded-lg border px-3 py-2 text-sm flex items-start gap-2 ${r.pass ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+                              >
+                                <span className="shrink-0 mt-0.5">{r.pass ? '✅' : '❌'}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-slate-800 truncate">{r.title}</p>
+                                  <p className="text-xs text-slate-500 truncate">{r.url}</p>
+                                  {!r.pass && r.issues.length > 0 && (
+                                    <p className="text-xs text-red-600 mt-0.5">{r.issues.join(' · ')}</p>
+                                  )}
+                                </div>
+                                <div className="shrink-0 text-xs text-slate-400 text-right whitespace-nowrap">
+                                  <div>{r.wordCount} сл.</div>
+                                  <div>{r.faqCount} FAQ · {r.h2Count} H2</div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 

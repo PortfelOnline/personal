@@ -62,6 +62,7 @@ export type InvokeParams = {
   tool_choice?: ToolChoice;
   maxTokens?: number;
   max_tokens?: number;
+  model?: string;
   outputSchema?: OutputSchema;
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
@@ -280,7 +281,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   } = params;
 
   const payload: Record<string, unknown> = {
-    model: "gpt-4o",
+    model: params.model ?? (process.env.LLM_DEFAULT_MODEL ?? "llama-3.3-70b-versatile"),
     messages: messages.map(normalizeMessage),
   };
 
@@ -309,21 +310,42 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const MAX_RETRIES = 8;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const response = await fetch(resolveApiUrl(), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
+    if (response.ok) {
+      return (await response.json()) as InvokeResult;
+    }
+
     const errorText = await response.text();
-    throw new Error(
-      `LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`
-    );
+
+    // Rate limit — parse retry-after and wait
+    // Groq returns formats like "try again in 30s" or "try again in 6m9.792s"
+    if (response.status === 429 && attempt < MAX_RETRIES - 1) {
+      let waitMs = 60000; // default 60s
+      try {
+        const match = errorText.match(/try again in (?:(\d+)m)?(?:([\d.]+)s)?/i);
+        if (match && (match[1] || match[2])) {
+          const mins = parseFloat(match[1] || '0');
+          const secs = parseFloat(match[2] || '0');
+          waitMs = Math.ceil((mins * 60 + secs) * 1000) + 3000;
+        }
+      } catch {}
+      console.warn(`[LLM] 429 rate limit — waiting ${Math.round(waitMs/1000)}s (attempt ${attempt + 1}/${MAX_RETRIES})`);
+      await new Promise(r => setTimeout(r, waitMs));
+      continue;
+    }
+
+    throw new Error(`LLM invoke failed: ${response.status} ${response.statusText} – ${errorText}`);
   }
 
-  return (await response.json()) as InvokeResult;
+  throw new Error('LLM invoke failed: max retries exceeded');
 }
