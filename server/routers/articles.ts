@@ -499,15 +499,42 @@ async function filterRelevantMedia(
           content: `Тема статьи: "${topic}"\n\nОцени каждое изображение от 1 до 10 по релевантности теме. 10 = идеально подходит, 1 = совсем не по теме. Верни JSON: [{"i":1,"score":X,"reason":"..."},...]\n\nИзображения:\n${imageList}`,
         },
       ],
-      maxTokens: 400,
+      maxTokens: 1200,
     });
 
     const raw = resp.choices[0]?.message.content;
     const text = typeof raw === 'string' ? raw : '';
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No JSON array in response');
+    // Strip markdown code fences if present
+    const stripped = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
 
-    const scores = JSON.parse(jsonMatch[0]) as { i: number; score: number; reason: string }[];
+    // Extract first complete JSON array or object using bracket counting
+    function extractFirstJson(s: string, open: string, close: string): string | null {
+      const start = s.indexOf(open);
+      if (start === -1) return null;
+      let depth = 0;
+      for (let i = start; i < s.length; i++) {
+        if (s[i] === open) depth++;
+        else if (s[i] === close) { depth--; if (depth === 0) return s.slice(start, i + 1); }
+      }
+      return null;
+    }
+
+    let scores: { i: number; score: number; reason: string }[];
+    const arrStr = extractFirstJson(stripped, '[', ']');
+    if (arrStr) {
+      scores = JSON.parse(arrStr);
+    } else {
+      const objStr = extractFirstJson(stripped, '{', '}');
+      if (objStr) {
+        const obj = JSON.parse(objStr) as Record<string, unknown>;
+        const arr = Object.values(obj).find(v => Array.isArray(v));
+        if (!arr) throw new Error('No JSON array in response');
+        scores = arr as { i: number; score: number; reason: string }[];
+      } else {
+        console.warn('[Images] No JSON in response, using top candidates as fallback');
+        return media.slice(0, 5).map(m => ({ id: m.id, url: m.url, width: m.width, height: m.height }));
+      }
+    }
     const relevant = scores.filter(s => s.score >= minScore);
     console.log('[Images] Relevance scores:', scores.map(s => `img${s.i}:${s.score}`).join(', '));
 
