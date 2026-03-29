@@ -109,6 +109,26 @@ export interface SeoAnalysis {
   score: number;
 }
 
+export interface CompetitorMetricItem {
+  position: number;
+  domain: string;
+  title: string;
+  url: string;
+  wordCount: number;
+  h2Count: number;
+  h3Count: number;
+  faqCount: number;
+  hasTable: boolean;
+}
+
+export interface ArticleComparison {
+  serpKeyword: string;
+  our: { wordCount: number; h2Count: number; h3Count: number; faqCount: number; hasTable: boolean };
+  competitors: CompetitorMetricItem[];
+  targetWords: number;
+  targetFaq: number;
+}
+
 export interface ArticleAnalysisResult {
   analysisId: number | null;
   originalTitle: string;
@@ -119,6 +139,7 @@ export interface ArticleAnalysisResult {
   improvedTitle: string;
   improvedContent: string;
   seo: SeoAnalysis;
+  comparison?: ArticleComparison;
 }
 
 // ── Server-side Batch Analysis ───────────────────────────────────────────────
@@ -1549,16 +1570,42 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
         console.error('[Articles] Failed to save to history:', err);
       }
 
+      // Build comparison: our improved article vs competitors
+      const improvedHeadings = extractHeadingsFromHtml(improvedContent);
+      const ourH2 = improvedHeadings.filter(h => h.level === 'H2').length;
+      const ourH3 = improvedHeadings.filter(h => h.level === 'H3').length;
+      const ourFaq = (improvedContent.match(/<details\b/gi) || []).length;
+      const ourTable = /<table\b/i.test(improvedContent);
+
+      const comparison: ArticleComparison = {
+        serpKeyword,
+        our: { wordCount: improvedWordCount, h2Count: ourH2, h3Count: ourH3, faqCount: ourFaq, hasTable: ourTable },
+        competitors: competitors.map(c => ({
+          position: c.position,
+          domain: c.domain,
+          title: c.title,
+          url: (mergedSerpResults.find(r => r.domain === c.domain) as any)?.url ?? '',
+          wordCount: c.wordCount,
+          h2Count: (c.headings || '').split(' | ').filter((h: string) => h.startsWith('H2:')).length,
+          h3Count: (c.headings || '').split(' | ').filter((h: string) => h.startsWith('H3:')).length,
+          faqCount: c.faqCount,
+          hasTable: c.hasTable,
+        })),
+        targetWords,
+        targetFaq,
+      };
+
       return {
         analysisId,
         originalTitle: parsed.title,
         originalContent: parsed.content,
         originalMetaDescription: parsed.metaDescription,
-        headings: extractHeadingsFromHtml(improvedContent),
+        headings: improvedHeadings,
         wordCount: improvedWordCount,
         improvedTitle: seo.metaTitle || parsed.title,
         improvedContent,
         seo,
+        comparison,
       };
     }),
 

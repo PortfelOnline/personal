@@ -17,6 +17,26 @@ import {
 import { toast } from 'sonner';
 import DashboardLayout from '@/components/DashboardLayout';
 
+type CompetitorMetricItem = {
+  position: number;
+  domain: string;
+  title: string;
+  url: string;
+  wordCount: number;
+  h2Count: number;
+  h3Count: number;
+  faqCount: number;
+  hasTable: boolean;
+};
+
+type ArticleComparison = {
+  serpKeyword: string;
+  our: { wordCount: number; h2Count: number; h3Count: number; faqCount: number; hasTable: boolean };
+  competitors: CompetitorMetricItem[];
+  targetWords: number;
+  targetFaq: number;
+};
+
 type AnalysisResult = {
   analysisId: number | null;
   originalTitle: string;
@@ -35,6 +55,7 @@ type AnalysisResult = {
     competitorInsights?: string[];
     score: number;
   };
+  comparison?: ArticleComparison;
 };
 
 type CatalogArticle = { url: string; title: string };
@@ -582,6 +603,92 @@ function PublishToSiteDialog({
   ) : null;
 }
 
+function ArticleComparisonTable({ cmp }: { cmp: ArticleComparison }) {
+  if (!cmp.competitors.length) return null;
+
+  const cols: { key: keyof typeof cmp.our; label: string; fmt?: (v: number | boolean) => string }[] = [
+    { key: 'wordCount', label: 'Слов', fmt: (v) => (v as number).toLocaleString() },
+    { key: 'h2Count',   label: 'H2' },
+    { key: 'h3Count',   label: 'H3' },
+    { key: 'faqCount',  label: 'FAQ' },
+    { key: 'hasTable',  label: 'Табл', fmt: (v) => (v ? '✓' : '—') },
+  ];
+
+  const beat = (key: keyof typeof cmp.our) => {
+    if (key === 'hasTable') return cmp.our.hasTable;
+    const ours = cmp.our[key] as number;
+    const maxC = Math.max(...cmp.competitors.map(c => c[key] as number));
+    return ours >= maxC;
+  };
+
+  return (
+    <Card className="border-l-4 border-l-blue-400">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-blue-500" />
+          Наша статья vs конкуренты — «{cmp.serpKeyword}»
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b text-slate-500">
+              <th className="text-left py-1 pr-3 font-medium min-w-[130px]">Источник</th>
+              {cols.map(c => <th key={c.key} className="text-right py-1 pr-2 font-medium">{c.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {/* Our row */}
+            <tr className="border-b bg-blue-50 font-semibold">
+              <td className="py-1.5 pr-3 text-blue-800">⭐ Наша статья</td>
+              {cols.map(c => {
+                const val = cmp.our[c.key];
+                const wins = beat(c.key);
+                const display = c.fmt ? c.fmt(val as number) : String(val);
+                return (
+                  <td key={c.key} className={`py-1.5 pr-2 text-right font-mono ${wins ? 'text-green-700' : 'text-red-600'}`}>
+                    {wins ? '✓ ' : '✗ '}{display}
+                  </td>
+                );
+              })}
+            </tr>
+            {/* Competitor rows */}
+            {cmp.competitors.map((c, i) => (
+              <tr key={i} className="border-b last:border-0 hover:bg-slate-50">
+                <td className="py-1.5 pr-3">
+                  <a href={c.url} target="_blank" rel="noopener noreferrer"
+                    className="text-blue-700 hover:underline truncate block max-w-[150px]" title={c.title}>
+                    #{c.position} {c.domain}
+                  </a>
+                </td>
+                {cols.map(col => {
+                  const val = c[col.key as keyof CompetitorMetricItem];
+                  const display = col.fmt ? col.fmt(val as number) : String(val);
+                  const isMax = col.key !== 'hasTable' && (val as number) === Math.max(...cmp.competitors.map(x => x[col.key as keyof CompetitorMetricItem] as number));
+                  return (
+                    <td key={col.key} className={`py-1.5 pr-2 text-right font-mono ${isMax ? 'font-bold text-orange-600' : 'text-slate-600'}`}>
+                      {display}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            {/* Target row */}
+            <tr className="bg-green-50 border-t-2 border-green-200">
+              <td className="py-1.5 pr-3 text-green-700 font-semibold">🎯 Цель</td>
+              <td className="py-1.5 pr-2 text-right font-mono font-bold text-green-700">{cmp.targetWords.toLocaleString()}+</td>
+              <td className="py-1.5 pr-2 text-right font-mono text-green-700">8+</td>
+              <td className="py-1.5 pr-2 text-right font-mono text-green-700">—</td>
+              <td className="py-1.5 pr-2 text-right font-mono font-bold text-green-700">{cmp.targetFaq}+</td>
+              <td className="py-1.5 pr-2 text-right text-green-700">✓</td>
+            </tr>
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ScoreBadge({ score }: { score: number }) {
   const color =
     score >= 70 ? 'bg-green-100 text-green-800' :
@@ -709,6 +816,8 @@ function AnalysisPanel({
           </Button>
         </div>
       </div>
+
+      {result.comparison && <ArticleComparisonTable cmp={result.comparison} />}
 
       <Tabs defaultValue="improved">
         <TabsList className="grid w-full grid-cols-4">
