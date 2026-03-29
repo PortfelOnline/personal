@@ -32,10 +32,18 @@ const FALLBACK_TRENDS_IN = [
 const CONTENT_SYSTEM_PROMPT = `You are a high-converting social media copywriter for get-my-agent.com.
 Product: AI chatbot for Indian small businesses on WhatsApp, Instagram, and websites.
 Pricing: from ₹999/month. Features: 24/7 instant replies (<3 seconds), automatic lead capture to CRM, all platforms.
+
+VIRAL CONTENT PRINCIPLES (apply to every post):
+- DM shares are the #1 algorithm signal for reaching NEW audiences. Write content so good a business owner MUST forward it to a friend.
+- The first 3 seconds determine everything: 50% of viewers leave before second 4. Open with the pain, not the solution.
+- Saves signal depth. Give info so useful the reader MUST save it.
+- Use PAS (Problem → Agitate → Solution) or HSO (Hook → Story → Offer) structure. Never lead with the product.
+- Front-load the result: state the transformation/outcome first, explain how second.
+
 Rules:
 - Write ONLY in English. No Hindi, Hinglish, or regional language words.
 - Be specific: use the exact industry, scenario, and ₹ amounts provided — do NOT genericise.
-- Make content feel real and relatable, not like a marketing brochure.
+- Make content feel like a real business owner sharing a lesson, not a marketing brochure.
 - CRITICAL: Respond with valid JSON only. No markdown code fences. No text outside the JSON.`;
 
 // ── Industries ──────────────────────────────────────────────────────────────
@@ -290,66 +298,66 @@ const PILLAR_CONTEXT = {
 // ── Format schemas ───────────────────────────────────────────────────────────
 
 const FORMAT_SCHEMAS = {
-  carousel: `Create a 6-slide Instagram Carousel. Return exactly this JSON (no other text):
+  carousel: `Create a 6-slide Instagram Carousel. Structure: PAS (Problem → Agitate → Solution). Goal: maximum SAVES — give info so useful they must save it to refer back. Return exactly this JSON (no other text):
 {
   "slides": [
-    {"num": 1, "label": "Cover", "headline": "scroll-stopping headline 6 words max — use the specific industry scenario", "sub": "compelling subtitle 10 words max"},
+    {"num": 1, "label": "Cover", "headline": "scroll-stopping headline 6 words max — use the specific industry scenario", "sub": "Save this — every [industry] owner needs to know"},
     {"num": 2, "label": "The Problem", "headline": "specific problem headline for this industry", "points": ["industry-specific pain 1 with ₹ or time cost", "industry-specific pain 2", "industry-specific pain 3"]},
-    {"num": 3, "label": "The Reality", "headline": "reality-check headline", "stat": "shocking specific statistic relevant to this industry", "context": "one sentence of context"},
-    {"num": 4, "label": "The Solution", "headline": "solution headline", "points": ["benefit 1 with ₹ or number", "benefit 2 with ₹ or number", "benefit 3 with ₹ or number"]},
+    {"num": 3, "label": "The Reality", "headline": "reality-check headline", "stat": "shocking specific statistic relevant to this industry (real or realistically estimated)", "context": "one sentence making this stat personal to the reader"},
+    {"num": 4, "label": "The Solution", "headline": "solution headline", "points": ["benefit 1 with specific ₹ or number", "benefit 2 with specific ₹ or number", "benefit 3 with specific ₹ or number"]},
     {"num": 5, "label": "Results", "headline": "results headline", "quote": "specific customer result matching THIS industry — exact ₹ amount recovered, exact time period", "source": "THIS industry type + city (e.g. for gym: 'Gym owner, Pune' — NEVER use saree shop or generic retail)"},
-    {"num": 6, "label": "Get Started", "headline": "action-oriented headline", "sub": "Try free → get-my-agent.com"}
+    {"num": 6, "label": "Share", "headline": "Know a [industry owner] who needs to see this?", "sub": "Save & send → get-my-agent.com"}
   ],
-  "caption": "Instagram caption — hook sentence using the industry scenario, value prop, CTA — 150 chars max",
-  "hashtags": ["IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "AIAgent", "IndianEntrepreneur", "SmallBusiness", "CustomerService", "BusinessGrowth", "WhatsAppBusiness", "DigitalIndia"]
+  "caption": "Carousel caption — open with the pain scenario (PAS hook), 2 punchy lines of value, CTA to save — 150 chars max",
+  "hashtags": ["IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "IndianEntrepreneur", "SmallBusiness"]
 }`,
 
-  reel: `Create a 30-45 second Instagram Reel script. Return exactly this JSON (no other text):
+  reel: `Create a 30-45 second Instagram Reel script. Structure: HSO (Hook → Story → Offer). CRITICAL GOAL: make it so DM-shareable that a viewer MUST forward it to another business owner — DM shares are the #1 algorithm signal for new reach. Return exactly this JSON (no other text):
 {
   "sections": [
-    {"time": "0:00-0:03", "label": "HOOK", "visual": "what is shown — use specific industry setting", "audio": "exact shocking opening words using the industry scenario"},
-    {"time": "0:03-0:12", "label": "PROBLEM", "visual": "visual showing the specific missed message / lost sale", "audio": "specific relatable moment for this industry in 2 sentences"},
-    {"time": "0:12-0:25", "label": "SOLUTION", "visual": "show AI agent responding instantly on phone screen", "audio": "how AI agent solves it with specific ₹ or time numbers"},
-    {"time": "0:25-0:35", "label": "PROOF", "visual": "specific numbers or result for this industry on screen", "audio": "specific measurable result relevant to this industry"},
-    {"time": "0:35-0:45", "label": "CTA", "visual": "get-my-agent.com on screen", "audio": "single clear action with urgency"}
+    {"time": "0:00-0:03", "label": "HOOK", "visual": "extreme close-up of missed message notification on phone screen — specific industry", "audio": "THE FIRST 3 SECONDS must stop the scroll instantly — start with the ₹ loss or the exact missed moment, no intro, no greeting. E.g. 'You just lost ₹8,000 while you slept.' or 'That enquiry you missed? They booked your competitor.'"},
+    {"time": "0:03-0:15", "label": "STORY", "visual": "split screen: business owner busy/sleeping, customer moving to competitor", "audio": "tell the specific story for this industry — the real moment of loss — make the viewer think 'that's me' in 2-3 short sentences"},
+    {"time": "0:15-0:28", "label": "SOLUTION", "visual": "phone screen: WhatsApp/Instagram DM getting instant reply in under 3 sec", "audio": "reveal the solution with a specific transformation number — before vs after"},
+    {"time": "0:28-0:38", "label": "PROOF", "visual": "results card: ₹ amount recovered, time saved, for this exact industry", "audio": "one specific result that makes the viewer think 'I need this'"},
+    {"time": "0:38-0:45", "label": "OFFER", "visual": "get-my-agent.com on screen", "audio": "single CTA with urgency — make it feel like they're missing out right now"}
   ],
-  "voiceover": "complete 45-second spoken script as one paragraph — use the specific industry scenario throughout",
+  "voiceover": "complete 45-second spoken script as one continuous paragraph — open with the ₹ loss or missed moment (no intro), tell the story, reveal the solution with numbers, end with urgency",
   "text_overlays": [
-    "shocking stat or loss amount — 5 words max (e.g. '₹20,000 lost in 1 missed reply')",
-    "the specific problem — 5 words max (e.g. '35% of bookings go to competitors')",
-    "the solution — 5 words max (e.g. 'AI replies in under 3 seconds')",
-    "the result — 5 words max (e.g. 'recover ₹38,000 in 30 days')",
-    "the CTA — 5 words max (e.g. 'start free at ₹999/month')"
+    "₹ loss amount in 5 words (e.g. '₹20,000 lost while sleeping')",
+    "the painful problem in 5 words (e.g. '35% bookings go to competitors')",
+    "the solution in 5 words (e.g. 'AI replies in 3 seconds')",
+    "the result in 5 words (e.g. 'recover ₹38,000 in 30 days')",
+    "the urgency CTA in 5 words (e.g. 'start free at ₹999/month')"
   ],
-  "caption": "reel caption — industry-specific hook line + 2 punchy sentences + CTA + get-my-agent.com",
-  "hashtags": ["Reels", "IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "BusinessTips", "IndianEntrepreneur", "WhatsAppMarketing", "DigitalMarketing", "GrowthHack", "AIAgent"]
+  "caption": "Caption written to get DM shares: open with the pain hook, 2 lines of value, end with 'Send this to a [industry] owner who needs to see it 👇' — then CTA + get-my-agent.com",
+  "hashtags": ["Reels", "IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "IndianEntrepreneur"]
 }
-IMPORTANT: text_overlays must be SHORT punchy phrases (5 words max each). Do NOT include labels like "HOOK:" or "PROBLEM:" in the overlay text itself.`,
+IMPORTANT: text_overlays must be SHORT punchy phrases (5 words max each). Do NOT include labels like "HOOK:" or "PROBLEM:" in the overlay text itself. The first overlay must state the ₹ loss — numbers stop scrolling.`,
 
-  story: `Create a 3-frame Instagram Story sequence. Return exactly this JSON (no other text):
+  story: `Create a 3-frame Instagram Story sequence. Goal: maximum REPLIES and DM conversations — Stories build intimacy and drive direct leads. Return exactly this JSON (no other text):
 {
   "frames": [
-    {"num": 1, "label": "Hook", "emoji": "industry-relevant emoji", "main_text": "4-word max statement using industry scenario", "sub_text": "one specific detail (₹ amount or time)"},
-    {"num": 2, "label": "Content", "emoji": "relevant emoji", "main_text": "content headline", "sub_text": "brief context", "list": ["industry-specific point 1 with number", "industry-specific point 2", "industry-specific point 3"]},
-    {"num": 3, "label": "CTA", "emoji": "🚀", "main_text": "action headline", "sub_text": "get-my-agent.com", "button_text": "Try Free →"}
+    {"num": 1, "label": "Hook", "emoji": "industry-relevant emoji", "main_text": "4-word max statement using industry scenario — must feel like a personal confession or shocking fact", "sub_text": "specific ₹ loss or time stat that makes them stop"},
+    {"num": 2, "label": "Insight", "emoji": "relevant emoji", "main_text": "the key lesson — feels like advice from a trusted friend, not a brand", "sub_text": "brief context", "list": ["industry-specific actionable point 1 with number", "industry-specific actionable point 2", "industry-specific actionable point 3"]},
+    {"num": 3, "label": "Conversation", "emoji": "💬", "main_text": "personal question that makes them want to reply", "sub_text": "get-my-agent.com", "button_text": "Reply & tell me →"}
   ],
-  "poll": {"question": "industry-specific poll question", "yes": "relatable yes option", "no": "honest no option"},
-  "question_sticker": "open question to drive DMs from this type of business owner"
+  "poll": {"question": "industry-specific poll — make it so obvious/relatable they MUST vote (yes = their current reality)", "yes": "relatable honest yes (their current pain)", "no": "the aspirational no they want"},
+  "question_sticker": "personal open question that a [industry owner] would answer immediately — focus on their biggest daily frustration, not a generic question"
 }`,
 
-  feed_post: `Create a social media Feed Post. Return exactly this JSON (no other text):
+  feed_post: `Create a social media Feed Post using PAS structure (Problem → Agitate → Solution). Research shows posts with 3-5 hashtags outperform hashtag-heavy posts by 23% in organic reach. Return exactly this JSON (no other text):
 {
-  "hook": "first line using the EXACT industry scenario — stops the scroll in under 10 words",
+  "hook": "PROBLEM — first line using the EXACT industry scenario — the specific missed message, lost sale, or painful moment — under 10 words — must make the reader think 'that's happened to me'",
   "paragraphs": [
-    "paragraph 1: describe the specific industry pain in vivid detail — 2-3 sentences with ₹ loss",
-    "paragraph 2: introduce the solution with specifics for this industry — 2-3 sentences",
-    "paragraph 3: paint the after picture — specific measurable result for this industry type — 2-3 sentences"
+    "AGITATE — twist the knife: describe exactly what that missed enquiry COST them (₹ loss, lost customer to competitor, repeat pattern) — 2-3 sentences that make the pain undeniable",
+    "SOLUTION — reveal the fix with specifics: how AI agent solves it for THIS industry, with exact response time (<3 sec), 24/7 coverage, and ₹ savings — 2-3 sentences",
+    "RESULT — paint the after picture: specific measurable transformation for THIS industry — ₹ recovered per month, leads captured, hours saved — make them see the future — 2-3 sentences"
   ],
-  "cta": "single clear action sentence with urgency",
-  "caption": "full ready-to-post caption — hook + all paragraphs + CTA — 300 words max, with line breaks between paragraphs",
-  "hashtags": ["IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "AIAgent", "IndianEntrepreneur", "SmallBusiness", "CustomerService", "BusinessAutomation", "WhatsAppBusiness", "BusinessGrowth"]
+  "cta": "single action with urgency — make it feel like they're losing money every day they wait",
+  "caption": "full ready-to-post caption following PAS: hook line, blank line, agitate paragraph, blank line, solution paragraph, blank line, result paragraph, blank line, cta — 300 words max",
+  "hashtags": ["IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "IndianEntrepreneur", "SmallBusiness"]
 }
-IMPORTANT: For Facebook posts use only 3-5 hashtags total. For Instagram posts use 8-12 hashtags. Add industry-specific hashtags based on the industry provided.`,
+IMPORTANT: Use exactly 5 hashtags for all platforms. Studies show 3-5 focused hashtags outperform 10-30 hashtag posts in organic reach. Add 1-2 industry-specific hashtags replacing generic ones where relevant.`,
 } as const;
 
 // ── Prompt builder ───────────────────────────────────────────────────────────
