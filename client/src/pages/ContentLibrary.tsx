@@ -65,10 +65,26 @@ function extractContentPreview(content: string): string {
     const parsed = JSON.parse(content);
     const parts: string[] = [];
     if (parsed.hook) parts.push(parsed.hook);
+    // Reel: hook is in the first frame's audio line
+    // Reel: use first text_overlay or first section label as hook
+    if (!parsed.hook) {
+      if (parsed.text_overlays?.length) {
+        parts.push(parsed.text_overlays[0]);
+      } else if (parsed.frames?.length) {
+        const hookFrame = parsed.frames.find((f: any) => f.label?.toUpperCase() === 'HOOK') ?? parsed.frames[0];
+        if (hookFrame?.audio) parts.push(hookFrame.audio);
+      }
+    }
     if (parsed.paragraphs?.length) parts.push(parsed.paragraphs[0]);
-    else if (parsed.voiceover) parts.push(parsed.voiceover);
     else if (parsed.slides?.[0]?.headline) parts.push(parsed.slides[0].headline);
-    else if (parsed.frames?.[0]?.text) parts.push(parsed.frames[0].text);
+    else if (parsed.sections?.length) {
+      const first = parsed.sections[0];
+      const label = typeof first === 'string' ? first : (first?.label ?? first?.text ?? JSON.stringify(first));
+      parts.push(label.substring(0, 120));
+    }
+    else if (!parsed.hook && !parsed.text_overlays?.length && parsed.voiceover) {
+      parts.push(parsed.voiceover.substring(0, 100) + '…');
+    }
     return parts.join(' — ') || content;
   } catch {
     // Fallback: extract "hook" value via regex when JSON is malformed
