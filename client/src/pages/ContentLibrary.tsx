@@ -104,7 +104,7 @@ function sanitizeJson(s: string): string {
   );
 }
 
-function extractFullContent(content: string | null | undefined): { hook?: string; paragraphs?: string[]; cta?: string; hashtags?: string; textOverlays?: string[]; voiceover?: string; sections?: any[]; caption?: string; raw: string } {
+function extractFullContent(content: string | null | undefined): { hook?: string; paragraphs?: string[]; cta?: string; hashtags?: string; textOverlays?: string[]; voiceover?: string; sections?: any[]; caption?: string; frames?: any[]; slides?: any[]; poll?: any; questionSticker?: string; raw: string } {
   if (!content) return { raw: '' };
   try {
     let parsed = JSON.parse(sanitizeJson(content));
@@ -123,9 +123,10 @@ function extractFullContent(content: string | null | undefined): { hook?: string
       voiceover: parsed.voiceover,
       sections: parsed.sections,
       caption: parsed.caption,
-      frames: parsed.frames,       // Story format
-      slides: parsed.slides,       // Carousel format
+      frames: parsed.frames,
+      slides: parsed.slides,
       poll: parsed.poll,
+      questionSticker: parsed.question_sticker,
       raw: content,
     };
   } catch {
@@ -900,12 +901,15 @@ export default function ContentLibrary() {
           {previewPost && (() => {
             const fc = extractFullContent(previewPost.content);
             const isFB = previewPost.platform === 'facebook';
-            const copyText = [
-              fc.hook,
-              ...(fc.paragraphs ?? []),
-              fc.cta,
-              fc.hashtags ?? previewPost.hashtags,
-            ].filter(Boolean).join('\n\n');
+            // For reel/story/carousel use caption (ready-to-post text); feed_post builds from fields
+            const copyText = fc.caption
+              ? `${fc.caption}${fc.hashtags ? '\n\n' + fc.hashtags : ''}`
+              : [
+                  fc.hook,
+                  ...(fc.paragraphs ?? []),
+                  fc.cta,
+                  fc.hashtags ?? previewPost.hashtags,
+                ].filter(Boolean).join('\n\n');
 
             const handleCopy = (text: string, field: string) => {
               navigator.clipboard.writeText(text);
@@ -946,8 +950,14 @@ export default function ContentLibrary() {
                               {slide.label && <span className="text-xs text-slate-400">· {slide.label}</span>}
                             </div>
                             {slide.headline && <p className="text-sm font-semibold text-slate-800">{slide.headline}</p>}
+                            {slide.sub && <p className="text-xs text-slate-600 mt-0.5">{slide.sub}</p>}
                             {slide.subtext && <p className="text-xs text-slate-600 mt-0.5">{slide.subtext}</p>}
+                            {slide.stat && <p className="text-xs font-bold text-purple-700 mt-0.5">📊 {slide.stat}</p>}
+                            {slide.context && <p className="text-xs text-slate-500 mt-0.5">{slide.context}</p>}
+                            {slide.points && <ul className="mt-1 space-y-0.5">{slide.points.map((item: string, j: number) => <li key={j} className="text-xs text-slate-700">• {item}</li>)}</ul>}
                             {slide.list && <ul className="mt-1 space-y-0.5">{slide.list.map((item: string, j: number) => <li key={j} className="text-xs text-slate-700">• {item}</li>)}</ul>}
+                            {slide.quote && <p className="text-xs italic text-slate-600 mt-1 border-l-2 border-purple-300 pl-2">"{slide.quote}"</p>}
+                            {slide.source && <p className="text-xs text-slate-400 mt-0.5">— {slide.source}</p>}
                           </div>
                         ))}
                       </div>
@@ -974,6 +984,12 @@ export default function ContentLibrary() {
                               <span className="text-xs bg-blue-100 px-2 py-0.5 rounded">✅ {fc.poll.yes}</span>
                               <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">❌ {fc.poll.no}</span>
                             </div>
+                          </div>
+                        )}
+                        {fc.questionSticker && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5">
+                            <p className="text-xs font-medium text-yellow-700 mb-0.5">❓ Question sticker</p>
+                            <p className="text-xs text-slate-700">{fc.questionSticker}</p>
                           </div>
                         )}
                       </div>

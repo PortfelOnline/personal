@@ -314,10 +314,17 @@ const FORMAT_SCHEMAS = {
     {"time": "0:35-0:45", "label": "CTA", "visual": "get-my-agent.com on screen", "audio": "single clear action with urgency"}
   ],
   "voiceover": "complete 45-second spoken script as one paragraph — use the specific industry scenario throughout",
-  "text_overlays": ["overlay 1 — industry-specific hook text", "overlay 2", "overlay 3", "overlay 4", "overlay 5"],
-  "caption": "reel caption — industry-specific hook + CTA",
+  "text_overlays": [
+    "shocking stat or loss amount — 5 words max (e.g. '₹20,000 lost in 1 missed reply')",
+    "the specific problem — 5 words max (e.g. '35% of bookings go to competitors')",
+    "the solution — 5 words max (e.g. 'AI replies in under 3 seconds')",
+    "the result — 5 words max (e.g. 'recover ₹38,000 in 30 days')",
+    "the CTA — 5 words max (e.g. 'start free at ₹999/month')"
+  ],
+  "caption": "reel caption — industry-specific hook line + 2 punchy sentences + CTA + get-my-agent.com",
   "hashtags": ["Reels", "IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "BusinessTips", "IndianEntrepreneur", "WhatsAppMarketing", "DigitalMarketing", "GrowthHack", "AIAgent"]
-}`,
+}
+IMPORTANT: text_overlays must be SHORT punchy phrases (5 words max each). Do NOT include labels like "HOOK:" or "PROBLEM:" in the overlay text itself.`,
 
   story: `Create a 3-frame Instagram Story sequence. Return exactly this JSON (no other text):
 {
@@ -330,7 +337,7 @@ const FORMAT_SCHEMAS = {
   "question_sticker": "open question to drive DMs from this type of business owner"
 }`,
 
-  feed_post: `Create an Instagram Feed Post. Return exactly this JSON (no other text):
+  feed_post: `Create a social media Feed Post. Return exactly this JSON (no other text):
 {
   "hook": "first line using the EXACT industry scenario — stops the scroll in under 10 words",
   "paragraphs": [
@@ -339,9 +346,10 @@ const FORMAT_SCHEMAS = {
     "paragraph 3: paint the after picture — specific measurable result for this industry type — 2-3 sentences"
   ],
   "cta": "single clear action sentence with urgency",
-  "caption": "full ready-to-post caption — hook + all paragraphs + CTA — 300 words max, line breaks",
-  "hashtags": ["IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "AIAgent", "IndianEntrepreneur", "SmallBusiness", "CustomerService", "BusinessAutomation", "StartupIndia", "WhatsAppBusiness", "DigitalIndia", "BusinessGrowth", "SalesAgent", "ChatbotIndia", "BusinessTips"]
-}`,
+  "caption": "full ready-to-post caption — hook + all paragraphs + CTA — 300 words max, with line breaks between paragraphs",
+  "hashtags": ["IndiaSmallBusiness", "AIForBusiness", "GetMyAgent", "AIAgent", "IndianEntrepreneur", "SmallBusiness", "CustomerService", "BusinessAutomation", "WhatsAppBusiness", "BusinessGrowth"]
+}
+IMPORTANT: For Facebook posts use only 3-5 hashtags total. For Instagram posts use 8-12 hashtags. Add industry-specific hashtags based on the industry provided.`,
 } as const;
 
 // ── Prompt builder ───────────────────────────────────────────────────────────
