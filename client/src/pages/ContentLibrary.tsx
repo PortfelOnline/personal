@@ -96,14 +96,22 @@ function extractContentPreview(content: string | null | undefined): string {
   }
 }
 
-function extractFullContent(content: string): { hook?: string; paragraphs?: string[]; cta?: string; hashtags?: string; voiceover?: string; sections?: any[]; caption?: string; raw: string } {
+function extractFullContent(content: string | null | undefined): { hook?: string; paragraphs?: string[]; cta?: string; hashtags?: string; textOverlays?: string[]; voiceover?: string; sections?: any[]; caption?: string; raw: string } {
+  if (!content) return { raw: '' };
   try {
-    const parsed = JSON.parse(content);
+    let parsed = JSON.parse(content);
+    // Handle double-stringified JSON
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    const rawHashtags = parsed.hashtags;
+    const hashtags = Array.isArray(rawHashtags)
+      ? rawHashtags.map((t: string) => t.startsWith('#') ? t : `#${t}`).join(' ')
+      : rawHashtags;
     return {
       hook: parsed.hook,
       paragraphs: parsed.paragraphs,
       cta: parsed.cta,
-      hashtags: parsed.hashtags,
+      hashtags,
+      textOverlays: parsed.text_overlays,
       voiceover: parsed.voiceover,
       sections: parsed.sections,
       caption: parsed.caption,
@@ -917,10 +925,30 @@ export default function ContentLibrary() {
                     {fc.paragraphs?.map((p, i) => (
                       <p key={i}>{p}</p>
                     ))}
-                    {!fc.hook && !fc.paragraphs && fc.voiceover && (
-                      <p className="italic text-slate-600">{fc.voiceover}</p>
+                    {/* Reel: text overlays as hook pills */}
+                    {!fc.hook && !fc.paragraphs && fc.textOverlays && fc.textOverlays.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        {fc.textOverlays.map((t, i) => (
+                          <span key={i} className="inline-block bg-black text-white text-xs font-bold px-2 py-1 rounded w-fit">{t}</span>
+                        ))}
+                      </div>
                     )}
-                    {!fc.hook && !fc.paragraphs && !fc.voiceover && (
+                    {/* Reel: voiceover script */}
+                    {!fc.hook && !fc.paragraphs && fc.voiceover && (
+                      <div className="bg-slate-100 rounded-lg p-3">
+                        <p className="text-xs font-medium text-slate-500 mb-1">🎙 Voiceover script</p>
+                        <p className="italic text-slate-700 text-xs leading-relaxed">{fc.voiceover}</p>
+                      </div>
+                    )}
+                    {/* Reel: caption */}
+                    {!fc.hook && !fc.paragraphs && fc.caption && (
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 mb-1">📝 Caption</p>
+                        <p className="whitespace-pre-wrap text-xs">{fc.caption}</p>
+                      </div>
+                    )}
+                    {/* Fallback: plain text */}
+                    {!fc.hook && !fc.paragraphs && !fc.voiceover && !fc.caption && (
                       <p className="whitespace-pre-wrap">{fc.raw}</p>
                     )}
                     {fc.cta && (
