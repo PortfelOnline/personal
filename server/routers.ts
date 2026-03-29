@@ -10,7 +10,7 @@ import { metaRouter } from "./routers/meta";
 import { botsRouter } from "./routers/bots";
 import { wordpressRouter } from "./routers/wordpress";
 import { articlesRouter } from "./routers/articles";
-import { generateDalleImage, generateGeminiImage, generateVeoVideo, buildVisualPrompt, buildVisualDalleSize, generateVisualPromptWithLLM } from "./_core/gemini";
+import { generateGeminiImage, generateVeoVideo, buildVisualPrompt, generateVisualPromptWithLLM } from "./_core/gemini";
 import { storagePut } from "./storage";
 import fs from "fs";
 import path from "path";
@@ -936,6 +936,95 @@ Return ONLY valid JSON (no markdown fences):
         return { posts: results, count: results.length };
       }),
 
+    // Auto-generate + schedule posts at optimal times. One call → posts appear in Scheduled tab.
+    autoSchedule: protectedProcedure
+      .input(z.object({
+        industry: z.enum(["retail", "real_estate", "restaurant", "ecommerce", "coaching", "services", "insurance_agent", "loan_agent", "ca_tax", "travel_agent", "wedding_planner", "interior_designer", "clinic_doctor", "car_dealer", "salon_beauty", "gym_fitness", "lawyer"]),
+        platform: z.enum(["facebook", "instagram", "whatsapp", "youtube"]).default("instagram"),
+        pillarType: z.enum(["desi_business_owner", "five_minute_transformation", "roi_calculator"]).default("desi_business_owner"),
+        contentFormat: z.enum(["carousel", "reel", "story", "feed_post"]).default("carousel"),
+        season: z.enum(["none", "diwali", "ipl", "back_to_school", "gst_season", "wedding", "summer"]).default("none"),
+        language: z.string().default("hinglish"),
+        count: z.number().min(1).max(14).default(5),
+        startFromNow: z.boolean().default(true), // schedule starting from next optimal slot
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { nextOptimalTime } = await import('./contentScheduler');
+        const ALL_ANGLES = ["standard", "pov", "transformation", "comparison", "objection", "story"] as const;
+        const FORMAT_CYCLE = ["carousel", "reel", "feed_post", "story"] as const;
+        const ind = INDUSTRY_CONTEXT[input.industry];
+
+        // Calculate optimal schedule slots — 1 post per day at platform peak time
+        const slots: Date[] = [];
+        let cursor = new Date();
+        for (let i = 0; i < input.count; i++) {
+          const slot = nextOptimalTime(input.platform, cursor);
+          slots.push(slot);
+          // Next post: 1 day later so we don't double-post same day
+          cursor = new Date(slot.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        const results = await Promise.all(
+          slots.map(async (scheduledAt, i) => {
+            const angle = ALL_ANGLES[i % ALL_ANGLES.length] as keyof typeof ANGLE_CONTEXT;
+            // Rotate formats if auto, or use specified format
+            const fmt = (input.contentFormat === 'carousel' && i > 0)
+              ? FORMAT_CYCLE[i % FORMAT_CYCLE.length] as keyof typeof FORMAT_SCHEMAS
+              : input.contentFormat as keyof typeof FORMAT_SCHEMAS;
+
+            const prompt = buildGenerationPrompt(
+              input.pillarType as keyof typeof PILLAR_CONTEXT,
+              fmt,
+              input.industry as keyof typeof INDUSTRY_CONTEXT,
+              angle,
+              input.season as keyof typeof SEASON_CONTEXT,
+              undefined,
+              input.platform
+            );
+
+            const response = await invokeLLM({
+              messages: [
+                { role: "system", content: CONTENT_SYSTEM_PROMPT },
+                { role: "user", content: prompt },
+              ],
+            });
+
+            const contentText = typeof response.choices[0]?.message.content === "string"
+              ? response.choices[0].message.content : "";
+
+            let parsed: any = null;
+            try {
+              parsed = JSON.parse(contentText.replace(/^```json\s*|\s*```$/g, "").trim());
+            } catch { /* raw text */ }
+
+            const title = (parsed?.hook ?? parsed?.text_overlays?.[0] ?? parsed?.slides?.[0]?.headline ?? parsed?.frames?.[0]?.main_text ?? `${ind.label} · ${fmt} ${i + 1}`).substring(0, 255);
+            const hashtags = Array.isArray(parsed?.hashtags)
+              ? parsed.hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ")
+              : `#GetMyAgent #IndiaSmallBusiness`;
+
+            await createContentPost(ctx.user.id, {
+              title,
+              content: contentText,
+              platform: input.platform,
+              language: input.language,
+              hashtags,
+              status: 'scheduled',
+              scheduledAt,
+              contentFormat: fmt,
+            });
+
+            return {
+              title,
+              format: fmt,
+              angle,
+              scheduledAt: scheduledAt.toISOString(),
+            };
+          })
+        );
+
+        return { scheduled: results, count: results.length };
+      }),
+
     getStats: protectedProcedure
       .query(async ({ ctx }) => {
         const allPosts = await getUserContentPosts(ctx.user.id);
@@ -981,8 +1070,11 @@ Return ONLY valid JSON (no markdown fences):
       }))
       .mutation(async ({ input }) => {
         const { prompt } = await generateVisualPromptWithLLM(input.industry, input.contentFormat, input.hook, input.postContent);
-        const dalleSize = buildVisualDalleSize(input.contentFormat);
-        const { b64, mimeType } = await generateDalleImage(prompt, dalleSize);
+        // Aspect ratio by format: reel/story → 9:16, feed_post → 4:5, carousel → 1:1
+        const aspectRatio = (['reel', 'story'] as string[]).includes(input.contentFormat)
+          ? '9:16' as const
+          : input.contentFormat === 'feed_post' ? '4:5' as const : '1:1' as const;
+        const { b64, mimeType } = await generateGeminiImage(prompt, aspectRatio);
         const buffer = Buffer.from(b64, "base64");
 
         // Save locally, fall back to cloud storage if configured
