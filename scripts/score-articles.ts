@@ -11,6 +11,7 @@
 import 'dotenv/config';
 import * as wordpressDb from '../server/wordpress.db';
 import * as wp from '../server/_core/wordpress';
+import { getGoogleOpportunity, loadPositions } from './search-metrics';
 
 // Already improved — exclude from queue
 const IMPROVED = new Set([
@@ -172,9 +173,22 @@ while (true) {
   page++;
 }
 
+// Load positions for enhanced scoring
+const posData = loadPositions();
+console.log(`[search-metrics] Loaded positions from ${posData.updated}, ${posData.queries.length} queries`);
+console.log(`  Google: top1=${posData.summary.top1} top5=${posData.summary.top5} top10=${posData.summary.top10}`);
+console.log(`  Яндекс: все позиции null (не в ТОП-100 ни по одному запросу)`);
+console.log(`  ИИ-упоминаний: 1 (КРИТИЧНО — нужны FAQ-схемы и answer-first структура)\n`);
+
 const scored = allPosts
   .filter(p => !IMPROVED.has(p.slug))
-  .map(p => { const [score, label] = scoreSlug(p.slug); return { ...p, score, label }; })
+  .map(p => {
+    const [baseScore, label] = scoreSlug(p.slug);
+    const gOpportunity = getGoogleOpportunity(p.slug);
+    // Enhanced score: slug pattern × 10, plus search signal bonus
+    const enhancedScore = baseScore * 10 + gOpportunity;
+    return { ...p, score: enhancedScore, baseScore, label, gOpportunity };
+  })
   .sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug));
 
 const counts = { HIGH: 0, MED: 0, LOW: 0, SKIP: 0 };
@@ -192,5 +206,6 @@ for (const p of scored) {
     console.log(`\n--- ${names[p.label]} ---`);
     curLabel = p.label;
   }
-  console.log(`  id=${p.id}  ${p.slug}`);
+  const gStr = p.gOpportunity > 0 ? `  gBonus=+${p.gOpportunity}` : '';
+  console.log(`  score=${p.score}  id=${p.id}${gStr}  ${p.slug}`);
 }
