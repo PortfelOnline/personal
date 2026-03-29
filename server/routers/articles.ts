@@ -11,7 +11,7 @@ import { createContentPost } from "../db";
 import * as articlesDb from "../articles.db";
 import * as wordpressDb from "../wordpress.db";
 
-// ── IndexNow: submit URLs to Yandex + Bing for fast re-indexing ──────────────
+// ── IndexNow: submit URLs to Yandex + Bing + Google sitemap ping ─────────────
 async function submitToIndexNow(url: string): Promise<void> {
   const key = process.env.INDEXNOW_API_KEY;
   if (!key) return;
@@ -22,8 +22,10 @@ async function submitToIndexNow(url: string): Promise<void> {
     await Promise.all([
       fetch('https://yandex.com/indexnow', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
       fetch('https://api.indexnow.org/indexnow', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+      // Google sitemap ping — notifies Google of updated content
+      fetch(`https://www.google.com/ping?sitemap=https://${host}/sitemap_index.xml`),
     ]);
-    console.log(`[IndexNow] Submitted: ${url}`);
+    console.log(`[IndexNow] Submitted to Yandex+Bing+Google: ${url}`);
   } catch (err) {
     console.warn(`[IndexNow] Failed for ${url}:`, err);
   }
