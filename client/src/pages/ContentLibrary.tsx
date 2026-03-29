@@ -77,7 +77,8 @@ function extractContentPreview(content: string | null | undefined): string {
       }
     }
     if (parsed.paragraphs?.length) parts.push(parsed.paragraphs[0]);
-    else if (parsed.slides?.[0]?.headline) parts.push(parsed.slides[0].headline);
+    else if (parsed.slides?.[0]?.headline) parts.push(`🎠 ${parsed.slides[0].headline}`);
+    else if (parsed.frames?.[0]?.main_text) parts.push(`📱 ${parsed.frames[0].main_text}${parsed.frames[0].sub_text ? ' — ' + parsed.frames[0].sub_text.substring(0, 60) : ''}`);
     else if (parsed.sections?.length) {
       const first = parsed.sections[0];
       const label = typeof first === 'string' ? first : (first?.label ?? first?.text ?? JSON.stringify(first));
@@ -122,6 +123,9 @@ function extractFullContent(content: string | null | undefined): { hook?: string
       voiceover: parsed.voiceover,
       sections: parsed.sections,
       caption: parsed.caption,
+      frames: parsed.frames,       // Story format
+      slides: parsed.slides,       // Carousel format
+      poll: parsed.poll,
       raw: content,
     };
   } catch {
@@ -932,30 +936,72 @@ export default function ContentLibrary() {
                     {fc.paragraphs?.map((p, i) => (
                       <p key={i}>{p}</p>
                     ))}
+                    {/* Carousel: slides */}
+                    {!fc.hook && !fc.paragraphs && fc.slides && fc.slides.length > 0 && (
+                      <div className="space-y-2">
+                        {fc.slides.map((slide: any, i: number) => (
+                          <div key={i} className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg p-2.5">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-xs font-bold text-purple-600">Slide {slide.num ?? i+1}</span>
+                              {slide.label && <span className="text-xs text-slate-400">· {slide.label}</span>}
+                            </div>
+                            {slide.headline && <p className="text-sm font-semibold text-slate-800">{slide.headline}</p>}
+                            {slide.subtext && <p className="text-xs text-slate-600 mt-0.5">{slide.subtext}</p>}
+                            {slide.list && <ul className="mt-1 space-y-0.5">{slide.list.map((item: string, j: number) => <li key={j} className="text-xs text-slate-700">• {item}</li>)}</ul>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Story: frames */}
+                    {!fc.hook && !fc.paragraphs && !fc.slides && fc.frames && fc.frames.length > 0 && (
+                      <div className="space-y-2">
+                        {fc.frames.map((frame: any, i: number) => (
+                          <div key={i} className="bg-gradient-to-r from-orange-50 to-pink-50 border border-orange-100 rounded-lg p-2.5">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-lg">{frame.emoji}</span>
+                              <span className="text-xs font-bold text-orange-600">Frame {frame.num ?? i+1}: {frame.label}</span>
+                            </div>
+                            {frame.main_text && <p className="text-sm font-semibold text-slate-800">{frame.main_text}</p>}
+                            {frame.sub_text && <p className="text-xs text-slate-600 mt-0.5">{frame.sub_text}</p>}
+                            {frame.list && <ul className="mt-1 space-y-0.5">{frame.list.map((item: string, j: number) => <li key={j} className="text-xs text-slate-700">• {item}</li>)}</ul>}
+                            {frame.button_text && <p className="mt-1 text-xs font-bold text-white bg-orange-500 inline-block px-2 py-0.5 rounded">{frame.button_text}</p>}
+                          </div>
+                        ))}
+                        {fc.poll && (
+                          <div className="bg-blue-50 border border-blue-100 rounded-lg p-2.5">
+                            <p className="text-xs font-medium text-blue-600 mb-1">📊 Poll: {fc.poll.question}</p>
+                            <div className="flex gap-2">
+                              <span className="text-xs bg-blue-100 px-2 py-0.5 rounded">✅ {fc.poll.yes}</span>
+                              <span className="text-xs bg-slate-100 px-2 py-0.5 rounded">❌ {fc.poll.no}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {/* Reel: text overlays as hook pills */}
-                    {!fc.hook && !fc.paragraphs && fc.textOverlays && fc.textOverlays.length > 0 && (
+                    {!fc.hook && !fc.paragraphs && !fc.slides && !fc.frames && fc.textOverlays && fc.textOverlays.length > 0 && (
                       <div className="flex flex-col gap-1">
-                        {fc.textOverlays.map((t, i) => (
+                        {fc.textOverlays.map((t: string, i: number) => (
                           <span key={i} className="inline-block bg-black text-white text-xs font-bold px-2 py-1 rounded w-fit">{t}</span>
                         ))}
                       </div>
                     )}
                     {/* Reel: voiceover script */}
-                    {!fc.hook && !fc.paragraphs && fc.voiceover && (
+                    {!fc.hook && !fc.paragraphs && !fc.slides && !fc.frames && fc.voiceover && (
                       <div className="bg-slate-100 rounded-lg p-3">
                         <p className="text-xs font-medium text-slate-500 mb-1">🎙 Voiceover script</p>
                         <p className="italic text-slate-700 text-xs leading-relaxed">{fc.voiceover}</p>
                       </div>
                     )}
-                    {/* Reel: caption */}
-                    {!fc.hook && !fc.paragraphs && fc.caption && (
+                    {/* Reel/Story: caption */}
+                    {!fc.hook && !fc.paragraphs && !fc.slides && !fc.frames && fc.caption && (
                       <div>
                         <p className="text-xs font-medium text-slate-500 mb-1">📝 Caption</p>
                         <p className="whitespace-pre-wrap text-xs">{fc.caption}</p>
                       </div>
                     )}
                     {/* Fallback: plain text */}
-                    {!fc.hook && !fc.paragraphs && !fc.voiceover && !fc.caption && (
+                    {!fc.hook && !fc.paragraphs && !fc.slides && !fc.frames && !fc.voiceover && !fc.caption && (
                       <p className="whitespace-pre-wrap">{fc.raw}</p>
                     )}
                     {fc.cta && (
