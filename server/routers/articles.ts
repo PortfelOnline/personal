@@ -483,24 +483,20 @@ async function filterRelevantMedia(
 ): Promise<{ id: number; url: string; width: number; height: number }[]> {
   if (media.length === 0) return [];
 
-  const imageContent = media.map((m, i) => [
-    { type: 'text' as const, text: `[Картинка ${i + 1}] title: "${m.title}", alt: "${m.alt}"` },
-    { type: 'image_url' as const, image_url: { url: m.url, detail: 'low' as const } },
-  ]).flat();
+  const imageList = media.map((m, i) =>
+    `[${i + 1}] title: "${m.title}", alt: "${m.alt}"`
+  ).join('\n');
 
   try {
     const resp = await invokeLLM({
       messages: [
         {
           role: 'system',
-          content: 'Ты эксперт по визуальному контенту. Оцени релевантность изображений для статьи. Отвечай строго JSON-массивом.',
+          content: 'Ты эксперт по подбору изображений для статей. Оцени релевантность изображений по их описанию. Отвечай строго JSON-массивом.',
         },
         {
           role: 'user',
-          content: [
-            { type: 'text' as const, text: `Тема статьи: "${topic}"\n\nОцени каждую картинку от 1 до 10 по релевантности. 10 = идеально подходит по содержанию, 1 = совсем не по теме. Верни JSON: [{"i":1,"score":X,"reason":"..."},...]\n\nКартинки:` },
-            ...imageContent,
-          ],
+          content: `Тема статьи: "${topic}"\n\nОцени каждое изображение от 1 до 10 по релевантности теме. 10 = идеально подходит, 1 = совсем не по теме. Верни JSON: [{"i":1,"score":X,"reason":"..."},...]\n\nИзображения:\n${imageList}`,
         },
       ],
       maxTokens: 400,
