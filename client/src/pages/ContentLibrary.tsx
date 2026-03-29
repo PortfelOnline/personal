@@ -368,11 +368,20 @@ export default function ContentLibrary() {
                       {post.status}
                     </Badge>
                   </div>
-                  <CardDescription className="flex items-center gap-2">
+                  <CardDescription className="flex items-center gap-2 flex-wrap">
                     <span>{platformEmojis[post.platform] || '📱'}</span>
                     <span className="capitalize">{post.platform}</span>
                     <span>•</span>
                     <span className="capitalize">{post.language}</span>
+                    {post.createdAt && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDateTime(post.createdAt)}
+                        </span>
+                      </>
+                    )}
                   </CardDescription>
                 </CardHeader>
 
@@ -887,7 +896,13 @@ export default function ContentLibrary() {
 
                   {/* Hashtags */}
                   {(fc.hashtags || previewPost.hashtags) && (
-                    <p className="text-xs text-blue-500 leading-relaxed">{fc.hashtags || previewPost.hashtags}</p>
+                    <p className="text-xs text-blue-500 leading-relaxed break-words">
+                      {(fc.hashtags || previewPost.hashtags)!
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .map(t => t.startsWith('#') ? t : `#${t}`)
+                        .join(' ')}
+                    </p>
                   )}
                 </div>
 
