@@ -2217,7 +2217,10 @@ ${competitorContext}
         const siteBase = account.siteUrl.replace(/\/$/, '');
         const auth = 'Basic ' + Buffer.from(`${account.username}:${account.appPassword}`).toString('base64');
         const axiosInst2 = (await import('axios')).default;
-        const metaPayload: Record<string, string> = { outsearch: '1' };
+        const metaPayload: Record<string, string> = {
+          outsearch: '1',
+          outmap: shouldShowMap(slug) ? '1' : '0',
+        };
         if (metaDescription) metaPayload['_yoast_wpseo_metadesc'] = metaDescription;
         await axiosInst2.post(
           `${siteBase}/wp-json/kadastrmap/v1/post-meta/${post.id}`,
