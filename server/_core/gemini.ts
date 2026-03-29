@@ -10,24 +10,33 @@ function getClient() {
 
 export async function generateGeminiImage(
   prompt: string,
-  aspectRatio: "1:1" | "9:16" | "16:9" | "4:5" = "1:1"
+  aspectRatio: "1:1" | "9:16" | "16:9" | "4:5" | "3:4" = "1:1"
 ): Promise<{ b64: string; mimeType: string }> {
   const ai = getClient();
+  // Normalize aspect ratio — Imagen 3 supports: 1:1, 9:16, 16:9, 4:3, 3:4
+  const normalized = aspectRatio === "4:5" ? "3:4" : aspectRatio;
 
-  const response = await ai.models.generateImages({
-    model: "imagen-4.0-generate-001",
-    prompt,
-    config: {
-      numberOfImages: 1,
-      aspectRatio,
-      personGeneration: PersonGeneration.ALLOW_ADULT,
-    },
-  });
-
-  const img = response.generatedImages?.[0]?.image;
-  if (!img?.imageBytes) throw new Error("Imagen returned no image");
-
-  return { b64: img.imageBytes, mimeType: "image/jpeg" };
+  // Try Imagen 3 fast (paid plan), fall back to Imagen 3
+  const models = ["imagen-3.0-fast-generate-001", "imagen-3.0-generate-001"];
+  let lastError: Error | null = null;
+  for (const model of models) {
+    try {
+      const response = await ai.models.generateImages({
+        model,
+        prompt,
+        config: {
+          numberOfImages: 1,
+          aspectRatio: normalized,
+          personGeneration: PersonGeneration.ALLOW_ADULT,
+        },
+      });
+      const img = response.generatedImages?.[0]?.image;
+      if (img?.imageBytes) return { b64: img.imageBytes, mimeType: "image/jpeg" };
+    } catch (err: any) {
+      lastError = err;
+    }
+  }
+  throw lastError ?? new Error("Imagen returned no image");
 }
 
 // ── Video generation (Veo 2) ──────────────────────────────────────────────────

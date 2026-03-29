@@ -1070,21 +1070,43 @@ Return ONLY valid JSON (no markdown fences):
       }))
       .mutation(async ({ input }) => {
         const { prompt } = await generateVisualPromptWithLLM(input.industry, input.contentFormat, input.hook, input.postContent);
-        // Aspect ratio by format: reel/story → 9:16, feed_post → 4:5, carousel → 1:1
+        // Aspect ratio by format: reel/story → 9:16, feed_post → 3:4, carousel → 1:1
         const aspectRatio = (['reel', 'story'] as string[]).includes(input.contentFormat)
           ? '9:16' as const
-          : input.contentFormat === 'feed_post' ? '4:5' as const : '1:1' as const;
-        const { b64, mimeType } = await generateGeminiImage(prompt, aspectRatio);
-        const buffer = Buffer.from(b64, "base64");
+          : input.contentFormat === 'feed_post' ? '3:4' as const : '1:1' as const;
 
-        // Save locally, fall back to cloud storage if configured
+        let imageBuffer: Buffer;
+        let usedPexels = false;
+
+        try {
+          const { b64 } = await generateGeminiImage(prompt, aspectRatio);
+          imageBuffer = Buffer.from(b64, "base64");
+        } catch (imgErr: any) {
+          // Imagen unavailable (free plan) — fall back to Pexels stock photo
+          const pexelsKey = process.env.PEXELS_API_KEY;
+          if (!pexelsKey) throw imgErr;
+          const query = `${input.industry.replace(/_/g, ' ')} ${input.hook.split(' ').slice(0, 3).join(' ')} India`;
+          const orientation = aspectRatio === '9:16' ? 'portrait' : aspectRatio === '1:1' ? 'square' : 'portrait';
+          const pRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=${orientation}`, {
+            headers: { Authorization: pexelsKey },
+          });
+          const pData = await pRes.json() as any;
+          const photo = pData?.photos?.[0];
+          if (!photo) throw new Error('Pexels returned no results');
+          const imgUrl = orientation === 'portrait' ? photo.src.portrait : photo.src.landscape;
+          const imgRes = await fetch(imgUrl);
+          imageBuffer = Buffer.from(await imgRes.arrayBuffer());
+          usedPexels = true;
+        }
+
+        // Save locally
         const filename = `visual_${Date.now()}.jpg`;
         const localDir = path.join(process.cwd(), "public", "uploads");
         fs.mkdirSync(localDir, { recursive: true });
-        fs.writeFileSync(path.join(localDir, filename), buffer);
+        fs.writeFileSync(path.join(localDir, filename), imageBuffer);
         const url = `/uploads/${filename}`;
 
-        return { url, prompt };
+        return { url, prompt, source: usedPexels ? 'pexels' : 'gemini' };
       }),
 
     listGeneratedImages: protectedProcedure
@@ -1114,10 +1136,40 @@ Return ONLY valid JSON (no markdown fences):
       .mutation(async ({ input }) => {
         const { prompt } = buildVisualPrompt(input.industry, "reel", input.hook);
         const videoPrompt = `${prompt} Dynamic motion, cinematic quality, vertical 9:16 video for Instagram Reels. 8 seconds.`;
-        const { b64, mimeType } = await generateVeoVideo(videoPrompt, "9:16", input.durationSeconds);
-        const buffer = Buffer.from(b64, "base64");
-        const { url } = await storagePut(`videos/${Date.now()}.mp4`, buffer, mimeType);
-        return { url };
+
+        let videoUrl: string;
+        let source: 'veo' | 'pexels' = 'veo';
+
+        try {
+          const { b64, mimeType } = await generateVeoVideo(videoPrompt, "9:16", input.durationSeconds);
+          const buffer = Buffer.from(b64, "base64");
+          const saved = await storagePut(`videos/${Date.now()}.mp4`, buffer, mimeType);
+          videoUrl = saved.url;
+        } catch (veoErr: any) {
+          // Veo unavailable — fall back to Pexels stock video
+          const pexelsKey = process.env.PEXELS_API_KEY;
+          if (!pexelsKey) throw veoErr;
+          const query = `${input.industry.replace(/_/g, ' ')} India business`;
+          const pRes = await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=5&orientation=portrait`, {
+            headers: { Authorization: pexelsKey },
+          });
+          const pData = await pRes.json() as any;
+          const video = pData?.videos?.[0];
+          if (!video) throw new Error('Pexels video search returned no results');
+          // Pick a video file close to HD portrait
+          const videoFile = video.video_files?.find((f: any) => f.width <= 1080 && f.height > f.width) ?? video.video_files?.[0];
+          if (!videoFile?.link) throw new Error('No suitable video file found');
+          const vidRes = await fetch(videoFile.link);
+          const buffer = Buffer.from(await vidRes.arrayBuffer());
+          const localDir = path.join(process.cwd(), "public", "uploads");
+          fs.mkdirSync(localDir, { recursive: true });
+          const filename = `video_${Date.now()}.mp4`;
+          fs.writeFileSync(path.join(localDir, filename), buffer);
+          videoUrl = `/uploads/${filename}`;
+          source = 'pexels';
+        }
+
+        return { url: videoUrl, source };
       }),
 
     suggestHashtags: protectedProcedure

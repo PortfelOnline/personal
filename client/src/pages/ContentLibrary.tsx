@@ -439,11 +439,12 @@ export default function ContentLibrary() {
 
                 <CardContent className="space-y-4 flex-1 flex flex-col">
                   {post.mediaUrl && (
-                    <img
-                      src={post.mediaUrl}
-                      alt="Post visual"
-                      className="w-full h-36 object-cover rounded-lg border border-slate-200"
-                    />
+                    post.mediaUrl.match(/\.(mp4|webm|mov)$/i)
+                      ? <div className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200 bg-black">
+                          <video src={post.mediaUrl} muted className="w-full h-full object-cover opacity-80" />
+                          <span className="absolute inset-0 flex items-center justify-center text-white text-3xl pointer-events-none">▶</span>
+                        </div>
+                      : <img src={post.mediaUrl} alt="Post visual" className="w-full h-36 object-cover rounded-lg border border-slate-200" />
                   )}
                   <div className="flex-1">
                     <div className="bg-slate-50 rounded-lg overflow-hidden">
@@ -927,9 +928,11 @@ export default function ContentLibrary() {
 
                 {/* Post content */}
                 <div className="p-4 space-y-3">
-                  {/* Image */}
+                  {/* Media: video or image */}
                   {previewPost.mediaUrl && (
-                    <img src={previewPost.mediaUrl} alt="Post visual" className="w-full rounded-xl object-cover max-h-72" />
+                    previewPost.mediaUrl.match(/\.(mp4|webm|mov)$/i)
+                      ? <video src={previewPost.mediaUrl} controls muted className="w-full rounded-xl max-h-72 bg-black" />
+                      : <img src={previewPost.mediaUrl} alt="Post visual" className="w-full rounded-xl object-cover max-h-72" />
                   )}
 
                   {/* Text body */}
