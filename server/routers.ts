@@ -262,8 +262,8 @@ const SOCIAL_PROOF = {
   instruction: `SOCIAL PROOF REQUIREMENT (mandatory — weave naturally into the post, do not bolt on):
 Include exactly one social proof element chosen from:
 - "1,200+ Indian business owners already use get-my-agent.com"
-- A specific mini-result relevant to the industry (e.g. "A saree shop in Jaipur recovered ₹38,000 in missed orders in 30 days")
-- A credibility stat: "Response in under 3 seconds. Humans average 4 hours."
+- A specific mini-result for THIS EXACT INDUSTRY (e.g. for a gym: "A gym in Pune recovered ₹45,000 in missed memberships in 30 days". For a wedding planner: "A wedding planner in Delhi booked 3 extra packages worth ₹2L after switching". NEVER use a saree shop or generic retail example — make it 100% specific to the industry in this post.)
+- A credibility stat: "78% of customers buy from the first business that responds. Don't let that be your competitor."
 Place it where it strengthens the narrative — not just at the end.`,
 };
 
@@ -297,7 +297,7 @@ const FORMAT_SCHEMAS = {
     {"num": 2, "label": "The Problem", "headline": "specific problem headline for this industry", "points": ["industry-specific pain 1 with ₹ or time cost", "industry-specific pain 2", "industry-specific pain 3"]},
     {"num": 3, "label": "The Reality", "headline": "reality-check headline", "stat": "shocking specific statistic relevant to this industry", "context": "one sentence of context"},
     {"num": 4, "label": "The Solution", "headline": "solution headline", "points": ["benefit 1 with ₹ or number", "benefit 2 with ₹ or number", "benefit 3 with ₹ or number"]},
-    {"num": 5, "label": "Results", "headline": "results headline", "quote": "specific customer result for this industry type", "source": "specific type of business owner (e.g. 'saree shop owner, Jaipur')"},
+    {"num": 5, "label": "Results", "headline": "results headline", "quote": "specific customer result matching THIS industry — exact ₹ amount recovered, exact time period", "source": "THIS industry type + city (e.g. for gym: 'Gym owner, Pune' — NEVER use saree shop or generic retail)"},
     {"num": 6, "label": "Get Started", "headline": "action-oriented headline", "sub": "Try free → get-my-agent.com"}
   ],
   "caption": "Instagram caption — hook sentence using the industry scenario, value prop, CTA — 150 chars max",
