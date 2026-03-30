@@ -10,11 +10,11 @@
   ],
   "summary": {
     "visibility": 68,
-    "avgPosition": 37.7,
+    "avgPosition": 44.7,
     "effectiveness": 5.08,
-    "top1": 2,
-    "top5": 3,
-    "top10": 7,
+    "top1": 1,
+    "top5": 4,
+    "top10": 6,
     "top50": 29,
     "top100": 380
   },
@@ -29,6 +29,12 @@
         null
       ],
       "google": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "googleDelta": [
         null,
         null,
         null,
@@ -49,6 +55,12 @@
         null,
         null,
         null
+      ],
+      "googleDelta": [
+        null,
+        null,
+        null,
+        null
       ]
     },
     {
@@ -61,14 +73,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        56,
+        49,
         48,
         48
       ],
       "googleDelta": [
-        null,
-        null,
+        -7,
+        -1,
         null,
         null
       ]
@@ -83,13 +95,13 @@
         null
       ],
       "google": [
-        null,
-        null,
+        100,
+        35,
         35,
         36
       ],
       "googleDelta": [
-        null,
+        -65,
         null,
         1,
         -1
@@ -105,14 +117,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        31,
+        24,
         25,
         25
       ],
       "googleDelta": [
-        null,
-        null,
+        -7,
+        1,
         null,
         -1
       ]
@@ -127,14 +139,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        48,
+        51,
         60,
         47
       ],
       "googleDelta": [
-        null,
-        null,
+        3,
+        9,
         -13,
         -17
       ]
@@ -149,6 +161,12 @@
         null
       ],
       "google": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "googleDelta": [
         null,
         null,
         null,
@@ -169,6 +187,12 @@
         null,
         null,
         null
+      ],
+      "googleDelta": [
+        null,
+        null,
+        null,
+        null
       ]
     },
     {
@@ -181,14 +205,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        99,
+        91,
         71,
         48
       ],
       "googleDelta": [
-        null,
-        null,
+        -8,
+        -20,
         -23,
         null
       ]
@@ -203,14 +227,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        46,
+        32,
         25,
         30
       ],
       "googleDelta": [
-        null,
-        null,
+        -14,
+        -7,
         5,
         21
       ]
@@ -225,14 +249,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        27,
+        28,
         31,
         null
       ],
       "googleDelta": [
-        null,
-        null,
+        1,
+        3,
         null,
         null
       ]
@@ -247,14 +271,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        20,
+        23,
         30,
         22
       ],
       "googleDelta": [
-        null,
-        null,
+        3,
+        7,
         -8,
         5
       ]
@@ -269,14 +293,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        66,
+        54,
         91,
         38
       ],
       "googleDelta": [
-        null,
-        null,
+        -12,
+        37,
         -53,
         null
       ]
@@ -291,14 +315,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        10,
+        7,
         8,
         7
       ],
       "googleDelta": [
-        null,
-        null,
+        -3,
+        1,
         -1,
         13
       ]
@@ -317,6 +341,12 @@
         null,
         null,
         null
+      ],
+      "googleDelta": [
+        null,
+        null,
+        null,
+        null
       ]
     },
     {
@@ -329,13 +359,13 @@
         null
       ],
       "google": [
-        null,
-        null,
+        48,
+        46,
         46,
         51
       ],
       "googleDelta": [
-        null,
+        -2,
         null,
         5,
         null
@@ -351,7 +381,7 @@
         null
       ],
       "google": [
-        null,
+        31,
         null,
         33,
         35
@@ -373,6 +403,12 @@
         null
       ],
       "google": [
+        90,
+        null,
+        null,
+        null
+      ],
+      "googleDelta": [
         null,
         null,
         null,
@@ -389,14 +425,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        39,
+        39,
         38,
         null
       ],
       "googleDelta": [
         null,
-        null,
+        -1,
         null,
         null
       ]
@@ -411,14 +447,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        52,
+        49,
         50,
         null
       ],
       "googleDelta": [
-        null,
-        null,
+        -3,
+        1,
         null,
         null
       ]
@@ -449,7 +485,7 @@
         null
       ],
       "google": [
-        null,
+        81,
         null,
         82,
         null
@@ -471,14 +507,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        44,
+        36,
         39,
         31
       ],
       "googleDelta": [
-        null,
-        null,
+        -8,
+        3,
         -8,
         -17
       ]
@@ -515,14 +551,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        16,
+        9,
         10,
         null
       ],
       "googleDelta": [
-        null,
-        null,
+        -7,
+        1,
         null,
         null
       ]
@@ -919,14 +955,14 @@
         null
       ],
       "google": [
-        null,
-        null,
+        34,
+        37,
         9,
         5
       ],
       "googleDelta": [
-        null,
-        null,
+        3,
+        -28,
         -4,
         3
       ]
