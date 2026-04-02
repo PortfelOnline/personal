@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen, Radar, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
+import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen, Radar, ChevronDown, ChevronUp, Lightbulb, Link, CheckCircle2, XCircle, Bot } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -353,6 +353,11 @@ export default function ContentGenerator() {
   const { data: savedTopicsData, refetch: refetchTopics } = trpc.content.listSavedTopics.useQuery();
   const saveTopicMutation = trpc.content.saveTopic.useMutation({ onSuccess: () => refetchTopics() });
   const deleteTopicMutation = trpc.content.deleteTopic.useMutation({ onSuccess: () => refetchTopics() });
+  const agentMutation = trpc.content.agentGenerate.useMutation();
+  const [agentUrl, setAgentUrl] = useState('');
+  const [agentSteps, setAgentSteps] = useState<Array<{step: string; status: string; detail?: string}>>([]);
+  const [agentResults, setAgentResults] = useState<any>(null);
+  const [agentSectionOpen, setAgentSectionOpen] = useState(true);
 
   const { data: existingPostsData } = trpc.content.listPosts.useQuery({});
   // Set of "industry|pillar" combinations that already have content
@@ -368,6 +373,26 @@ export default function ContentGenerator() {
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const { data: galleryData, refetch: refetchGallery } = trpc.content.listGeneratedImages.useQuery(undefined, { enabled: galleryOpen });
+
+  const handleAgentGenerate = async () => {
+    if (!agentUrl.trim()) { toast.error('Enter a URL'); return; }
+    setAgentSteps([{ step: 'Starting agent pipeline...', status: 'running' }]);
+    setAgentResults(null);
+    try {
+      const result = await agentMutation.mutateAsync({
+        url: agentUrl.trim(),
+        platforms: ['facebook', 'instagram'],
+        language: 'english',
+        industry,
+      });
+      setAgentSteps(result.steps ?? []);
+      setAgentResults(result);
+      toast.success(`✅ ${result.posts.length} drafts created in Library!`);
+    } catch (e: any) {
+      toast.error(e?.message || 'Agent failed');
+      setAgentSteps(prev => [...prev, { step: 'Error', status: 'error', detail: e?.message }]);
+    }
+  };
 
   const handleGenerate = async () => {
     setHookVariants([]);
@@ -608,6 +633,76 @@ export default function ContentGenerator() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Generator Panel */}
           <div className="lg:col-span-2 space-y-4">
+
+            {/* 🤖 URL Agent */}
+            <Card className="shadow-sm border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50">
+              <CardHeader className="pb-2 pt-4 px-5 cursor-pointer" onClick={() => setAgentSectionOpen(o => !o)}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-violet-600" />
+                    <CardTitle className="text-sm font-semibold text-violet-900">URL Agent</CardTitle>
+                    <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">Auto</span>
+                  </div>
+                  {agentSectionOpen ? <ChevronUp className="h-4 w-4 text-violet-400" /> : <ChevronDown className="h-4 w-4 text-violet-400" />}
+                </div>
+                <CardDescription className="text-xs text-violet-700">Paste any URL → auto-generates FB + IG drafts with images</CardDescription>
+              </CardHeader>
+              {agentSectionOpen && (
+                <CardContent className="px-5 pb-5 space-y-3">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400" />
+                      <Input
+                        placeholder="https://magicbricks.com/property/... or any URL"
+                        value={agentUrl}
+                        onChange={e => setAgentUrl(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAgentGenerate()}
+                        className="pl-9 text-sm border-violet-200 focus:border-violet-400"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleAgentGenerate}
+                      disabled={agentMutation.isPending || !agentUrl.trim()}
+                      className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
+                    >
+                      {agentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      <span className="ml-1.5">{agentMutation.isPending ? 'Running...' : 'Generate All'}</span>
+                    </Button>
+                  </div>
+
+                  {/* Progress steps */}
+                  {agentSteps.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      {agentSteps.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          {s.status === 'running' && <Loader2 className="h-3.5 w-3.5 animate-spin text-violet-500 shrink-0" />}
+                          {s.status === 'done' && <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+                          {s.status === 'error' && <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />}
+                          <span className={s.status === 'done' ? 'text-slate-600' : s.status === 'error' ? 'text-red-500' : 'text-violet-700 font-medium'}>
+                            {s.step}
+                          </span>
+                          {s.detail && <span className="text-slate-400 truncate max-w-[200px]">{s.detail}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Results */}
+                  {agentResults && agentResults.posts?.length > 0 && (
+                    <div className="pt-1 border-t border-violet-100">
+                      <p className="text-xs font-medium text-violet-700 mb-1.5">Created drafts:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {agentResults.posts.map((p: any) => (
+                          <a key={p.id} href="/library" className="flex items-center gap-1.5 text-xs bg-white border border-violet-200 rounded-lg px-3 py-1.5 text-violet-800 hover:bg-violet-50 transition-colors">
+                            {p.platform === 'facebook' ? '👍' : '📸'} {p.title?.slice(0, 35)}... <span className="text-violet-400">#{p.id}</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
 
             {/* Row 1: Pillar + Platform */}
             <Card className="shadow-sm">

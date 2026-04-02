@@ -13,6 +13,8 @@ import { articlesRouter } from "./routers/articles";
 import { generateGeminiImage, generateVeoVideo, buildVisualPrompt, generateVisualPromptWithLLM } from "./_core/gemini";
 import { storagePut } from "./storage";
 import fs from "fs";
+import { runSocialAgent } from "./agent/social-agent";
+
 import path from "path";
 
 // ─── Trends cache & fallbacks ──────────────────────────────────────────────
@@ -1432,6 +1434,24 @@ Return ONLY valid JSON. No markdown fences.`;
       .mutation(async ({ ctx, input }) => {
         await saveTopic(ctx.user.id, input.keyword.trim());
         return { ok: true };
+      }),
+
+    agentGenerate: protectedProcedure
+      .input(z.object({
+        url: z.string().url(),
+        platforms: z.array(z.enum(["facebook", "instagram"])).default(["facebook", "instagram"]),
+        language: z.string().default("english"),
+        industry: z.string().default("real_estate"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await runSocialAgent({
+          url: input.url,
+          userId: ctx.user.id,
+          platforms: input.platforms,
+          language: input.language,
+          industry: input.industry,
+        });
+        return result;
       }),
 
     deleteTopic: protectedProcedure
