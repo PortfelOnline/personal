@@ -52,6 +52,43 @@ describe("generateDallEImage (Fireworks)", () => {
     expect(body.aspect_ratio).toBeDefined();
   });
 
+  it("uses 16:9 landscape aspect ratio for article images", async () => {
+    const fakeJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => "image/jpeg" },
+      arrayBuffer: async () => fakeJpeg.buffer,
+    } as any);
+
+    vi.resetModules();
+    setupEnv();
+    const { generateDallEImage } = await import("./_core/imageGen");
+    await generateDallEImage("Russian apartment building exterior");
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body as string);
+    // Article images must be landscape 16:9, not square 1:1
+    expect(body.aspect_ratio).toBe("16:9");
+  });
+
+  it("uses guidance_scale >= 7 for better prompt adherence", async () => {
+    const fakeJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => "image/jpeg" },
+      arrayBuffer: async () => fakeJpeg.buffer,
+    } as any);
+
+    vi.resetModules();
+    setupEnv();
+    const { generateDallEImage } = await import("./_core/imageGen");
+    await generateDallEImage("person reviewing cadastral document");
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body as string);
+    expect(body.guidance_scale).toBeGreaterThanOrEqual(7);
+  });
+
   it("throws if IMAGE_API_KEY is not configured", async () => {
     process.env.IMAGE_API_KEY = "";
     // Need fresh import since module caches env at load time

@@ -22,8 +22,10 @@ export interface WpPost {
 }
 
 export interface WpPostFull extends WpPost {
-  title: string;
+  title: string | { rendered: string };
   slug: string;
+  content?: { rendered: string };
+  excerpt?: { rendered: string };
 }
 
 function basicAuth(username: string, appPassword: string): string {
@@ -65,13 +67,13 @@ export async function findPostBySlug(
 ): Promise<WpPostFull | null> {
   try {
     const response = await axios.get(`${apiBase(siteUrl)}/posts`, {
-      params: { slug, _fields: 'id,title,slug,link', per_page: 1 },
+      params: { slug, _fields: 'id,title,slug,link,content,excerpt', per_page: 1 },
       headers: { Authorization: basicAuth(username, appPassword) },
     });
     const posts = response.data;
     if (!Array.isArray(posts) || posts.length === 0) return null;
     const p = posts[0];
-    return { id: p.id, title: p.title?.rendered || p.title, slug: p.slug, link: p.link };
+    return { id: p.id, title: p.title?.rendered || p.title, slug: p.slug, link: p.link, content: p.content, excerpt: p.excerpt };
   } catch (error: any) {
     console.error('[WordPress API] findPostBySlug error:', error?.response?.data?.message || error?.message);
     return null;

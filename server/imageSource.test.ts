@@ -45,7 +45,6 @@ describe('Image source policy', () => {
     const { generateDallEImage } = await import('./_core/imageGen');
     const imageGenMock = generateDallEImage as ReturnType<typeof vi.fn>;
 
-    // Track call timing to verify sequential execution
     const callTimes: number[] = [];
     imageGenMock.mockImplementation(async () => {
       callTimes.push(Date.now());
@@ -67,16 +66,13 @@ describe('Image source policy', () => {
       2,
     );
 
-    // Must return an object with html and featuredMediaId fields
     expect(result).toHaveProperty('html');
     expect(result).toHaveProperty('featuredMediaId');
 
-    // Fetch must NOT be called for Pexels (no pexels.com requests)
     const fetchCalls = mockFetch.mock.calls.map((c: any[]) => String(c[0]));
     const pexelsCalls = fetchCalls.filter((u: string) => u.includes('pexels.com') || u.includes('api.pexels'));
     expect(pexelsCalls).toHaveLength(0);
 
-    // Fetch must NOT be called for Wikimedia
     const wikimediaCalls = fetchCalls.filter((u: string) => u.includes('wikimedia.org') || u.includes('wikipedia.org'));
     expect(wikimediaCalls).toHaveLength(0);
   });
@@ -91,7 +87,6 @@ describe('generateImagePrompts — article-specific unique prompts', () => {
 
   it('generateImagePrompts includes h2Sections in LLM prompt for article-specific images', async () => {
     vi.resetModules();
-    // Import after resetModules so both use the same fresh mock instance
     const llmModule = await import('./_core/llm');
     const llmMock = llmModule.invokeLLM as ReturnType<typeof vi.fn>;
     llmMock.mockClear();
@@ -105,7 +100,64 @@ describe('generateImagePrompts — article-specific unique prompts', () => {
 
     const userPrompt =
       llmMock.mock.calls[0]?.[0]?.messages?.find((m: any) => m.role === 'user')?.content ?? '';
-    // H2 section content must appear in the LLM prompt
     expect(userPrompt).toContain('Что такое кадастровый паспорт здания');
+  });
+
+  it('generateImagePrompts includes article body text in LLM prompt for article-specific images', async () => {
+    vi.resetModules();
+    const llmModule = await import('./_core/llm');
+    const llmMock = llmModule.invokeLLM as ReturnType<typeof vi.fn>;
+    llmMock.mockClear();
+    llmMock.mockResolvedValueOnce({
+      choices: [{ message: { content: '["prompt with body context", "another prompt"]' } }],
+    } as any);
+
+    const { generateImagePrompts } = (await import('./routers/articles')) as any;
+    const bodyText = 'Кадастровый паспорт на дачу — официальный документ подтверждающий границы участка';
+    await generateImagePrompts('Кадастровый паспорт дачи', 'кадастровый паспорт дачи', ['Что такое кадастровый паспорт'], bodyText);
+
+    const userPrompt =
+      llmMock.mock.calls[0]?.[0]?.messages?.find((m: any) => m.role === 'user')?.content ?? '';
+    expect(userPrompt).toContain('Кадастровый паспорт на дачу');
+  });
+
+  it('findAndInjectImages passes article body text to LLM for unique image prompts', async () => {
+    vi.resetModules();
+    const llmModule = await import('./_core/llm');
+    const llmMock = llmModule.invokeLLM as ReturnType<typeof vi.fn>;
+    llmMock.mockClear();
+    // First call = generateImagePrompts; return prompts array
+    llmMock.mockResolvedValueOnce({
+      choices: [{ message: { content: '["unique prompt from body text"]' } }],
+    } as any);
+
+    const { findAndInjectImages } = await import('./routers/articles');
+    process.env.IMAGE_API_KEY = 'test_key';
+    const bodyContent = 'Межевой план необходим для постановки земельного участка на кадастровый учёт';
+    const html = `<h2>Что такое межевой план</h2><p>${bodyContent}</p>`;
+    await findAndInjectImages('https://kadastrmap.info', 'user', 'pass', 'mezhevoj-plan', 'Межевой план', html, 1);
+
+    const allPrompts = llmMock.mock.calls
+      .map((c: any[]) => c[0]?.messages?.find((m: any) => m.role === 'user')?.content ?? '')
+      .join('\n');
+    // The LLM must receive the article body text to generate article-specific image prompts
+    expect(allPrompts).toContain(bodyContent.slice(0, 50));
+  });
+
+  it('generateImagePrompts instructs LLM to include quality boosters for sharp Flux output', async () => {
+    vi.resetModules();
+    const llmModule = await import('./_core/llm');
+    const llmMock = llmModule.invokeLLM as ReturnType<typeof vi.fn>;
+    llmMock.mockClear();
+    llmMock.mockResolvedValueOnce({
+      choices: [{ message: { content: '["cinematic photo, sharp focus, 8k", "another"]' } }],
+    } as any);
+
+    const { generateImagePrompts } = (await import('./routers/articles')) as any;
+    await generateImagePrompts('Кадастровый паспорт', 'кадастровый паспорт');
+
+    const systemPrompt = llmMock.mock.calls[0]?.[0]?.messages?.find((m: any) => m.role === 'system')?.content ?? '';
+    // System prompt must instruct LLM to generate quality prompts for Flux image generation
+    expect(systemPrompt).toMatch(/cinematic|sharp focus|8k|DSLR|professional photo/i);
   });
 });

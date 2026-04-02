@@ -37,9 +37,9 @@ export async function generateDallEImage(prompt: string, timeoutMs = 90_000): Pr
           },
           body: JSON.stringify({
             prompt,
-            aspect_ratio: '1:1',
-            guidance_scale: 3.5,
-            num_inference_steps: 4,
+            aspect_ratio: '16:9',
+            guidance_scale: 7.0,
+            num_inference_steps: 8,
           }),
           signal: controller.signal,
         }

@@ -304,6 +304,28 @@ const IMPROVED = new Set([
   'kadastrovyj-pasport-na-kvartiru-mfts',
   'kadastrovyj-pasport-obekta-nedvizhimosti-eto',
   'kadastrovyj-pasport-obekta-nedvizhimosti-stoimost-2',
+  // batch-16 (2026-04-02)
+  'kadastrovyj-pasport-obekta-nezavershennogo-stroitelstva',
+  'kadastrovyj-pasport-obrazets',
+  'kadastrovyj-pasport-rf',
+  'kadastrovyj-pasport-skolko-dejstvitelen',
+  'kadastrovyj-pasport-tsena-voprosa',
+  'kadastrovyj-pasport-uchastka',
+  'kadastrovyj-pasport-uchastka-stoimost',
+  'kadastrovyj-pasport-zdaniya-sooruzheniya-obekta-nezavershennogo-stroitelstva',
+  'kadastrovyj-pasport-zemelnogo-uchastka-ufa',
+  'kadastrovyj-pasport-zhilya',
+  // batch-17 (2026-04-02)
+  'kadastrovyj-plan',
+  'kadastrovyj-plan-snt',
+  'kadastrovyj-plan-territorii-obrazets',
+  'kak-poluchit-kadastrovyj-pasport-na-zdanie-yuridicheskomu-litsu',
+  'kak-poluchit-vypisku-egrn-cherez-portal-gosuslug',
+  'kak-poluchit-vypisku-iz-egrn-v-rezhime-onlajn-v-rosreestr',
+  'kak-uznat-sobstvennika-kvartiry-po-adresu-onlajn-rosreestr-2',
+  'kak-uznat-sobstvennika-kvartiry-po-kadastrovomu-nomeru',
+  'kak-uznat-sobstvennika-nedvizhimosti-po-adresu',
+  'kak-uznat-sobstvennika-uchastka',
 ]);
 
 type ScoreLabel = 'HIGH' | 'MED' | 'LOW' | 'SKIP';

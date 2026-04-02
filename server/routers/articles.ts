@@ -248,7 +248,7 @@ function countWords(html: string): number {
 }
 
 // Generate contextual DALL-E image prompts based on article title, keyword and H2 sections
-export async function generateImagePrompts(title: string, keyword?: string, h2Sections?: string[]): Promise<string[]> {
+export async function generateImagePrompts(title: string, keyword?: string, h2Sections?: string[], bodyText?: string): Promise<string[]> {
   const skinNote = `All people must have light/fair Slavic skin tone (Russian appearance). No dark-skinned people.`;
   const noText = `NO text, NO letters, NO words, NO labels, NO watermarks anywhere in the image.`;
   const kw = keyword || title;
@@ -265,6 +265,9 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
   const sectionsBlock = h2Sections && h2Sections.length > 0
     ? `\nArticle sections (H2 headings): ${h2Sections.slice(0, 8).map((s, i) => `${i + 1}. ${s}`).join('; ')}\n`
     : '';
+  const bodyBlock = bodyText
+    ? `\nArticle intro (first 400 chars): "${bodyText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400)}"\n`
+    : '';
 
   const targetCount = h2Sections && h2Sections.length >= 6 ? 9 : 6;
 
@@ -273,13 +276,13 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
       messages: [
         {
           role: 'system',
-          content: 'You are a DALL-E prompt writer for a Russian real estate / cadastral documents website. Write photorealistic, visually appealing image prompts in English. Focus on Russian context: property, documents, offices, apartments. Each prompt must be UNIQUE and match a specific section of the article. Never include text/letters in images.',
+          content: 'You are a Flux image prompt writer for a Russian real estate / cadastral documents website. Write cinematic, photorealistic, sharp-focus prompts in English. Use professional DSLR photography style: 8k detail, natural lighting, shallow depth of field. Focus on Russian context: property, documents, offices, apartments. Each prompt must be UNIQUE and match a specific section of the article. Add quality boosters: "cinematic lighting, sharp focus, 8k, professional DSLR, highly detailed". Never include text/letters in images.',
         },
         {
           role: 'user',
           content: `Article title: "${title}"
 Search keyword: "${kw}"
-${sectionsBlock}
+${sectionsBlock}${bodyBlock}
 The article is about ordering official Russian property/cadastral documents via kadastrmap.info.
 
 Write exactly ${targetCount} different DALL-E image prompts. Each prompt must:
@@ -288,6 +291,7 @@ Write exactly ${targetCount} different DALL-E image prompts. Each prompt must:
 - For keyword "${kw}": be visually specific (e.g. "обременение" → show mortgage bank documents with chains metaphor; "кадастровый паспорт" → show blueprint/floor plan; "переход прав" → show document handshake/transfer)
 - Vary the scene: person at laptop ordering, receiving document, reviewing document, property exterior, family/person satisfied, government/notary office
 - All people: light/fair Slavic skin tone. ${noText}
+- End every prompt with: "cinematic lighting, sharp focus, 8k, professional DSLR photography, highly detailed"
 - Concise (1-2 sentences)
 
 Return ONLY a JSON array of ${targetCount} strings: ["prompt1", ...]`,
@@ -1221,7 +1225,8 @@ export async function findAndInjectImages(
       ? Math.min(imagesNeeded - validMedia.length, 3)
       : 1;
     const h2Sections = extractH2Texts(html).slice(0, 9);
-    const prompts = await generateImagePrompts(title, titleKeywords, h2Sections);
+    const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
+    const prompts = await generateImagePrompts(title, titleKeywords, h2Sections, bodyText);
     console.log(`[Img] Generating ${fluxNeeded} FLUX images (sequential)`);
     const fluxValid: { id: number; url: string; width?: number; height?: number }[] = [];
     for (let i = 0; i < Math.min(fluxNeeded, prompts.length); i++) {
@@ -2270,7 +2275,7 @@ ${competitorContext}
           ],
           maxTokens: 100,
         }).catch(() => null),
-        generateImagePrompts(input.title, undefined, extractH2Texts(input.content).slice(0, 9)),
+        generateImagePrompts(input.title, undefined, extractH2Texts(input.content).slice(0, 9), input.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400)),
       ]);
 
       const imageResults = await Promise.all(
@@ -2462,7 +2467,7 @@ ${competitorContext}
           ],
           maxTokens: 200,
         }).catch(() => null),
-        generateImagePrompts(input.title, focusKeyword, h2Sections),
+        generateImagePrompts(input.title, focusKeyword, h2Sections, input.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400)),
         wp.searchMedia(account.siteUrl, account.username, account.appPassword, titleKeywords, 12)
           .catch(() => [] as { id: number; url: string; width: number; height: number; alt: string; title: string }[]),
         searchWikimediaImages(titleKeywords, 8)
