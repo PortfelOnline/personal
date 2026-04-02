@@ -243,7 +243,7 @@ function countWords(html: string): number {
 }
 
 // Generate contextual DALL-E image prompts based on article title, keyword and H2 sections
-async function generateImagePrompts(title: string, keyword?: string, h2Sections?: string[]): Promise<string[]> {
+export async function generateImagePrompts(title: string, keyword?: string, h2Sections?: string[]): Promise<string[]> {
   const skinNote = `All people must have light/fair Slavic skin tone (Russian appearance). No dark-skinned people.`;
   const noText = `NO text, NO letters, NO words, NO labels, NO watermarks anywhere in the image.`;
   const kw = keyword || title;
@@ -2261,7 +2261,7 @@ ${competitorContext}
           ],
           maxTokens: 100,
         }).catch(() => null),
-        generateImagePrompts(input.title),
+        generateImagePrompts(input.title, undefined, extractH2Texts(input.content).slice(0, 9)),
       ]);
 
       const imageResults = await Promise.all(

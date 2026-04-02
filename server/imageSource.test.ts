@@ -81,3 +81,31 @@ describe('Image source policy', () => {
     expect(wikimediaCalls).toHaveLength(0);
   });
 });
+
+describe('generateImagePrompts — article-specific unique prompts', () => {
+  it('generateImagePrompts is exported and accepts h2Sections for article-specific prompts', async () => {
+    vi.resetModules();
+    const mod = await import('./routers/articles');
+    expect(typeof (mod as any).generateImagePrompts).toBe('function');
+  });
+
+  it('generateImagePrompts includes h2Sections in LLM prompt for article-specific images', async () => {
+    vi.resetModules();
+    // Import after resetModules so both use the same fresh mock instance
+    const llmModule = await import('./_core/llm');
+    const llmMock = llmModule.invokeLLM as ReturnType<typeof vi.fn>;
+    llmMock.mockClear();
+    llmMock.mockResolvedValueOnce({
+      choices: [{ message: { content: '["prompt about cadastral document", "prompt about building"]' } }],
+    } as any);
+
+    const { generateImagePrompts } = (await import('./routers/articles')) as any;
+    const h2Sections = ['Что такое кадастровый паспорт здания', 'Где заказать кадастровый паспорт'];
+    await generateImagePrompts('Кадастровый паспорт здания', 'кадастровый паспорт здания', h2Sections);
+
+    const userPrompt =
+      llmMock.mock.calls[0]?.[0]?.messages?.find((m: any) => m.role === 'user')?.content ?? '';
+    // H2 section content must appear in the LLM prompt
+    expect(userPrompt).toContain('Что такое кадастровый паспорт здания');
+  });
+});

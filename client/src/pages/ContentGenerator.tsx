@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen, Radar, ChevronDown, ChevronUp, Lightbulb, Link, CheckCircle2, XCircle, Bot } from 'lucide-react';
+import { Loader2, Copy, Download, Sparkles, RefreshCw, Zap, CalendarDays, Image, Video, Send, TrendingUp, FlipHorizontal, Rss, ArrowRightLeft, Clock, BookOpen, Radar, ChevronDown, ChevronUp, Lightbulb, Link, CheckCircle2, XCircle, Bot, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -354,10 +354,13 @@ export default function ContentGenerator() {
   const saveTopicMutation = trpc.content.saveTopic.useMutation({ onSuccess: () => refetchTopics() });
   const deleteTopicMutation = trpc.content.deleteTopic.useMutation({ onSuccess: () => refetchTopics() });
   const agentMutation = trpc.content.agentGenerate.useMutation();
+  const discoverMutation = trpc.content.agentDiscover.useMutation();
   const [agentUrl, setAgentUrl] = useState('');
   const [agentSteps, setAgentSteps] = useState<Array<{step: string; status: string; detail?: string}>>([]);
   const [agentResults, setAgentResults] = useState<any>(null);
   const [agentSectionOpen, setAgentSectionOpen] = useState(true);
+  const [discoveredUrls, setDiscoveredUrls] = useState<Array<{url: string; title: string; source: string}>>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
 
   const { data: existingPostsData } = trpc.content.listPosts.useQuery({});
   // Set of "industry|pillar" combinations that already have content
@@ -373,6 +376,20 @@ export default function ContentGenerator() {
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const { data: galleryData, refetch: refetchGallery } = trpc.content.listGeneratedImages.useQuery(undefined, { enabled: galleryOpen });
+
+  const handleDiscover = async () => {
+    setIsDiscovering(true);
+    setDiscoveredUrls([]);
+    try {
+      const result = await discoverMutation.mutateAsync({ industry, geo: 'IN', maxUrls: 6 });
+      setDiscoveredUrls(result.urls ?? []);
+      if (!result.urls?.length) toast.error('No URLs found, try again');
+    } catch (e: any) {
+      toast.error(e?.message || 'Discovery failed');
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
 
   const handleAgentGenerate = async () => {
     if (!agentUrl.trim()) { toast.error('Enter a URL'); return; }
@@ -661,14 +678,40 @@ export default function ContentGenerator() {
                       />
                     </div>
                     <Button
+                      variant="outline"
+                      onClick={handleDiscover}
+                      disabled={isDiscovering || agentMutation.isPending}
+                      className="border-violet-300 text-violet-700 hover:bg-violet-50 shrink-0"
+                      title="Auto-discover trending URLs"
+                    >
+                      {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                    <Button
                       onClick={handleAgentGenerate}
                       disabled={agentMutation.isPending || !agentUrl.trim()}
                       className="bg-violet-600 hover:bg-violet-700 text-white shrink-0"
                     >
                       {agentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      <span className="ml-1.5">{agentMutation.isPending ? 'Running...' : 'Generate All'}</span>
+                      <span className="ml-1.5">{agentMutation.isPending ? 'Running...' : 'Generate'}</span>
                     </Button>
                   </div>
+
+                  {/* Discovered URLs */}
+                  {discoveredUrls.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-violet-600">Trending URLs — click to use:</p>
+                      {discoveredUrls.map((d, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setAgentUrl(d.url)}
+                          className={`w-full text-left text-xs px-3 py-2 rounded-lg border transition-colors ${agentUrl === d.url ? 'border-violet-500 bg-violet-50 text-violet-900' : 'border-violet-100 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50/50'}`}
+                        >
+                          <span className="font-medium text-violet-600">{d.source}</span>
+                          <span className="ml-1.5 truncate">{d.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Progress steps */}
                   {agentSteps.length > 0 && (

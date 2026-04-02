@@ -13,7 +13,7 @@ import { articlesRouter } from "./routers/articles";
 import { generateGeminiImage, generateVeoVideo, buildVisualPrompt, generateVisualPromptWithLLM } from "./_core/gemini";
 import { storagePut } from "./storage";
 import fs from "fs";
-import { runSocialAgent } from "./agent/social-agent";
+import { runSocialAgent, discoverUrls } from "./agent/social-agent";
 
 import path from "path";
 
@@ -1452,6 +1452,21 @@ Return ONLY valid JSON. No markdown fences.`;
           industry: input.industry,
         });
         return result;
+      }),
+
+    agentDiscover: protectedProcedure
+      .input(z.object({
+        industry: z.string().default("real_estate"),
+        geo: z.string().default("IN"),
+        maxUrls: z.number().default(6),
+      }))
+      .mutation(async ({ input }) => {
+        const urls = await discoverUrls({
+          industry: input.industry,
+          geo: input.geo,
+          maxUrls: input.maxUrls,
+        });
+        return { urls };
       }),
 
     deleteTopic: protectedProcedure

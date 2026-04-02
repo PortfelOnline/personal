@@ -108,7 +108,7 @@ Extract and return JSON with this exact structure:
   });
 
   try {
-    const clean = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+    const clean = (typeof response.choices?.[0]?.message?.content === "string" ? response.choices[0].message.content : "").replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
     return JSON.parse(clean) as ExtractedInfo;
   } catch {
     return {
@@ -159,7 +159,7 @@ Rules: Use ₹ if relevant, be specific, create urgency or curiosity, max 15 wor
     ],
   });
   try {
-    const clean = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+    const clean = (typeof response.choices?.[0]?.message?.content === "string" ? response.choices[0].message.content : "").replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
     const parsed = JSON.parse(clean) as { hooks: string[] };
     return parsed.hooks.slice(0, 3);
   } catch {
@@ -195,7 +195,7 @@ Return JSON:
     ],
   });
   try {
-    const clean = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+    const clean = (typeof response.choices?.[0]?.message?.content === "string" ? response.choices[0].message.content : "").replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
     return JSON.parse(clean);
   } catch {
     return { hook, paragraphs: [info.valueProposition], cta: info.callToAction, hashtags: ["#India", "#Business"], imagePrompt: info.suggestedImageStyle };
@@ -234,7 +234,7 @@ Return JSON:
     ],
   });
   try {
-    const clean = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+    const clean = (typeof response.choices?.[0]?.message?.content === "string" ? response.choices[0].message.content : "").replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
     return JSON.parse(clean);
   } catch {
     return { hook, slides: [{ slide: 1, headline: hook, body: "" }, { slide: 2, headline: info.valueProposition, body: "" }], caption: info.valueProposition, hashtags: ["#India"], imagePrompt: info.suggestedImageStyle };
@@ -270,6 +270,80 @@ async function generateAndUploadImage(prompt: string, aspect: "4:5" | "16:9" | "
     console.error(`[SocialAgent] Image generation failed for ${platform}:`, e);
     return undefined;
   }
+}
+
+
+// ─── URL Discovery via SerpAPI + Trends ──────────────────────────────────────
+
+export interface DiscoveredUrl {
+  url: string;
+  title: string;
+  source: string;
+}
+
+const INDUSTRY_QUERIES: Record<string, string[]> = {
+  real_estate: ["property India news", "real estate agent AI India", "Mumbai property market", "India home buying tips"],
+  ecommerce:   ["ecommerce India trends", "D2C brand India", "online shopping India news"],
+  restaurant:  ["restaurant India trends", "food delivery India", "cloud kitchen India"],
+  default:     ["small business India AI", "digital marketing India", "startup India news"],
+};
+
+export async function discoverUrls({
+  industry = "real_estate",
+  geo = "IN",
+  maxUrls = 6,
+}: {
+  industry?: string;
+  geo?: string;
+  maxUrls?: number;
+}): Promise<DiscoveredUrl[]> {
+  const serpKey = process.env.SERPAPI_KEY ?? "";
+  const results: DiscoveredUrl[] = [];
+
+  // 1. Get trending topics to seed queries
+  const trends = await fetchTrends(geo).catch(() => []);
+  const industryQueries = INDUSTRY_QUERIES[industry] ?? INDUSTRY_QUERIES.default;
+
+  // Build search queries: blend 1-2 trending topics with industry seeds
+  const trendSeeds = trends.slice(0, 2);
+  const queries = [
+    ...trendSeeds.map(t => `${t} ${industryQueries[0]}`),
+    ...industryQueries.slice(0, 2),
+  ].slice(0, 3);
+
+  // 2. SerpAPI searches in parallel
+  const searchPromises = queries.map(async (q) => {
+    try {
+      const url = `https://serpapi.com/search.json?q=${encodeURIComponent(q)}&location=India&hl=en&gl=in&num=5&api_key=${serpKey}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) return [];
+      const data = await res.json() as { organic_results?: Array<{ link: string; title: string; displayed_link?: string }> };
+      return (data.organic_results ?? []).map(r => ({
+        url: r.link,
+        title: r.title,
+        source: new URL(r.link).hostname.replace(/^www\./, ""),
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+  const allResults = (await Promise.all(searchPromises)).flat();
+
+  // Deduplicate by hostname (prefer diversity of sources)
+  const seen = new Set<string>();
+  for (const r of allResults) {
+    try {
+      const host = new URL(r.url).hostname;
+      if (!seen.has(host)) {
+        seen.add(host);
+        results.push(r);
+      }
+    } catch { /* skip invalid URLs */ }
+    if (results.length >= maxUrls) break;
+  }
+
+  return results;
 }
 
 // ─── Main Agent ───────────────────────────────────────────────────────────────
