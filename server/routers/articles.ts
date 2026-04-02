@@ -238,6 +238,11 @@ function extractLsiKeywords(serpResults: { snippet?: string; title?: string }[])
 
 // ── Post-generation quality check + fix ──────────────────────────────────────
 
+// Guard: detect LLM placeholder titles like 'до 60 симв.'
+function isPlaceholderTitle(t: string | null | undefined): boolean {
+  return !t || /до\s*\d+\s*(симв|символ)|placeholder|\[.*\]/i.test(t) || t.length < 5;
+}
+
 function countWords(html: string): number {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length;
 }
@@ -876,8 +881,6 @@ ${missingTopicsBlock}${lsiBlock}
   }
 
   // Guard: if LLM returned placeholder text instead of a real title, discard it
-  const isPlaceholderTitle = (t: string | null | undefined) =>
-    !t || /до\s*\d+\s*симв|символ|placeholder|\[.*\]/i.test(t) || t.length < 5;
   if (isPlaceholderTitle(seo.metaTitle)) seo.metaTitle = parsed.title;
 
   let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
