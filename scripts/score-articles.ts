@@ -291,6 +291,19 @@ const IMPROVED = new Set([
   'kadastrovyj-pasport-zemelnogo-uchastka-srok-dejstviya',
   'kadastrovyj-pasport-zemelnogo-uchastka-obrazets',
   'kak-proverit-sobstvennika-kvartiry-po-adresu',
+  // batch 15 (2026-04-02)
+  'kadastrovyj-pasport-chto-eto-za-dokument',
+  'kadastrovyj-pasport-dachnyj-domik',
+  'kadastrovyj-pasport-dlya-yuridicheskih-lits-stoimost',
+  'kadastrovyj-pasport-i-kadastrovyj-plan',
+  'kadastrovyj-pasport-kvartiry-gde-poluchit',
+  'kadastrovyj-pasport-mnogokvartirnogo-zhilogo-doma',
+  'kadastrovyj-pasport-na-chast-zhilogo-doma',
+  'kadastrovyj-pasport-na-dom-onlajn-rosreestr',
+  'kadastrovyj-pasport-na-garazhnyj-boks',
+  'kadastrovyj-pasport-na-kvartiru-mfts',
+  'kadastrovyj-pasport-obekta-nedvizhimosti-eto',
+  'kadastrovyj-pasport-obekta-nedvizhimosti-stoimost-2',
 ]);
 
 type ScoreLabel = 'HIGH' | 'MED' | 'LOW' | 'SKIP';

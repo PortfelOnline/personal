@@ -875,6 +875,11 @@ ${missingTopicsBlock}${lsiBlock}
     seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
   }
 
+  // Guard: if LLM returned placeholder text instead of a real title, discard it
+  const isPlaceholderTitle = (t: string | null | undefined) =>
+    !t || /до\s*\d+\s*симв|символ|placeholder|\[.*\]/i.test(t) || t.length < 5;
+  if (isPlaceholderTitle(seo.metaTitle)) seo.metaTitle = parsed.title;
+
   let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim()
         .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
@@ -1108,6 +1113,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
   } catch {
     seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
   }
+  if (isPlaceholderTitle(seo.metaTitle)) seo.metaTitle = parsed.title;
 
   let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim()
