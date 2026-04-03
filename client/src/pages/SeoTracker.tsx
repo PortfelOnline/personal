@@ -74,6 +74,8 @@ function parseNotesBadges(notes: string) {
   return { h2, h3, faq, img, intent };
 }
 import DashboardLayout from '@/components/DashboardLayout';
+import { SC_DATA } from '@/data/kadmapSCData';
+import { getScPosColor, getScPotentialColor, isCtrLow } from '@/data/scTableHelpers';
 import {
   KADMAP_ARTICLES,
   KADMAP_NEWS,
@@ -849,6 +851,59 @@ export default function SeoTracker() {
                   </div>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SC Potential Table */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-green-600" />
+              Search Console — потенциал роста
+              <span className="text-xs font-normal text-slate-400 ml-1">(снимок март 2026, топ-100 по потенциалу)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-slate-50 text-slate-500">
+                    <th className="text-left px-3 py-2 font-medium">#</th>
+                    <th className="text-left px-3 py-2 font-medium">Статья</th>
+                    <th className="text-right px-3 py-2 font-medium">Поз.</th>
+                    <th className="text-right px-3 py-2 font-medium">Показы</th>
+                    <th className="text-right px-3 py-2 font-medium">CTR</th>
+                    <th className="text-right px-3 py-2 font-medium">Клики</th>
+                    <th className="text-right px-3 py-2 font-medium">Потенциал</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {SC_DATA.map((row, i) => (
+                    <tr key={row.slug} className={`border-b hover:bg-slate-50 ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                      <td className="px-3 py-1.5 text-slate-400">{i + 1}</td>
+                      <td className="px-3 py-1.5 max-w-xs">
+                        <a
+                          href={`https://kadastrmap.info/kadastr/${row.slug}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline truncate block"
+                        >
+                          {row.slug}
+                        </a>
+                      </td>
+                      <td className={`px-3 py-1.5 text-right font-mono ${getScPosColor(row.pos)}`}>{row.pos.toFixed(1)}</td>
+                      <td className="px-3 py-1.5 text-right text-slate-600">{row.impressions.toLocaleString('ru')}</td>
+                      <td className={`px-3 py-1.5 text-right font-mono ${isCtrLow(row.ctr, row.pos) ? 'text-red-500 font-semibold' : 'text-slate-600'}`}>
+                        {row.ctr.toFixed(1)}%
+                        {isCtrLow(row.ctr, row.pos) && <span className="ml-1 text-red-400">↓</span>}
+                      </td>
+                      <td className="px-3 py-1.5 text-right text-slate-600">{row.clicks.toLocaleString('ru')}</td>
+                      <td className={`px-3 py-1.5 text-right font-mono ${getScPotentialColor(row.potential)}`}>+{row.potential.toLocaleString('ru')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
