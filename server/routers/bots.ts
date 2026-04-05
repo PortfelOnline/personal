@@ -1,7 +1,44 @@
 import { router, protectedProcedure } from '../_core/trpc';
 import { z } from 'zod';
+import { execFileSync } from 'child_process';
 import * as botManager from '../bots';
 import * as orch from '../orchestrator';
+
+const BOT_SERVER = 'root@167.86.116.15';
+const SSH_KEY = `${process.env.HOME}/.ssh/id_ed25519`;
+const SEARCH_RESULTS_PATH = '/root/yandex_bot/outputs/search_results.txt';
+
+function fetchSearchResults(): string {
+  try {
+    return execFileSync('ssh', [
+      '-i', SSH_KEY,
+      '-o', 'StrictHostKeyChecking=no',
+      '-o', 'ConnectTimeout=8',
+      BOT_SERVER,
+      `cat ${SEARCH_RESULTS_PATH}`,
+    ], { timeout: 15_000, encoding: 'utf-8' });
+  } catch {
+    return '';
+  }
+}
+
+function parseSearchStats(raw: string) {
+  const byDate: Record<string, { serp: number; direct: number; total: number }> = {};
+  for (const line of raw.split('\n')) {
+    const parts = line.split('\t');
+    if (parts.length < 4 || parts[0].startsWith('Bot ID')) continue;
+    const date = parts[3]?.slice(0, 10);
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    const type = parts[4]?.trim() || 'direct';
+    if (!byDate[date]) byDate[date] = { serp: 0, direct: 0, total: 0 };
+    if (type === 'serp') byDate[date].serp++;
+    else byDate[date].direct++;
+    byDate[date].total++;
+  }
+  return Object.entries(byDate)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, counts]) => ({ date, ...counts }));
+}
 
 const botEntrySchema = z.object({
   botId: z.number().int().min(1).max(100),
@@ -113,4 +150,10 @@ export const botsRouter = router({
   setOrchestratorConfig: protectedProcedure
     .input(orchestratorConfigSchema)
     .mutation(({ input }) => { orch.saveOrchestratorConfig(input); return { success: true }; }),
+
+  // --- Search CTR stats (reads from bot server via SSH) ---
+  searchStats: protectedProcedure.query(() => {
+    const raw = fetchSearchResults();
+    return { rows: parseSearchStats(raw) };
+  }),
 });

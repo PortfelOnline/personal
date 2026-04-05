@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { getDefaultCatalogUrl, getDefaultCtaUrl } from '@/lib/siteDefaults';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -476,13 +477,14 @@ ${body}
 const CTA_URL_KEY = 'publish_cta_url';
 
 function PublishToSiteDialog({
-  open, onOpenChange, originalUrl, title, content,
+  open, onOpenChange, originalUrl, title, content, defaultAccountId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   originalUrl: string;
   title: string;
   content: string;
+  defaultAccountId?: number | null;
 }) {
   const [ctaUrl, setCtaUrl] = useState(() => {
     const saved = localStorage.getItem(CTA_URL_KEY);
@@ -495,8 +497,8 @@ function PublishToSiteDialog({
 
   const { data: accounts = [] } = trpc.wordpress.getAccounts.useQuery();
 
-  // Auto-select first account
-  if (accounts.length > 0 && accountId === null) setAccountId(accounts[0].id);
+  // Auto-select: prefer defaultAccountId, then first account
+  if (accounts.length > 0 && accountId === null) setAccountId(defaultAccountId ?? accounts[0].id);
 
   const { mutate: publish, isPending } = trpc.articles.publishArticleToSite.useMutation({
     onSuccess: (d) => {
@@ -1014,6 +1016,7 @@ function AnalysisPanel({
         originalUrl={originalUrl}
         title={result.improvedTitle}
         content={displayContent}
+        defaultAccountId={firstAccountId}
       />
     </div>
   );
@@ -1306,6 +1309,7 @@ function CatalogScanner({
   onAnalyze, onBatchAnalyze, analyzedUrls, isBatching, batchDone, batchTotal, onStopBatch,
   onServerBatch, serverBatch, onStopServerBatch,
   onBatchRewrite, batchRewrite, onStopBatchRewrite,
+  defaultCatalogUrl, defaultCtaUrl,
 }: {
   onAnalyze: (url: string) => void;
   onBatchAnalyze: (urls: string[]) => void;
@@ -1320,8 +1324,11 @@ function CatalogScanner({
   onBatchRewrite: (urls: string[]) => void;
   batchRewrite?: { running: boolean; done: number; total: number; errors: number; current: string } | null;
   onStopBatchRewrite: () => void;
+  defaultCatalogUrl?: string;
+  defaultCtaUrl?: string;
 }) {
-  const [catalogUrl, setCatalogUrl] = useState('https://kadastrmap.info/kadastr/');
+  const [catalogUrl, setCatalogUrl] = useState(() => defaultCatalogUrl ?? 'https://kadastrmap.info/kadastr/');
+  useEffect(() => { if (defaultCatalogUrl) setCatalogUrl(defaultCatalogUrl); }, [defaultCatalogUrl]);
   const [articles, setArticles]     = useState<CatalogArticle[]>(() => loadCachedArticles());
   const [totalPages, setTotalPages] = useState(0);
   const [scannedPages, setScannedPages] = useState(0);
@@ -3659,7 +3666,125 @@ function GenerateTopArticle({ initialKeyword }: { initialKeyword?: string }) {
   );
 }
 
+// ── SiteSelectorBar ──────────────────────────────────────────────────────────
+function SiteSelectorBar({
+  accounts, selectedId, onSelect, catalogUrl, onAdded,
+}: {
+  accounts: { id: number; siteName: string; siteUrl: string }[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+  catalogUrl: string;
+  onAdded: () => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [siteUrl, setSiteUrl]   = useState('');
+  const [siteName, setSiteName] = useState('');
+  const [username, setUsername] = useState('');
+  const [appPass, setAppPass]   = useState('');
+
+  const { mutate: addAccount, isPending } = trpc.wordpress.addAccount.useMutation({
+    onSuccess: (d) => {
+      toast.success(`Сайт подключён: ${d.siteName}`);
+      setSiteUrl(''); setSiteName(''); setUsername(''); setAppPass('');
+      setShowAdd(false);
+      onAdded();
+    },
+    onError: (e: any) => toast.error(e?.message || 'Ошибка подключения'),
+  });
+
+  return (
+    <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+      {/* Main row */}
+      <div className="flex items-center gap-3 px-4 py-2.5">
+        <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+        <span className="text-sm font-medium text-blue-800 shrink-0">Сайт:</span>
+
+        {accounts.length === 0 ? (
+          <span className="text-sm text-blue-500 italic">Нет подключённых сайтов</span>
+        ) : (
+          <select
+            value={selectedId ?? accounts[0]?.id ?? ''}
+            onChange={e => onSelect(Number(e.target.value))}
+            className="border rounded px-2 py-1 text-sm bg-white flex-1 max-w-xs"
+          >
+            {accounts.map(a => (
+              <option key={a.id} value={a.id}>{a.siteName} — {a.siteUrl}</option>
+            ))}
+          </select>
+        )}
+
+        <span className="text-xs text-blue-600 truncate max-w-64">
+          Каталог: {catalogUrl}
+        </span>
+
+        <button
+          onClick={() => setShowAdd(v => !v)}
+          className={`ml-auto flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded border transition-colors ${
+            showAdd
+              ? 'bg-blue-600 text-white border-blue-600'
+              : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-100'
+          }`}
+        >
+          <ArrowRight className={`w-3 h-3 transition-transform ${showAdd ? 'rotate-90' : ''}`} />
+          {showAdd ? 'Отмена' : '+ Добавить сайт'}
+        </button>
+      </div>
+
+      {/* Inline add form */}
+      {showAdd && (
+        <div className="border-t border-blue-200 bg-white px-4 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Input
+            placeholder="https://example.com"
+            value={siteUrl}
+            onChange={e => setSiteUrl(e.target.value)}
+            className="text-sm h-8"
+          />
+          <Input
+            placeholder="Название сайта"
+            value={siteName}
+            onChange={e => setSiteName(e.target.value)}
+            className="text-sm h-8"
+          />
+          <Input
+            placeholder="WP username"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            className="text-sm h-8"
+          />
+          <div className="flex gap-2">
+            <Input
+              placeholder="Application Password"
+              type="password"
+              value={appPass}
+              onChange={e => setAppPass(e.target.value)}
+              className="text-sm h-8 flex-1"
+            />
+            <Button
+              size="sm"
+              className="h-8 px-3 bg-blue-600 hover:bg-blue-700 shrink-0"
+              disabled={isPending || !siteUrl || !siteName || !username || !appPass}
+              onClick={() => addAccount({ siteUrl, siteName, username, appPassword: appPass })}
+            >
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Подключить'}
+            </Button>
+          </div>
+          <p className="col-span-2 sm:col-span-4 text-xs text-slate-400">
+            Application Password: WP Admin → Users → Profile → Application Passwords
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function ArticleAnalyzer() {
+  const { data: wpAccountsList = [] } = trpc.wordpress.getAccounts.useQuery();
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const selectedAccount = wpAccountsList.find(a => a.id === (selectedAccountId ?? wpAccountsList[0]?.id)) ?? wpAccountsList[0] ?? null;
+  const activeCatalogUrl = selectedAccount ? getDefaultCatalogUrl(selectedAccount.siteUrl) : 'https://kadastrmap.info/kadastr/';
+  const activeCtaUrl = selectedAccount ? getDefaultCtaUrl(selectedAccount.siteUrl) : 'https://kadastrmap.info/spravki/';
+
   const [activeTab, setActiveTab] = useState<'analyze' | 'catalog' | 'ideas' | 'audit' | 'serp' | 'proxies' | 'generate' | 'keywords' | 'auto' | 'library'>('catalog');
   const [libraryVersionUrl, setLibraryVersionUrl] = useState<string | null>(null);
   const [libSearch, setLibSearch] = useState('');
@@ -3927,6 +4052,15 @@ export default function ArticleAnalyzer() {
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Анализ и улучшение статей</h1>
           <p className="text-slate-600">Сканируйте каталог или введите URL статьи — AI улучшит текст и даст SEO-рекомендации</p>
         </div>
+
+        {/* Site selector */}
+        <SiteSelectorBar
+          accounts={wpAccountsList}
+          selectedId={selectedAccountId ?? wpAccountsList[0]?.id ?? null}
+          onSelect={setSelectedAccountId}
+          catalogUrl={activeCatalogUrl}
+          onAdded={() => utils.wordpress.getAccounts.invalidate()}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6">
           {/* Main area */}
@@ -4234,6 +4368,8 @@ export default function ArticleAnalyzer() {
               {/* Catalog tab */}
               <TabsContent value="catalog">
                 <CatalogScanner
+                  defaultCatalogUrl={activeCatalogUrl}
+                  defaultCtaUrl={activeCtaUrl}
                   onAnalyze={handleAnalyze}
                   onBatchAnalyze={handleBatchAnalyze}
                   analyzedUrls={analyzedUrls}

@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import * as cheerio from "cheerio";
 import { parseArticleFromUrl, scanCatalog } from "../_core/articleParser";
 import { fetchGoogleSerp, fetchYandexSerp, SerpData } from "../_core/serpParser";
+import { fetchGscPageQueries, formatGscBlock } from "../_core/gscClient";
 import { invokeLLM } from "../_core/llm";
 import { generateDallEImage } from "../_core/imageGen";
 import * as wp from "../_core/wordpress";
@@ -285,14 +286,17 @@ Search keyword: "${kw}"
 ${sectionsBlock}${bodyBlock}
 The article is about ordering official Russian property/cadastral documents via kadastrmap.info.
 
-Write exactly ${targetCount} different DALL-E image prompts. Each prompt must:
-- Be photorealistic, wide-format (landscape orientation)
-- UNIQUELY match ONE specific section or aspect of this article — NOT generic property scenes
-- For keyword "${kw}": be visually specific (e.g. "обременение" → show mortgage bank documents with chains metaphor; "кадастровый паспорт" → show blueprint/floor plan; "переход прав" → show document handshake/transfer)
-- Vary the scene: person at laptop ordering, receiving document, reviewing document, property exterior, family/person satisfied, government/notary office
-- All people: light/fair Slavic skin tone. ${noText}
-- End every prompt with: "cinematic lighting, sharp focus, 8k, professional DSLR photography, highly detailed"
-- Concise (1-2 sentences)
+Write exactly ${targetCount} DIFFERENT photorealistic image prompts. Requirements:
+- SHORT (10-15 words max before quality tags) — Flux works best with concise prompts
+- Each must match a SPECIFIC aspect of this article (NOT generic)
+- Vary scenes: document on desk, person at laptop, apartment exterior, notary office, bank counter, family at home reviewing papers
+- All people: light Slavic appearance. ${noText}
+- End every prompt with: "cinematic lighting, sharp focus, 8k resolution, professional DSLR"
+
+Examples of GOOD concise prompts:
+- "Official Russian EGRN property document on wooden desk, natural light, cinematic lighting, sharp focus, 8k resolution, professional DSLR"
+- "Young Russian couple signing mortgage documents at bank, modern office, cinematic lighting, sharp focus, 8k resolution, professional DSLR"
+- "Russian apartment building exterior, sunny day, blue sky, cinematic lighting, sharp focus, 8k resolution, professional DSLR"
 
 Return ONLY a JSON array of ${targetCount} strings: ["prompt1", ...]`,
         },
@@ -405,7 +409,8 @@ async function enhanceIfNeeded(
       messages: [
         { role: 'system', content: `Ты SEO-копирайтер. Генерируешь ДОПОЛНИТЕЛЬНЫЙ HTML-контент для статьи о "${keyword}".
 СТРОГИЕ ПРАВИЛА:
-- Все H2/H3 ОБЯЗАНЫ быть строго о теме "${keyword}" — без абстрактных секций вроде "Фермы", "Системы учёта", "Договор оферта", "Навигация", "Контроль"
+- Все H2/H3/H4 ОБЯЗАНЫ быть строго о теме "${keyword}" — только конкретные юридические/практические аспекты
+- ЗАПРЕЩЕНЫ заголовки: "Умная система", "Автоматизация", "Сертификация", "Поддерживаемые форматы/типы", "Файловый формат", "Навигация", "Мониторинг", "API", "Интеграция", "Фермы", "Системы учёта", "Договор оферта"
 - НЕ упоминай конкурентов: справок.рф, госуслуги, МФЦ, Росреестр как способы заказа
 - Заказ — ТОЛЬКО через /spravki/. Цены — через [BLOCK_PRICE]
 - НЕ дублируй уже написанное
@@ -446,19 +451,28 @@ function extractHeadingsFromHtml(html: string): { level: string; text: string }[
 
 // ── Filter hallucinated/garbage H2 headings after LLM generation ────────────
 function filterGarbageH2(html: string, keyword: string): string {
-  // Remove entire H2+content block if heading is clearly off-topic
   const garbagePatterns = [
-    /ферм[аыу]/i,           // "Фермы в ЕГРН" etc
-    /систем[аыу] учёт/i,    // "Системы учета"
-    /навигаци[яи]/i,        // "Навигация по ЕГРН"
-    /контрол[ьяе] за/i,     // "Контроль за..."
-    /мониторинг/i,          // "Мониторинг"
-    /договор\s+оферт/i,     // "Договор оферта"
-    /справок\.рф/i,         // competitor
+    /ферм[аыу]/i,
+    /систем[аыу] учёт/i,
+    /навигаци[яи]/i,
+    /контрол[ьяе] за/i,
+    /мониторинг/i,
+    /договор\s+оферт/i,
+    /справок\.рф/i,
     /gosuslugi|gosuslugi\.ru/i,
+    // LLM булшит-паттерны
+    /умн[ая]\s+систем/i,         // "Умная система автоматизации"
+    /автоматизаци[яи]/i,          // "Автоматизация"
+    /сертификаци[яи]/i,           // "Сертификация"
+    /файловым форматом/i,         // "Поддерживаемые файловым форматом"
+    /поддерживаемые (типы|форматы)/i, // "Поддерживаемые типы"
+    /\bapi\b/i,                  // API-раздел не нужен
+    /интеграци[яи] (с|со)/i,      // "Интеграция с..."
+    /техническ[аяие] (архитектур|документ)/i,
+    /SDK|REST|JSON/i, // технический мусор
   ];
-  // Remove <h2> tags whose text matches garbage patterns
-  return html.replace(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/gi, (match, inner) => {
+  // Фильтруем H2, H3, H4 — все уровни
+  return html.replace(/<h[234][^>]*>([\s\S]*?)<\/h[234]>/gi, (match, inner) => {
     const text = inner.replace(/<[^>]+>/g, '').trim();
     if (garbagePatterns.some(p => p.test(text))) {
       console.log(`[QA] Removed garbage heading: "${text}"`);
@@ -796,11 +810,13 @@ async function analyzeAndSaveArticle(userId: number, url: string): Promise<void>
   const serpKeyword = extractKeywordFromTitle(parsed.title);
   const ourDomain = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } })();
 
-  // Step 1: Google + Яндекс параллельно
-  const [googleSerp, yandexSerp] = await Promise.all([
+  // Step 1: Google + Яндекс + GSC параллельно
+  const [googleSerp, yandexSerp, gscQueries] = await Promise.all([
     cachedGoogleSerp(serpKeyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
     cachedYandexSerp(serpKeyword).catch(() => ({ results: [] as any[], error: 'fetch failed' })),
+    fetchGscPageQueries(url, 28, 20).catch(() => []),
   ]);
+  const gscBlock = formatGscBlock(gscQueries);
 
   // Дедупликация по домену: Яндекс добавляет уникальных конкурентов
   const seenDomains = new Set(googleSerp.results.map((r: any) => r.domain));
@@ -885,7 +901,7 @@ ${contentForLLM}
 
 КОНКУРЕНТЫ В ТОП-${competitors.length} (средний объём: ${avgCompetitorWords} слов):
 ${competitorContext}
-${missingTopicsBlock}${lsiBlock}
+${missingTopicsBlock}${lsiBlock}${gscBlock}
 ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ:
 1. Объём: минимум ${targetWords} слов (конкуренты пишут в среднем ${avgCompetitorWords} слов — нужно превзойти)
 2. Структура HTML: один H1, 6-10 подзаголовков H2, H3 где уместно, списки <ul>/<ol>, таблицы <table> где есть данные для сравнения
@@ -1219,6 +1235,35 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
  * Priority: WP Media Library → FLUX generation (sequential to avoid rate limits).
  * Returns updated HTML with images injected after H2s, and the featured media ID.
  */
+
+// ── Article image prompts cache (server/data/article-image-prompts.json) ─────
+import { readFileSync as _readFileSync, writeFileSync as _writeFileSync } from 'fs';
+import { join as _pathJoin } from 'path';
+
+const _PROMPTS_CACHE = _pathJoin(process.cwd(), 'server/data/article-image-prompts.json');
+
+function getImagePromptsFromCache(slug: string): string[] | null {
+  try {
+    const cache = JSON.parse(_readFileSync(_PROMPTS_CACHE, 'utf-8')) as Record<string, string[]>;
+    const prompts = cache[slug];
+    if (Array.isArray(prompts) && prompts.length >= 3) {
+      console.log(`[Img] Using cached prompts for "${slug}" (${prompts.length} prompts)`);
+      return prompts;
+    }
+  } catch { /* cache miss */ }
+  return null;
+}
+
+function saveImagePromptsToCache(slug: string, prompts: string[]): void {
+  try {
+    let cache: Record<string, string[]> = {};
+    try { cache = JSON.parse(_readFileSync(_PROMPTS_CACHE, 'utf-8')); } catch { /* empty */ }
+    cache[slug] = prompts;
+    _writeFileSync(_PROMPTS_CACHE, JSON.stringify(cache, null, 2), 'utf-8');
+    console.log(`[Img] Cached ${prompts.length} prompts for "${slug}"`);
+  } catch (e: any) { console.warn('[Img] Could not save prompts cache:', (e as Error).message); }
+}
+
 export async function findAndInjectImages(
   siteUrl: string,
   username: string,
@@ -1259,7 +1304,10 @@ export async function findAndInjectImages(
       : 1;
     const h2Sections = extractH2Texts(html).slice(0, 9);
     const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
-    const prompts = await generateImagePrompts(title, titleKeywords, h2Sections, bodyText);
+    // Check cache first — allows per-article prompt customization
+    const cachedPrompts = getImagePromptsFromCache(slug);
+    const prompts = cachedPrompts ?? await generateImagePrompts(title, titleKeywords, h2Sections, bodyText);
+    if (!cachedPrompts) saveImagePromptsToCache(slug, prompts);
     console.log(`[Img] Generating ${fluxNeeded} FLUX images (sequential)`);
     const fluxValid: { id: number; url: string; width?: number; height?: number }[] = [];
     for (let i = 0; i < Math.min(fluxNeeded, prompts.length); i++) {
@@ -3367,7 +3415,7 @@ function beautifyArticleHtml(html: string): string {
     $(ul).replaceWith(cardsHtml);
   });
 
-  // 3. Detect "Важно:" / "Обратите внимание" → yellow info-box
+  // 3. Detect "Важно:" / "Обратите внимание" → yellow warning-box
   $('p').each((_: number, p: any) => {
     const text = $(p).text();
     if (/^(важно|обратите внимание|примечание|внимание)[:\s!]/i.test(text.trim())) {
@@ -3378,6 +3426,38 @@ function beautifyArticleHtml(html: string): string {
         `<span style="font-size:18px;margin-right:8px;">⚠️</span>${inner}</div>`;
       $(p).replaceWith(box);
     }
+  });
+
+  // 3b. Detect "💡 Совет" / "📌" → blue info-box
+  $('p').each((_: number, p: any) => {
+    const text = $(p).text();
+    if (/^(💡|📌|совет[:\s]|лайфхак[:\s])/i.test(text.trim())) {
+      const inner = $(p).html() || '';
+      const box =
+        `<div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;` +
+        `padding:12px 16px;margin:1.5em 0;font-size:15px;line-height:1.7;">${inner}</div>`;
+      $(p).replaceWith(box);
+    }
+  });
+
+  // 4. Style <table> — striped, bordered, responsive
+  $('table').each((_: number, table: any) => {
+    const outer = $.html(table);
+    const styled = outer
+      .replace('<table', '<div style="overflow-x:auto;margin:1.5em 0;"><table style="width:100%;border-collapse:collapse;font-size:14px;"')
+      .replace('</table>', '</table></div>');
+    $(table).replaceWith(styled);
+  });
+  // Style th/td inside any table
+  $('th').each((_: number, th: any) => {
+    $(th).attr('style', 'background:#1e3a5f;color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:13px;');
+  });
+  $('td').each((_: number, td: any) => {
+    $(td).attr('style', 'padding:9px 12px;border-bottom:1px solid #e2e8f0;font-size:14px;line-height:1.6;');
+  });
+  // Stripe odd rows
+  $('tr:nth-child(even) td').each((_: number, td: any) => {
+    $(td).attr('style', ($(td).attr('style') || '') + 'background:#f8fafc;');
   });
 
   return ($.root().html() || '').trim();

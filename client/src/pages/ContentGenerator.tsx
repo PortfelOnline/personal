@@ -355,6 +355,10 @@ export default function ContentGenerator() {
   const deleteTopicMutation = trpc.content.deleteTopic.useMutation({ onSuccess: () => refetchTopics() });
   const agentMutation = trpc.content.agentGenerate.useMutation();
   const discoverMutation = trpc.content.agentDiscover.useMutation();
+  const trendToContentMutation = trpc.content.trendToContent.useMutation();
+  const [trendResult, setTrendResult] = useState<any>(null);
+  const [trendDialogOpen, setTrendDialogOpen] = useState(false);
+  const [trendGenerating, setTrendGenerating] = useState<number | null>(null);
   const [agentUrl, setAgentUrl] = useState('');
   const [agentSteps, setAgentSteps] = useState<Array<{step: string; status: string; detail?: string}>>([]);
   const [agentResults, setAgentResults] = useState<any>(null);
@@ -861,24 +865,45 @@ export default function ContentGenerator() {
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {(trendsData?.trends ?? []).map((t, i) => (
-                      <button key={i}
-                        onClick={() => {
-                          setCustomPrompt(p => p ? `${p}. Incorporate trending topic: "${t.query}"` : `Incorporate trending topic: "${t.query}"`);
-                          setLastClickedTrend(i);
-                          setTimeout(() => setLastClickedTrend(null), 1500);
-                        }}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition-all ${
-                          lastClickedTrend === i
-                            ? 'border-green-400 bg-green-50 text-green-700'
-                            : 'border-rose-200 bg-white text-slate-700 hover:border-rose-400 hover:bg-rose-50'
-                        }`}
-                      >
-                        <span className={`font-bold ${lastClickedTrend === i ? 'text-green-500' : 'text-rose-400'}`}>
-                          {lastClickedTrend === i ? '✓' : `#${i + 1}`}
-                        </span>
-                        {t.query}
-                        {t.traffic && <span className="text-slate-400 ml-0.5">{t.traffic}</span>}
-                      </button>
+                      <div key={i} className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setCustomPrompt(p => p ? `${p}. Incorporate trending topic: "${t.query}"` : `Incorporate trending topic: "${t.query}"`);
+                            setLastClickedTrend(i);
+                            setTimeout(() => setLastClickedTrend(null), 1500);
+                          }}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition-all ${
+                            lastClickedTrend === i
+                              ? 'border-green-400 bg-green-50 text-green-700'
+                              : 'border-rose-200 bg-white text-slate-700 hover:border-rose-400 hover:bg-rose-50'
+                          }`}
+                        >
+                          <span className={`font-bold ${lastClickedTrend === i ? 'text-green-500' : 'text-rose-400'}`}>
+                            {lastClickedTrend === i ? '✓' : `#${i + 1}`}
+                          </span>
+                          {t.query}
+                          {t.traffic && <span className="text-slate-400 ml-0.5">{t.traffic}</span>}
+                        </button>
+                        <button
+                          title="Generate article + FB + IG from this trend"
+                          disabled={trendGenerating !== null}
+                          onClick={async () => {
+                            setTrendGenerating(i);
+                            try {
+                              const res = await trendToContentMutation.mutateAsync({ trend: t.query, industry, language: 'english' });
+                              setTrendResult(res);
+                              setTrendDialogOpen(true);
+                            } catch (e: any) {
+                              toast.error(e?.message || 'Generation failed');
+                            } finally {
+                              setTrendGenerating(null);
+                            }
+                          }}
+                          className="p-1 rounded-full border border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-400 transition-all disabled:opacity-40"
+                        >
+                          {trendGenerating === i ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1529,6 +1554,66 @@ export default function ContentGenerator() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Trend → Content dialog */}
+      <Dialog open={trendDialogOpen} onOpenChange={setTrendDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-500" />
+              Trend → Article + Social Posts
+            </DialogTitle>
+          </DialogHeader>
+          {trendResult && (
+            <div className="space-y-4 text-sm">
+              <div className="text-xs text-slate-500 bg-rose-50 rounded-lg px-3 py-2">
+                Trend: <span className="font-semibold text-rose-700">{trendResult.trend}</span>
+              </div>
+
+              {trendResult.article && (
+                <div className="space-y-2">
+                  <p className="font-semibold text-slate-800">📝 Blog Article</p>
+                  <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                    <p className="font-medium text-slate-900">{trendResult.article.title}</p>
+                    <p className="text-xs text-slate-500">/{trendResult.article.slug}/</p>
+                    <p className="text-slate-700 whitespace-pre-wrap text-xs leading-relaxed">{trendResult.article.intro}</p>
+                    {Array.isArray(trendResult.article.outline) && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs font-medium text-slate-600">Outline:</p>
+                        {trendResult.article.outline.map((h: string, i: number) => (
+                          <p key={i} className="text-xs text-slate-500 ml-2">{h}</p>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={() => { navigator.clipboard.writeText(trendResult.article.title + '\n\n' + trendResult.article.intro); toast.success('Copied!'); }} className="text-xs text-blue-600 hover:underline mt-1">Copy intro</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="font-semibold text-slate-800">👍 Facebook Post</p>
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <p className="text-slate-700 whitespace-pre-wrap text-xs leading-relaxed">{trendResult.facebook}</p>
+                  <p className="text-blue-500 text-xs mt-2">{trendResult.fbHashtags}</p>
+                  <button onClick={() => { navigator.clipboard.writeText(trendResult.facebook + '\n\n' + trendResult.fbHashtags); toast.success('Copied!'); }} className="text-xs text-blue-600 hover:underline mt-1">Copy</button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-semibold text-slate-800">📸 Instagram Caption</p>
+                <div className="bg-pink-50 rounded-lg p-3">
+                  <p className="text-slate-700 whitespace-pre-wrap text-xs leading-relaxed">{trendResult.instagram}</p>
+                  <p className="text-pink-500 text-xs mt-2">{trendResult.igHashtags}</p>
+                  <button onClick={() => { navigator.clipboard.writeText(trendResult.instagram + '\n\n' + trendResult.igHashtags); toast.success('Copied!'); }} className="text-xs text-pink-600 hover:underline mt-1">Copy</button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrendDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
   );
 }

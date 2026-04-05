@@ -116,45 +116,146 @@ async function fetchViaSerpApi(params: Record<string, string>): Promise<any> {
 /**
  * Fetch Google search results via SerpAPI
  */
-export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
-  if (!SERPAPI_KEY) {
-    return { engine: 'google', keyword, results: [], error: 'SERPAPI_KEY не настроен' };
-  }
+async function fetchGoogleSerpPuppeteer(keyword: string): Promise<SerpData> {
+  const url = `https://www.google.com/search?q=${encodeURIComponent(keyword)}&hl=ru&gl=ru&num=20`;
   try {
-    const data = await fetchViaSerpApi({ engine: 'google', q: keyword, hl: 'ru', gl: 'ru', num: '50' });
-    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 50).map((r: any, i: number) => ({
-      position: r.position ?? i + 1,
-      title: r.title ?? '',
-      url: r.link ?? '',
-      domain: extractDomain(r.link ?? ''),
-      snippet: r.snippet ?? '',
-    }));
-    return { engine: 'google', keyword, results: organicResults };
+    const html = await fetchPageHtml(url, 2000);
+    const $ = cheerio.load(html);
+    const results: SerpResult[] = [];
+    $('div.g, div[data-sokoban-container]').each((i, el) => {
+      const link = $(el).find('a[href^="http"]').first();
+      const href = link.attr('href') || '';
+      if (!href.startsWith('http') || href.includes('google.com')) return;
+      const title = $(el).find('h3').first().text().trim();
+      const snippet = $(el).find('.VwiC3b, [data-sncf] span').first().text().trim();
+      results.push({ position: i + 1, title, url: href, domain: extractDomain(href), snippet: snippet.slice(0, 300) });
+    });
+    if (results.length > 0) return { engine: 'google', keyword, results: results.slice(0, 20) };
   } catch (err: any) {
-    console.warn('[SERP] SerpAPI Google error:', err?.message);
-    return { engine: 'google', keyword, results: [], error: err?.message };
+    console.warn('[SERP] Puppeteer Google error:', err?.message);
   }
+  return { engine: 'google', keyword, results: [], error: 'puppeteer failed' };
+}
+
+export async function fetchGoogleSerp(keyword: string): Promise<SerpData> {
+  if (SERPAPI_KEY) {
+    try {
+      const data = await fetchViaSerpApi({ engine: 'google', q: keyword, hl: 'ru', gl: 'ru', num: '50' });
+      const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 50).map((r: any, i: number) => ({
+        position: r.position ?? i + 1, title: r.title ?? '', url: r.link ?? '',
+        domain: extractDomain(r.link ?? ''), snippet: r.snippet ?? '',
+      }));
+      if (organicResults.length > 0) return { engine: 'google', keyword, results: organicResults };
+    } catch (err: any) {
+      console.warn('[SERP] SerpAPI Google error:', err?.message);
+    }
+  }
+  console.log('[SERP] Falling back to Puppeteer for Google:', keyword);
+  return fetchGoogleSerpPuppeteer(keyword);
+}
+
+
+const YA_CLOUD_API_KEY = process.env.YA_CLOUD_API_KEY;
+const YA_CLOUD_FOLDER_ID = process.env.YA_CLOUD_FOLDER_ID;
+
+/**
+ * Parse Yandex Cloud Search API XML response
+ */
+function parseYandexCloudXml(xml: string, keyword: string): SerpData {
+  const results: SerpResult[] = [];
+  // Match each <group> block
+  const groupRegex = /<group>([\s\S]*?)<\/group>/g;
+  let groupMatch: RegExpExecArray | null;
+  let position = 0;
+  while ((groupMatch = groupRegex.exec(xml)) !== null) {
+    const groupXml = groupMatch[1];
+    const urlMatch = groupXml.match(/<url>([\s\S]*?)<\/url>/);
+    const titleMatch = groupXml.match(/<title>([\s\S]*?)<\/title>/);
+    const domainMatch = groupXml.match(/<domain>([\s\S]*?)<\/domain>/);
+    const passageMatch = groupXml.match(/<passage>([\s\S]*?)<\/passage>/);
+    if (!urlMatch) continue;
+    const url = urlMatch[1].trim();
+    if (!url.startsWith('http')) continue;
+    const rawTitle = titleMatch ? titleMatch[1] : '';
+    const title = cleanText(rawTitle.replace(/<[^>]+>/g, ''));
+    const domain = domainMatch ? domainMatch[1].trim() : extractDomain(url);
+    const rawSnippet = passageMatch ? passageMatch[1] : '';
+    const snippet = cleanText(rawSnippet.replace(/<[^>]+>/g, '')).slice(0, 300);
+    position++;
+    results.push({ position, title, url, domain, snippet });
+    if (results.length >= 20) break;
+  }
+  return { engine: 'yandex', keyword, results };
 }
 
 /**
- * Fetch Yandex search results via SerpAPI
+ * Fetch Yandex search results via Yandex Cloud Search API (deferred mode, $0.25/1000)
+ */
+async function fetchYandexCloudSerp(keyword: string): Promise<SerpData | null> {
+  if (!YA_CLOUD_API_KEY || !YA_CLOUD_FOLDER_ID) return null;
+  try {
+    const body = {
+      folderId: YA_CLOUD_FOLDER_ID,
+      query: { queryText: keyword, searchType: 'SEARCH_TYPE_RU' },
+      region: '213',
+      responseFormat: 'FORMAT_XML',
+    };
+    const resp = await axios.post('https://searchapi.api.cloud.yandex.net/v2/web/search', body, {
+      headers: { Authorization: `Api-Key ${YA_CLOUD_API_KEY}`, 'Content-Type': 'application/json' },
+      timeout: 30000,
+    });
+    const rawData: string = resp.data?.rawData;
+    if (!rawData) return null;
+    const xml = Buffer.from(rawData, 'base64').toString('utf-8');
+    const parsed = parseYandexCloudXml(xml, keyword);
+    if (parsed.results.length > 0) return parsed;
+  } catch (err: any) {
+    console.warn('[SERP] Yandex Cloud API error:', err?.message);
+  }
+  return null;
+}
+
+async function fetchYandexSerpPuppeteer(keyword: string): Promise<SerpData> {
+  const url = `https://yandex.ru/search/?text=${encodeURIComponent(keyword)}&lr=213&numdoc=20`;
+  try {
+    const html = await fetchPageHtml(url, 3000);
+    const $ = cheerio.load(html);
+    const results: SerpResult[] = [];
+    $('.organic, [data-fast-name="organic"]').each((i, el) => {
+      const link = $(el).find('a.organic__url, .OrganicTitle-Link, a.link_theme_outer').first();
+      const href = link.attr('href') || '';
+      if (!href.startsWith('http') || href.includes('yandex')) return;
+      const title = $(el).find('h2, .organic__title, .OrganicTitle').first().text().trim();
+      const snippet = $(el).find('.organic__text, .TextContainer, .ExtendedText').first().text().trim();
+      results.push({ position: i + 1, title, url: href, domain: extractDomain(href), snippet: snippet.slice(0, 300) });
+    });
+    if (results.length > 0) return { engine: 'yandex', keyword, results: results.slice(0, 20) };
+  } catch (err: any) {
+    console.warn('[SERP] Puppeteer Yandex error:', err?.message);
+  }
+  return { engine: 'yandex', keyword, results: [], error: 'puppeteer failed' };
+}
+
+/**
+ * Fetch Yandex search results — SerpAPI first, Puppeteer-stealth fallback
  */
 export async function fetchYandexSerp(keyword: string): Promise<SerpData> {
-  if (!SERPAPI_KEY) {
-    return { engine: 'yandex', keyword, results: [], error: 'SERPAPI_KEY не настроен' };
+  // Try Yandex Cloud Search API first (most reliable, $0.25/1000 deferred)
+  const cloudResult = await fetchYandexCloudSerp(keyword);
+  if (cloudResult) return cloudResult;
+
+  if (SERPAPI_KEY) {
+    try {
+      const data = await fetchViaSerpApi({ engine: 'yandex', text: keyword, lr: '213', lang: 'ru', numdoc: '50' });
+      const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 50).map((r: any, i: number) => ({
+        position: r.position ?? i + 1, title: r.title ?? '', url: r.link ?? '',
+        domain: extractDomain(r.link ?? ''), snippet: r.snippet ?? '',
+      }));
+      if (organicResults.length > 0) return { engine: 'yandex', keyword, results: organicResults };
+    } catch (err: any) {
+      console.warn('[SERP] SerpAPI Yandex error:', err?.message);
+    }
   }
-  try {
-    const data = await fetchViaSerpApi({ engine: 'yandex', text: keyword, lr: '213', lang: 'ru', numdoc: '50' });
-    const organicResults: SerpResult[] = (data.organic_results || []).slice(0, 50).map((r: any, i: number) => ({
-      position: r.position ?? i + 1,
-      title: r.title ?? '',
-      url: r.link ?? '',
-      domain: extractDomain(r.link ?? ''),
-      snippet: r.snippet ?? '',
-    }));
-    return { engine: 'yandex', keyword, results: organicResults };
-  } catch (err: any) {
-    console.warn('[SERP] SerpAPI Yandex error:', err?.message);
-    return { engine: 'yandex', keyword, results: [], error: err?.message };
-  }
+  console.log('[SERP] Falling back to Puppeteer for Yandex:', keyword);
+  return fetchYandexSerpPuppeteer(keyword);
 }

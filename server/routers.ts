@@ -11,6 +11,7 @@ import { botsRouter } from "./routers/bots";
 import { wordpressRouter } from "./routers/wordpress";
 import { articlesRouter } from "./routers/articles";
 import { generateGeminiImage, generateVeoVideo, buildVisualPrompt, generateVisualPromptWithLLM } from "./_core/gemini";
+import { buildArticleToSocialPrompt, parseArticleToSocialResponse } from "./articleToSocial";
 import { storagePut } from "./storage";
 import fs from "fs";
 import { runSocialAgent, discoverUrls } from "./agent/social-agent";
@@ -1295,6 +1296,83 @@ Return ONLY valid JSON (no markdown fences):
         const hashtags = Array.isArray(parsed?.hashtags)
           ? parsed.hashtags.map((h: string) => h.startsWith("#") ? h : `#${h}`).join(" ") : "#GetMyAgent #AI";
         return { content: contentText, parsed, format: input.contentFormat, hashtags, sourceTitle: article.title };
+      }),
+
+    articleToSocial: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        excerpt: z.string().default(""),
+        articleUrl: z.string().url(),
+      }))
+      .mutation(async ({ input }) => {
+        const prompt = buildArticleToSocialPrompt(input.title, input.excerpt);
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a social media copywriter for a B2B SaaS product." },
+            { role: "user", content: prompt },
+          ],
+        });
+        const raw = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content : "{}";
+        const result = parseArticleToSocialResponse(raw);
+        return { ...result, articleUrl: input.articleUrl, title: input.title };
+      }),
+
+    trendToContent: protectedProcedure
+      .input(z.object({
+        trend: z.string().min(1),
+        industry: z.string().default("real_estate"),
+        language: z.string().default("english"),
+      }))
+      .mutation(async ({ input }) => {
+        const prompt = `You are a content strategist for get-my-agent.com — an AI agent SaaS helping Indian businesses automate customer communication.
+
+Based on this trending topic, generate 3 things in one response:
+
+Trending topic: "${input.trend}"
+Industry: ${input.industry}
+Language: ${input.language}
+
+Return ONLY valid JSON:
+{
+  "article": {
+    "title": "SEO-friendly blog article title (with trending topic naturally included)",
+    "slug": "url-slug-lowercase-hyphenated",
+    "intro": "2-3 paragraph intro for the article (300-400 words). Hook based on the trend, then bridge to how AI agents help businesses.",
+    "outline": ["H2: Section 1", "H2: Section 2", "H2: Section 3", "H2: Section 4", "H2: FAQ"]
+  },
+  "facebook": {
+    "text": "Facebook post (150-250 words). Start with the trending topic as a hook, then value about AI agents, end with CTA to read the full article.",
+    "hashtags": ["#GetMyAgent", "#AIAgent", "#BusinessAutomation", "#India"]
+  },
+  "instagram": {
+    "caption": "Instagram caption (80-120 words). Punchy hook from the trend, 3-4 bullet points with emojis, CTA.",
+    "hashtags": ["#GetMyAgent", "#AIAgent", "#SmallBusiness", "#IndianBusiness", "#Automation"]
+  }
+}`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "You are a content strategist. Return valid JSON only, no markdown fences." },
+            { role: "user", content: prompt },
+          ],
+        });
+        const raw = typeof response.choices[0]?.message.content === "string"
+          ? response.choices[0].message.content : "{}";
+        try {
+          const clean = raw.replace(/^\`\`\`json\s*/i, "").replace(/\s*\`\`\`$/, "").trim();
+          const json = JSON.parse(clean);
+          return {
+            article: json.article ?? null,
+            facebook: json.facebook?.text ?? "",
+            fbHashtags: Array.isArray(json.facebook?.hashtags) ? json.facebook.hashtags.join(" ") : "#GetMyAgent",
+            instagram: json.instagram?.caption ?? "",
+            igHashtags: Array.isArray(json.instagram?.hashtags) ? json.instagram.hashtags.join(" ") : "#GetMyAgent",
+            trend: input.trend,
+          };
+        } catch {
+          return { article: null, facebook: raw, fbHashtags: "#GetMyAgent", instagram: raw, igHashtags: "#GetMyAgent", trend: input.trend };
+        }
       }),
 
     analyzeCompetitors: protectedProcedure

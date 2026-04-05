@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Play, Square, Terminal, RefreshCw, Plus, Bot, Shield, Trash2, Upload, RotateCcw, ExternalLink, Save, FileText, Zap, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Play, Square, Terminal, RefreshCw, Plus, Bot, Shield, Trash2, Upload, RotateCcw, ExternalLink, Save, FileText, Zap, Clock, CheckCircle, XCircle, AlertCircle, MousePointerClick, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -89,6 +89,12 @@ export default function Bots() {
     { botId: logsBot!, lines: 200 },
     { enabled: logsBot !== null && logsOpen, refetchInterval: logsOpen ? 3000 : false }
   );
+
+  // Search CTR stats query
+  const { data: searchStatsData, isLoading: searchStatsLoading, refetch: refetchSearchStats } = trpc.bots.searchStats.useQuery(undefined, {
+    enabled: tab === 'bots',
+    refetchInterval: 60_000,
+  });
 
   // Proxies query
   const { data: proxiesData, isLoading: proxiesLoading, refetch: refetchProxies } = trpc.bots.proxyList.useQuery(undefined, {
@@ -288,6 +294,56 @@ export default function Bots() {
                 </Card>
               </div>
             )}
+
+            {/* Search CTR Stats */}
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                    <MousePointerClick className="w-4 h-4" /> Переходы из поиска (органика vs прямые)
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => refetchSearchStats()} disabled={searchStatsLoading} className="text-xs h-7">
+                    {searchStatsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {searchStatsLoading ? (
+                  <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                ) : !searchStatsData?.rows.length ? (
+                  <p className="text-xs text-slate-400 text-center py-3">Данных нет — боты ещё не завершили целевые сессии</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-slate-500 border-b">
+                          <th className="text-left pb-2 font-medium">Дата</th>
+                          <th className="text-right pb-2 font-medium text-green-600 flex items-center justify-end gap-1">
+                            <MousePointerClick className="w-3 h-3" /> SERP (органика)
+                          </th>
+                          <th className="text-right pb-2 font-medium text-slate-500">Прямые</th>
+                          <th className="text-right pb-2 font-medium">Всего</th>
+                          <th className="text-right pb-2 font-medium text-blue-600">CTR%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...searchStatsData.rows].reverse().slice(0, 14).map(row => (
+                          <tr key={row.date} className="border-b border-slate-100 last:border-0">
+                            <td className="py-1.5 text-slate-600">{row.date}</td>
+                            <td className="py-1.5 text-right font-semibold text-green-600">{row.serp}</td>
+                            <td className="py-1.5 text-right text-slate-500">{row.direct}</td>
+                            <td className="py-1.5 text-right text-slate-700">{row.total}</td>
+                            <td className="py-1.5 text-right font-medium text-blue-600">
+                              {row.total > 0 ? `${Math.round(row.serp / row.total * 100)}%` : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {isLoading ? (
               <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
