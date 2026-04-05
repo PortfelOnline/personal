@@ -183,7 +183,7 @@ function parseYandexCloudXml(xml: string, keyword: string): SerpData {
     const snippet = cleanText(rawSnippet.replace(/<[^>]+>/g, '')).slice(0, 300);
     position++;
     results.push({ position, title, url, domain, snippet });
-    if (results.length >= 20) break;
+    if (results.length >= 100) break;
   }
   return { engine: 'yandex', keyword, results };
 }
@@ -199,6 +199,7 @@ async function fetchYandexCloudSerp(keyword: string): Promise<SerpData | null> {
       query: { queryText: keyword, searchType: 'SEARCH_TYPE_RU' },
       region: '213',
       responseFormat: 'FORMAT_XML',
+      groupSpec: { groupMode: 'GROUP_MODE_DEEP', groupsOnPage: 100, docsInGroup: 1 },
     };
     const resp = await axios.post('https://searchapi.api.cloud.yandex.net/v2/web/search', body, {
       headers: { Authorization: `Api-Key ${YA_CLOUD_API_KEY}`, 'Content-Type': 'application/json' },
