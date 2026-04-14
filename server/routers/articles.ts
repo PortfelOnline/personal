@@ -529,14 +529,9 @@ function generateSchemaMarkup(keyword: string, title: string, url: string, html:
     });
   }
 
-  schemas.push({
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: title.slice(0, 110),
-    url,
-    publisher: { '@type': 'Organization', name: 'kadastrmap.info', url: 'https://kadastrmap.info' },
-    about: keyword,
-  });
+  // Article schema is omitted here — the WP theme outputs a full Article JSON-LD
+  // in <head> via kadmap_article_jsonld(). Duplicating it in body content causes
+  // Google to flag conflicting structured data.
 
   return schemas.map(s => `<script type="application/ld+json">\n${JSON.stringify(s, null, 2)}\n</script>`).join('\n');
 }
@@ -688,7 +683,8 @@ function injectImagesAfterH2s(
       const alt = (h2Texts[h2count - 1] || '').replace(/"/g, '&quot;');
       const w = m.width ?? 1792;
       const h = m.height ?? 1024;
-      return `</h2>\n<figure style="margin:1.5em 0;text-align:center;"><img src="${m.url}" alt="${alt}" width="${w}" height="${h}" style="max-width:100%;height:auto;border-radius:8px;" loading="lazy"></figure>`;
+      const loadAttr = pos === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
+      return `</h2>\n<figure style="margin:1.5em 0;text-align:center;"><img src="${m.url}" alt="${alt}" width="${w}" height="${h}" style="max-width:100%;height:auto;border-radius:8px;" ${loadAttr}></figure>`;
     }
     return '</h2>';
   });
@@ -1221,7 +1217,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
 
   // Auto-publish to WordPress (batch mode: no image generation)
   await autoPublishToWP(userId, url, seo.metaTitle || parsed.title, improvedContent, {
-    metaDescription: seo.metaDescription || undefined,
+    metaDescription: seo.metaDescription ? truncateMetaDesc(seo.metaDescription) : undefined,
     focusKeyword: keyword || undefined,
     keywords: seo.keywords?.length ? seo.keywords : undefined,
   }).catch((e: any) => console.error(`[WP] Auto-publish failed for ${url}:`, e?.message ?? e));
@@ -1271,7 +1267,7 @@ export async function findAndInjectImages(
   slug: string,
   title: string,
   html: string,
-  imagesNeeded = 6,
+  imagesNeeded = 9,
 ): Promise<{ html: string; featuredMediaId: number | undefined }> {
   const titleKeywords = title
     .replace(/[-–—:,]/g, ' ')
@@ -1300,7 +1296,7 @@ export async function findAndInjectImages(
   // FLUX generation — sequential to avoid Fireworks rate-limit 500 errors
   if (process.env.IMAGE_API_KEY) {
     const fluxNeeded = validMedia.length < imagesNeeded
-      ? Math.min(imagesNeeded - validMedia.length, 3)
+      ? imagesNeeded - validMedia.length
       : 1;
     const h2Sections = extractH2Texts(html).slice(0, 9);
     const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
@@ -1332,6 +1328,14 @@ export async function findAndInjectImages(
   console.log(`[Img] Injecting ${validMedia.length} images into article`);
   const htmlWithImages = injectImagesAfterH2s(html, validMedia);
   return { html: htmlWithImages, featuredMediaId: validMedia[0]?.id };
+}
+
+/** Truncate meta description to ≤155 chars at word boundary (Google shows ~155-160 chars). */
+function truncateMetaDesc(text: string, max = 155): string {
+  if (!text || text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 100 ? cut.slice(0, lastSpace) : cut).replace(/[,;:–—\-]+$/, '').trim();
 }
 
 /**
