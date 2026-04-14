@@ -201,22 +201,33 @@ export async function updatePost(
   postId: number,
   data: { title?: string; content?: string; excerpt?: string; featured_media?: number; categories?: number[]; meta?: Record<string, string> }
 ): Promise<WpPost> {
-  try {
-    const response = await axios.post(
-      `${apiBase(siteUrl)}/posts/${postId}`,
-      data,
-      {
-        headers: {
-          Authorization: basicAuth(username, appPassword),
-          'Content-Type': 'application/json',
-        },
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await axios.post(
+        `${apiBase(siteUrl)}/posts/${postId}`,
+        data,
+        {
+          headers: {
+            Authorization: basicAuth(username, appPassword),
+            'Content-Type': 'application/json',
+          },
+          // Fresh agent per attempt: avoids TLS session reuse causing bad_record_mac
+          httpsAgent: new https.Agent({ keepAlive: false, rejectUnauthorized: false }),
+        }
+      );
+      return { id: response.data.id, link: response.data.link };
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Update failed';
+      lastErr = new Error(`WordPress update failed: ${msg}`);
+      if (attempt < 3) {
+        const delay = attempt * 2000;
+        console.warn(`[WP] updatePost attempt ${attempt} failed (${msg.slice(0, 60)}), retry in ${delay}ms`);
+        await new Promise(r => setTimeout(r, delay));
       }
-    );
-    return { id: response.data.id, link: response.data.link };
-  } catch (error: any) {
-    const msg = error?.response?.data?.message || error?.message || 'Update failed';
-    throw new Error(`WordPress update failed: ${msg}`);
+    }
   }
+  throw lastErr!;
 }
 
 /**

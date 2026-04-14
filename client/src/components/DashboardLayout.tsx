@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BarChart2, BookOpen, Bot, Calendar, FileText, Globe, LogOut, PanelLeft, Sparkles, TrendingUp, Users } from "lucide-react";
+import { BarChart2, BookOpen, Bot, Brain, Calendar, FileText, Globe, LogOut, PanelLeft, Sparkles, TrendingUp, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -37,6 +37,7 @@ const menuItems = [
   { icon: Globe, label: "WordPress", path: "/wordpress" },
   { icon: Users, label: "Meta Accounts", path: "/accounts" },
   { icon: Bot, label: "Bots", path: null, href: "http://167.86.116.15:4000/login" },
+  { icon: Brain, label: "LocalAI", path: null, href: "http://localhost:3001" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

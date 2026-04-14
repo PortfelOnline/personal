@@ -38,8 +38,10 @@ export async function generateDallEImage(prompt: string, timeoutMs = 90_000): Pr
           body: JSON.stringify({
             prompt,
             aspect_ratio: '16:9',
-            guidance_scale: 7.0,
-            num_inference_steps: 8,
+            // flux-1-dev needs 25-28 steps for sharp results; flux-1-schnell is optimized for 4 steps
+            num_inference_steps: IMAGE_MODEL.includes('schnell') ? 4 : 28,
+            // FLUX distilled models work best at guidance_scale 3.5 (not 7+)
+            guidance_scale: IMAGE_MODEL.includes('schnell') ? 0 : 3.5,
           }),
           signal: controller.signal,
         }
@@ -83,6 +85,9 @@ export async function generateDallEImage(prompt: string, timeoutMs = 90_000): Pr
     }
     // Fallback: maybe JSON with base64 (strip BOM if present)
     const rawText = await response.text();
+    if (rawText.trim().startsWith('<')) {
+      throw new Error(`Fireworks returned HTML (transient server error) — retry later`);
+    }
     const data = JSON.parse(rawText.replace(/^\uFEFF/, '')) as any;
     const b64 = data?.data?.[0]?.b64_json ?? data?.images?.[0];
     if (b64) {
