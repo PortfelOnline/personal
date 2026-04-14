@@ -183,12 +183,14 @@ async function fetchCompetitorArticles(
   ourDomain: string,
   maxCompetitors = 5,
 ): Promise<{ position: number; domain: string; title: string; headings: string; content: string; wordCount: number; imageCount: number; faqCount: number; hasTable: boolean }[]> {
-  const competitors = serpResults
+  // Try 2x more candidates so blocked top-5 (cian, domclick, etc.) get replaced
+  // by lower-ranked pages that allow crawling
+  const candidates = serpResults
     .filter(r => !r.domain.includes(ourDomain) && !ourDomain.includes(r.domain))
-    .slice(0, maxCompetitors);
+    .slice(0, maxCompetitors * 2);
 
   const fetched = await Promise.allSettled(
-    competitors.map(async (r, i) => {
+    candidates.map(async (r, i) => {
       const cached = cacheGet(pageCache, r.url);
       if (cached) { console.log(`[cache] PAGE HIT ${r.url}`); return cached; }
       const parsed = await Promise.race([
@@ -213,8 +215,9 @@ async function fetchCompetitorArticles(
   );
 
   return fetched
-    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-    .map(r => r.value);
+    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value.wordCount > 0)
+    .map(r => r.value)
+    .slice(0, maxCompetitors);
 }
 
 // ── LSI keyword extraction from SERP snippets ────────────────────────────────
