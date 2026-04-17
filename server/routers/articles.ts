@@ -426,6 +426,72 @@ function checkArticleQuality(
 }
 
 /**
+ * Featured snippet guard: the first <p> after intro must be 40-70 words with
+ * a direct answer to the keyword. This is the text Google/Yandex extract for
+ * "Block 0" / "Быстрые ответы". Too short → Google won't use; too long → truncated.
+ *
+ * If first <p> is outside [35, 85] word range, ask LLM for a rewrite of just
+ * that paragraph. Preserves rest of the article.
+ */
+async function ensureFeaturedSnippet(
+  html: string,
+  keyword: string,
+  model: string,
+): Promise<string> {
+  // Find first substantive <p> (skip empty / breadcrumb / meta paragraphs)
+  const pMatches = Array.from(html.matchAll(/<p\b([^>]*)>([\s\S]*?)<\/p>/gi));
+  let targetMatch: RegExpMatchArray | null = null;
+  for (const m of pMatches) {
+    const attrs = m[1] || '';
+    const text = m[2].replace(/<[^>]+>/g, '').trim();
+    // Skip our injected utility blocks
+    if (/article-(?:meta|editorial|breadcrumb|toc)/i.test(attrs)) continue;
+    if (text.length < 20) continue;
+    targetMatch = m;
+    break;
+  }
+  if (!targetMatch) return html;
+  const currentText = targetMatch[2].replace(/<[^>]+>/g, '').trim();
+  const wordCount = currentText.split(/\s+/).filter(Boolean).length;
+  if (wordCount >= 35 && wordCount <= 85) {
+    return html;  // within ideal range
+  }
+  console.log(`[FeaturedSnippet] ${keyword}: first <p> has ${wordCount} words — rewriting for Block 0`);
+  try {
+    const resp = await invokeLLM({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'Ты SEO-копирайтер. Пишешь Featured Snippet для Яндекса/Google — прямой ответ в первом абзаце, 45-60 слов. Формат: первое предложение — определение (что такое X), затем 1-2 ключевых факта, затем CTA-намёк. Без "в этой статье" / "мы расскажем". Строго 45-60 слов.',
+        },
+        {
+          role: 'user',
+          content: `Перепиши ЭТОТ первый абзац статьи про "${keyword}" в формате Featured Snippet (45-60 слов, прямой ответ).\n\nТЕКУЩИЙ (${wordCount} слов):\n${currentText}\n\nТРЕБОВАНИЯ:\n- 45-60 слов строго\n- Начинается с "<strong>${keyword}</strong> — это..." ИЛИ "Для получения ${keyword}..."\n- Упомянуть ключевой факт (срок/способ/стоимость)\n- Закончить CTA-намёком про kadastrmap.info\n- Без вступлений типа "В этой статье"\n\nВерни ТОЛЬКО текст нового абзаца (без <p> тегов).`,
+        },
+      ],
+      maxTokens: 300,
+    });
+    const content = resp.choices[0]?.message.content;
+    const raw = typeof content === 'string'
+      ? content.trim().replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/^```\w*\s*/i, '').replace(/\s*```$/i, '').replace(/^<p[^>]*>|<\/p>$/gi, '').trim()
+      : '';
+    if (!raw) return html;
+    const newWordCount = raw.split(/\s+/).filter(Boolean).length;
+    if (newWordCount < 30 || newWordCount > 100) {
+      console.log(`[FeaturedSnippet] regen returned ${newWordCount} words — out of range, keeping original`);
+      return html;
+    }
+    // Replace the matched <p>...</p> with new content, preserving tag attrs
+    const newP = `<p${targetMatch[1] || ''}>${raw}</p>`;
+    return html.replace(targetMatch[0], newP);
+  } catch (e: any) {
+    console.warn('[FeaturedSnippet] regen failed:', e?.message ?? e);
+    return html;
+  }
+}
+
+/**
  * LLM critical self-review pass.
  * Asks the model to critique the article for top-3 ranking issues, then
  * runs ONE polishing rewrite that applies the critique. Skipped silently
@@ -1598,6 +1664,11 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${compe
       return improvedContent;
     });
   }
+
+  // Featured Snippet (Block 0) enforcement — first substantive <p> must be 35-85 words
+  // to qualify for Yandex "быстрые ответы" and Google featured snippet. Regenerates
+  // just that paragraph if out of range.
+  improvedContent = await ensureFeaturedSnippet(improvedContent, keyword, mainModel);
 
   improvedContent = beautifyArticleHtml(improvedContent);
 
