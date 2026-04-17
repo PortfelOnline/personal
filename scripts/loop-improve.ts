@@ -25,6 +25,9 @@ const BETWEEN_ARTICLES_MS = 5000;
 const ALL_COOLDOWN_SLEEP_MS = 60 * 60 * 1000;
 // After this many non-top-3 rewrites, switch to aggressive mode (deeper, more unique, +30% target).
 const AGGRESSIVE_PASS_THRESHOLD = 2;
+// Max total runtime — graceful stop after this many minutes (env override possible).
+// Default 60 min so dev sessions don't leave the loop running indefinitely.
+const MAX_RUNTIME_MS = Number(process.env.LOOP_MAX_MINUTES ?? 60) * 60 * 1000;
 const STATE_FILE = path.join(import.meta.dirname, 'loop-state.json');
 const POSITIONS_FILE = path.join(import.meta.dirname, 'positions.json');
 const SITE_DOMAIN = 'kadastrmap.info';
@@ -230,14 +233,23 @@ async function runLoop(): Promise<void> {
   const positions = loadPositions();
   let round = 0;
   let stopped = false;
+  const startedAt = Date.now();
 
   process.on('SIGINT',  () => { console.log('\n[loop] SIGINT — finishing current article...'); stopped = true; });
   process.on('SIGTERM', () => { console.log('\n[loop] SIGTERM — finishing current article...'); stopped = true; });
 
+  // Auto-stop after MAX_RUNTIME_MS to prevent runaway sessions.
+  const runtimeTimer = setTimeout(() => {
+    console.log(`\n[loop] ⏰ MAX_RUNTIME reached (${Math.round(MAX_RUNTIME_MS / 60000)}min) — finishing current article...`);
+    stopped = true;
+  }, MAX_RUNTIME_MS);
+  runtimeTimer.unref();
+
   while (!stopped) {
     round++;
     const state = loadState();
-    console.log(`[loop] === Round ${round} started — fetching posts...`);
+    const elapsedMin = ((Date.now() - startedAt) / 60000).toFixed(1);
+    console.log(`[loop] === Round ${round} started (elapsed ${elapsedMin}min / ${Math.round(MAX_RUNTIME_MS / 60000)}min cap) — fetching posts...`);
     const allPosts = await fetchAllPosts(account.siteUrl, auth);
     console.log(`[loop] Fetched ${allPosts.length} posts`);
 

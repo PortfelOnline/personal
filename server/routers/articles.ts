@@ -514,6 +514,24 @@ function stripFirstH1(html: string): string {
   return html.replace(/<h1[^>]*>.*?<\/h1>\s*/i, '');
 }
 
+// ── Markdown → HTML fallback (when LLM ignores "HTML only" instruction) ──────
+// Converts the most common markdown leaks — "# heading", "**bold**", "- list" —
+// to proper HTML so articles render correctly even if the LLM breaks format.
+function convertMarkdownLeaks(html: string): string {
+  // Heading inside <p>: "<p># Heading</p>" / "<p>## Heading</p>" → proper <hN>
+  html = html.replace(/<p>\s*######\s+(.+?)\s*<\/p>/gi, '<h6>$1</h6>');
+  html = html.replace(/<p>\s*#####\s+(.+?)\s*<\/p>/gi, '<h5>$1</h5>');
+  html = html.replace(/<p>\s*####\s+(.+?)\s*<\/p>/gi, '<h4>$1</h4>');
+  html = html.replace(/<p>\s*###\s+(.+?)\s*<\/p>/gi, '<h3>$1</h3>');
+  html = html.replace(/<p>\s*##\s+(.+?)\s*<\/p>/gi, '<h2>$1</h2>');
+  html = html.replace(/<p>\s*#\s+(.+?)\s*<\/p>/gi, '<h2>$1</h2>');
+  // Bold markdown "**text**" → <strong>text</strong>
+  html = html.replace(/\*\*([^\n*]+?)\*\*/g, '<strong>$1</strong>');
+  // Italic markdown "_text_" → <em>text</em> (conservative: word boundaries)
+  html = html.replace(/(^|\s)_([^\n_]+?)_(\s|[.,!?;:]|$)/g, '$1<em>$2</em>$3');
+  return html;
+}
+
 // ── Generate FAQPage + Article JSON-LD schema markup ─────────────────────────
 function generateSchemaMarkup(keyword: string, title: string, url: string, html: string): string {
   const faqItems: { question: string; answer: string }[] = [];
@@ -949,7 +967,7 @@ ${missingTopicsBlock}${lsiBlock}${gscBlock}
 
   improvedContent = await enhanceIfNeeded(improvedContent, serpKeyword, targetWords, 10);
   improvedContent = filterGarbageH2(improvedContent, serpKeyword);
-  improvedContent = stripFirstH1(normalizeHeadings(improvedContent));
+  improvedContent = stripFirstH1(normalizeHeadings(convertMarkdownLeaks(improvedContent)));
   improvedContent = beautifyArticleHtml(improvedContent);
 
   // QA log
@@ -1176,7 +1194,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${aggressiveBlock}
     invokeLLM({
       model: mainModel,
       messages: [
-        { role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Каждый H2-раздел минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE], не вставляй конкретные цифры цен.' },
+        { role: 'system', content: 'Ты профессиональный SEO-копирайтер. Пишешь длинные подробные статьи 3500+ слов для топа поиска. Каждый H2-раздел минимум 250 слов. ВАЖНО: цены указывай ТОЛЬКО через [BLOCK_PRICE]. СТРОГО ЗАПРЕЩЕНО: markdown-синтаксис (НЕ ставить # ## ### для заголовков, НЕ **жирный**, НЕ _курсив_, НЕ - списки). Используй ТОЛЬКО HTML-теги: <h1>, <h2>, <h3>, <p>, <ul><li>, <ol><li>, <strong>, <em>, <table><tr><td>, <details class="faq-item"><summary>. Если отдашь markdown — статья будет выглядеть сломанной.' },
         { role: 'user', content: improvePrompt },
       ],
       maxTokens: 8192,
@@ -1203,7 +1221,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${aggressiveBlock}
   // Post-generation quality check: fix missing content vs competitor targets
   improvedContent = await enhanceIfNeeded(improvedContent, keyword, targetWords, targetFaq);
   improvedContent = filterGarbageH2(improvedContent, keyword);
-  improvedContent = stripFirstH1(normalizeHeadings(improvedContent));
+  improvedContent = stripFirstH1(normalizeHeadings(convertMarkdownLeaks(improvedContent)));
   improvedContent = beautifyArticleHtml(improvedContent);
 
   // QA log: verify article meets TOP-3 standards
