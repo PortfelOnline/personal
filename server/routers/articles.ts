@@ -370,7 +370,7 @@ async function enhanceIfNeeded(
   targetWords = 3500,
   targetFaq = 10,
 ): Promise<string> {
-  const MAX_PASSES = 4;
+  const MAX_PASSES = 6;
 
   for (let pass = 0; pass < MAX_PASSES; pass++) {
     const wordCount = countWords(html);
@@ -556,6 +556,21 @@ function generateSchemaMarkup(keyword: string, title: string, url: string, html:
       })),
     });
   }
+
+  // BreadcrumbList — critical for Yandex rich results and Google sitelinks
+  try {
+    const u = new URL(url);
+    const slug = u.pathname.replace(/^\/|\/$/g, '').split('/').pop() || '';
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: `${u.protocol}//${u.host}/` },
+        { '@type': 'ListItem', position: 2, name: 'Кадастр', item: `${u.protocol}//${u.host}/kadastr/` },
+        { '@type': 'ListItem', position: 3, name: title, item: url },
+      ],
+    });
+  } catch { /* bad URL → skip breadcrumb */ }
 
   // Article schema is omitted here — the WP theme outputs a full Article JSON-LD
   // in <head> via kadmap_article_jsonld(). Duplicating it in body content causes
