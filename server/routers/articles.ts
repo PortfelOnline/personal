@@ -958,6 +958,9 @@ ${tocEntries.map(e => `<li style="margin:0.3em 0;"><a href="#${e.id}" style="col
 
   return breadcrumbBlock + freshnessBlock + tocBlock + htmlWithIds;
 }
+
+/**
+ * Ensure article mentions 3+ authority sources (E-E-A-T signal).
  * Mentions as PLAIN TEXT (no <a href>) — prevents PageRank leakage to external sites.
  * Our AUTHORITY_DOMAINS regex still matches the text mentions, so QA counter increments.
  */
