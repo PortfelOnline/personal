@@ -398,12 +398,14 @@ function checkArticleQuality(
   if (faqCount < targetFaq)    issues.push(`FAQ: ${faqCount}/${targetFaq}`);
   if (h2Count < 7)             issues.push(`H2: ${h2Count} (нужно 7+)`);
   if (!hasTable)               issues.push('нет таблицы');
-  if (!hasExternalLinks)       issues.push('нет внешних ссылок (E-E-A-T)');
+  // External <a> links are NO LONGER required — authority sources are mentioned
+  // as plain text (no PageRank leak). Auth mentions tracked via authLinksCount soft check.
   // soft checks — don't FAIL on these, but log for visibility
   const softIssues: string[] = [];
   if (h3Count < 3)                softIssues.push(`H3:${h3Count}`);
-  if (authLinksCount < 2)         softIssues.push(`auth-links:${authLinksCount}`);
+  if (authLinksCount < 3)         softIssues.push(`auth-mentions:${authLinksCount}`);
   if (internalLinkCount < 3)      softIssues.push(`internal-links:${internalLinkCount}`);
+  if (!hasExternalLinks)          softIssues.push('no-ext-href');
 
   const pass = issues.length === 0;
   const softLabel = softIssues.length ? ` | soft[${softIssues.join(', ')}]` : '';
@@ -859,37 +861,33 @@ export async function searchPexelsImages(
 // ── Internal links from user's article history ───────────────────────────────
 
 /**
- * Ensure article has at least 3 authority links (E-E-A-T signal for Yandex/Google).
- * If LLM didn't add enough rosreestr.gov.ru / consultant.ru / garant.ru links,
- * inject a sources paragraph just before the closing to satisfy E-E-A-T standards.
+ * Ensure article mentions 3+ authority sources (E-E-A-T signal).
+ * Mentions as PLAIN TEXT (no <a href>) — prevents PageRank leakage to external sites.
+ * Our AUTHORITY_DOMAINS regex still matches the text mentions, so QA counter increments.
  */
 function ensureAuthorityLinks(html: string, keyword: string): string {
-  const authHrefs = Array.from(html.matchAll(/href=["']https?:\/\/[^"']*(?:rosreestr\.gov\.ru|consultant\.ru|garant\.ru|nalog\.ru|pravo\.gov\.ru)[^"']*["']/gi));
-  if (authHrefs.length >= 3) return html;
-  const missing = 3 - authHrefs.length;
+  // Count both <a href> AND plain-text mentions of authority domains
+  const authMatches = Array.from(html.matchAll(/\b(?:rosreestr\.gov\.ru|consultant\.ru|garant\.ru|nalog\.ru|pravo\.gov\.ru)\b/gi));
+  if (authMatches.length >= 3) return html;
+  const missing = 3 - authMatches.length;
   const kwLower = keyword.toLowerCase();
-  // Pick sources relevant to the keyword topic
   const isLegal = /закон|фз|статья|право|нормат/i.test(kwLower);
   const isTax   = /налог|ндфл|стоимост|цен/i.test(kwLower);
-  const allSources: { href: string; text: string }[] = [
-    { href: 'https://rosreestr.gov.ru/', text: 'Росреестр — официальный сайт' },
-    { href: 'https://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102108533', text: 'Федеральный закон №218-ФЗ «О государственной регистрации недвижимости»' },
-    { href: 'https://www.consultant.ru/document/cons_doc_LAW_24154/', text: 'КонсультантПлюс — Гражданский кодекс РФ, часть первая' },
-    { href: 'https://www.garant.ru/', text: 'ГАРАНТ.РУ — информационно-правовой портал' },
-    { href: 'https://www.nalog.gov.ru/rn77/service/realty/', text: 'ФНС России — справочная информация по объектам недвижимости' },
+  // Text-only mentions — no <a href> to prevent PageRank leak to authority sites
+  const allSources: { domain: string; mention: string }[] = [
+    { domain: 'rosreestr.gov.ru',  mention: '<strong>Росреестр</strong> (rosreestr.gov.ru) — официальный государственный орган регистрации прав на недвижимое имущество' },
+    { domain: 'pravo.gov.ru',      mention: '<strong>Федеральный закон №218-ФЗ</strong> «О государственной регистрации недвижимости» (официальный текст опубликован на pravo.gov.ru)' },
+    { domain: 'consultant.ru',     mention: '<strong>Гражданский кодекс РФ</strong> — часть первая (consultant.ru/document/cons_doc_LAW_24154/)' },
+    { domain: 'garant.ru',         mention: '<strong>Информационно-правовой портал ГАРАНТ.РУ</strong> (garant.ru) — актуальные нормативные документы' },
+    { domain: 'nalog.ru',          mention: '<strong>ФНС России</strong> (nalog.gov.ru) — справочная информация по объектам недвижимости и налогам' },
   ];
-  // Prioritize tax / legal sources if keyword hints so
-  if (isTax)   allSources.sort((a, b) => (a.href.includes('nalog.') ? -1 : b.href.includes('nalog.') ? 1 : 0));
-  if (isLegal) allSources.sort((a, b) => (a.href.includes('pravo.') ? -1 : b.href.includes('pravo.') ? 1 : 0));
-  // Filter out sources already present
-  const usedDomains = new Set(authHrefs.map(m => (m[0].match(/\/\/([^\/"']+)/) || [])[1] || '').filter(Boolean));
-  const fresh = allSources.filter(s => {
-    const d = (s.href.match(/\/\/([^\/]+)/) || [])[1] || '';
-    return !Array.from(usedDomains).some(u => u.includes(d) || d.includes(u));
-  }).slice(0, missing);
+  if (isTax)   allSources.sort((a, b) => (a.domain.includes('nalog') ? -1 : b.domain.includes('nalog') ? 1 : 0));
+  if (isLegal) allSources.sort((a, b) => (a.domain.includes('pravo') ? -1 : b.domain.includes('pravo') ? 1 : 0));
+  // Skip already-mentioned sources
+  const mentioned = new Set(authMatches.map(m => m[0].toLowerCase()));
+  const fresh = allSources.filter(s => ![...mentioned].some(m => m.includes(s.domain.split('.')[0]))).slice(0, missing);
   if (fresh.length === 0) return html;
-  const sourcesBlock = `\n<h2>📚 Авторитетные источники</h2>\n<p>Информация в статье проверена по данным следующих официальных источников:</p>\n<ul>\n${fresh.map(s => `<li><a href="${s.href}">${s.text}</a></li>`).join('\n')}\n</ul>\n`;
-  // Inject before last <h2> "Часто задаваемые вопросы" / "Вывод" if exists; otherwise append to end
+  const sourcesBlock = `\n<h2>📚 Нормативная база и официальные источники</h2>\n<p>Информация в статье опирается на следующие официальные и нормативные источники:</p>\n<ul>\n${fresh.map(s => `<li>${s.mention}</li>`).join('\n')}\n</ul>\n`;
   const faqIdx = html.search(/<h2[^>]*>\s*(?:❓\s*)?Часто\s*задаваемые\s*вопросы/i);
   const outroIdx = html.search(/<h2[^>]*>\s*(?:✅\s*)?(?:Вывод|Итог|Заключение)/i);
   const anchor = Math.max(faqIdx, -1) === -1 ? outroIdx : (outroIdx === -1 ? faqIdx : Math.min(faqIdx, outroIdx));
@@ -1304,7 +1302,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${compe
 8. Качество: пиши лучше конкурентов — более подробно, структурировано, с конкретными примерами и полезными деталями которых у них нет.
 9. ЗАПРЕЩЕНО вставлять конкретные цены в рублях — используй ТОЛЬКО шорткод [BLOCK_PRICE] для раздела с ценами.
 10. Название сервиса пиши СТРОГО как "kadastrmap.info" (с буквой r: kadas-TR-map). Никогда не пиши "Kadastmap", "kadastmap", "KadastrMap" — только "kadastrmap.info".
-11. Внешние авторитетные ссылки: добавь 2-3 ссылки на официальные источники — <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a>, ФЗ-218 "О государственной регистрации недвижимости". Обязательно для E-E-A-T. НЕ добавляй атрибуты rel/target — они проставляются автоматически.
+11. Авторитетные источники (E-E-A-T): упоминай в ТЕКСТЕ — Росреестр (rosreestr.gov.ru), Федеральный закон №218-ФЗ, Гражданский кодекс РФ, ГАРАНТ.РУ, КонсультантПлюс, ФНС. Минимум 3 упоминания. ⚠️ НЕ ОБОРАЧИВАЙ их в <a href> — просто пиши доменное имя как текст (не кликабельно). Это защищает наш PageRank от утечки на внешние сайты. Пример правильно: "согласно ФЗ-218 (pravo.gov.ru)"; пример неправильно: &lt;a href="..."&gt;Росреестр&lt;/a&gt;.
 12. СТРОГО по теме запроса "${keyword}" — НЕ включай разделы про другие продукты если они не относятся к теме.
 13. ОБЯЗАТЕЛЬНЫЕ H3-блоки внутри соответствующих H2-разделов:
     - В разделе про документ/отчёт добавь <h3>🛡️ Гарантируем возврат средств</h3> с текстом о гарантии и условиях возврата (80-100 слов)
@@ -1835,7 +1833,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}
 8. Качество: пиши лучше конкурентов — более подробно, структурировано, с конкретными примерами и полезными деталями которых у них нет.
 9. ЗАПРЕЩЕНО вставлять конкретные цены в рублях — используй ТОЛЬКО шорткод [BLOCK_PRICE] для раздела с ценами.
 10. Название сервиса пиши СТРОГО как "kadastrmap.info" (с буквой r: kadas-TR-map). Никогда не пиши "Kadastmap", "kadastmap", "KadastrMap" — только "kadastrmap.info".
-11. Внешние авторитетные ссылки: добавь 2-3 ссылки на официальные источники — <a href="https://rosreestr.gov.ru">rosreestr.gov.ru</a>, ФЗ-218 "О государственной регистрации недвижимости". Обязательно для E-E-A-T. НЕ добавляй атрибуты rel/target — они проставляются автоматически.
+11. Авторитетные источники (E-E-A-T): упоминай в ТЕКСТЕ — Росреестр (rosreestr.gov.ru), Федеральный закон №218-ФЗ, Гражданский кодекс РФ, ГАРАНТ.РУ, КонсультантПлюс, ФНС. Минимум 3 упоминания. ⚠️ НЕ ОБОРАЧИВАЙ их в <a href> — просто пиши доменное имя как текст (не кликабельно). Это защищает наш PageRank от утечки на внешние сайты. Пример правильно: "согласно ФЗ-218 (pravo.gov.ru)"; пример неправильно: &lt;a href="..."&gt;Росреестр&lt;/a&gt;.
 12. СТРОГО по теме запроса "${serpKeyword}" — НЕ включай разделы про другие продукты если они не относятся к теме.
 13. ОБЯЗАТЕЛЬНЫЕ H3-блоки внутри соответствующих H2-разделов:
     - В разделе про документ/отчёт добавь <h3>🛡️ Гарантируем возврат средств</h3> с текстом о гарантии и условиях возврата (80-100 слов)
