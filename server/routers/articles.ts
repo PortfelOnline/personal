@@ -1560,13 +1560,15 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
 
   // Intent detection → structure adapts to what the user actually wants.
   // Same keyword rewritten as info-style vs transactional-style converts 2-3x differently.
+  // NOTE: JavaScript \b only works for ASCII word chars — useless for Cyrillic.
+  // We use (?:^|\s) / (?=\s|$) lookarounds + string boundary checks instead.
   const kwLower = keyword.toLowerCase();
   let intent: 'transactional' | 'howto' | 'info' | 'local' | 'comparison' = 'info';
-  if (/\b(москв|петербург|спб|екатеринбург|новосибирск|казан|нижн|ростов|самар|красноярск|челябинск|воронеж|уфа|сочи|краснодар)/i.test(kwLower)) intent = 'local';
-  else if (/\bили\b|\bлучше\b|\bотлич|\bсравнен|\bvs\b/i.test(kwLower)) intent = 'comparison';
-  else if (/^как\b|\bкак\s+(?:заказать|получить|оформить|сделать|проверить|узнать)/i.test(kwLower)) intent = 'howto';
-  else if (/\b(?:заказать|купить|оформить|срочн)/i.test(kwLower)) intent = 'transactional';
-  else if (/^что\s+(?:такое|это)|^определение\b|\bзначит\b/i.test(kwLower)) intent = 'info';
+  if (/(?:^|\s)(?:москв|петербург|спб|екатеринбург|новосибирск|казан|нижн|ростов|самар|красноярск|челябинск|воронеж|уфа|сочи|краснодар)/i.test(kwLower)) intent = 'local';
+  else if (/(?:^|\s)(?:или|лучше|отлич|сравнен|vs)(?:\s|$)/i.test(kwLower)) intent = 'comparison';
+  else if (/^как\s|\sкак\s+(?:заказать|получить|оформить|сделать|проверить|узнать)/i.test(kwLower)) intent = 'howto';
+  else if (/(?:^|\s)(?:заказать|купить|оформить|срочн)/i.test(kwLower)) intent = 'transactional';
+  else if (/^что\s+(?:такое|это)|^определение\s|\sзначит(?:\s|$)/i.test(kwLower)) intent = 'info';
   const intentBlock = (() => {
     switch (intent) {
       case 'transactional':
