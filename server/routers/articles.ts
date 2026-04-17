@@ -1555,6 +1555,31 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
 - Добавь раздел «Юридическая база» — перечисли ВСЕ применимые ФЗ, постановления, приказы с номерами и датами\n`
     : '';
 
+  // Intent detection → structure adapts to what the user actually wants.
+  // Same keyword rewritten as info-style vs transactional-style converts 2-3x differently.
+  const kwLower = keyword.toLowerCase();
+  let intent: 'transactional' | 'howto' | 'info' | 'local' | 'comparison' = 'info';
+  if (/\b(москв|петербург|спб|екатеринбург|новосибирск|казан|нижн|ростов|самар|красноярск|челябинск|воронеж|уфа|сочи|краснодар)/i.test(kwLower)) intent = 'local';
+  else if (/\bили\b|\bлучше\b|\bотлич|\bсравнен|\bvs\b/i.test(kwLower)) intent = 'comparison';
+  else if (/^как\b|\bкак\s+(?:заказать|получить|оформить|сделать|проверить|узнать)/i.test(kwLower)) intent = 'howto';
+  else if (/\b(?:заказать|купить|оформить|срочн)/i.test(kwLower)) intent = 'transactional';
+  else if (/^что\s+(?:такое|это)|^определение\b|\bзначит\b/i.test(kwLower)) intent = 'info';
+  const intentBlock = (() => {
+    switch (intent) {
+      case 'transactional':
+        return `\n🎯 ИНТЕНТ: TRANSACTIONAL — пользователь готов заказать.\n- В первых 3 H2 — цена, сроки, пошаговый заказ с CTA-ссылкой на /spravki/\n- Featured snippet должен содержать конкретную цену или срок\n- FAQ фокус на: «сколько стоит», «как оплатить», «когда придёт», «возврат денег»\n- Минимум 2 CTA-блока ссылок на /spravki/ внутри статьи\n`;
+      case 'howto':
+        return `\n🎯 ИНТЕНТ: HOW-TO — пользователь хочет пошаговую инструкцию.\n- Структура: определение → H2 "Шаг 1: Подготовьте данные" → H2 "Шаг 2: ..." → ... → H2 "Получение результата"\n- Каждый шаг — описание + нумерованный <ol> подпунктов + что делать если что-то не получилось\n- FAQ: «что делать если ошибка», «что если нет доступа к...», «как исправить»\n- Featured snippet = краткая выжимка главного шага (<60 слов)\n`;
+      case 'info':
+        return `\n🎯 ИНТЕНТ: INFORMATIONAL — пользователь разбирается в теме.\n- Структура: определение → правовая база (ФЗ/ГК РФ) → виды/классификация → примеры → FAQ\n- В каждом H2 — конкретные термины + ссылки на законы (в тексте, без <a href>)\n- FAQ: «чем отличается от...», «нужна ли...», «кто выдаёт», «как часто обновляется»\n- Featured snippet = классическое определение: "${keyword} — это..."\n`;
+      case 'local':
+        return `\n🎯 ИНТЕНТ: LOCAL — локальная выдача.\n- Упомини конкретный регион/город в каждом 2-м H2 заголовке\n- Добавь H2 «Где заказать в <город>» + «Адреса МФЦ в <город>» + «Особенности <регион>»\n- Укажи региональные сроки/тарифы если они отличаются от общероссийских\n- FAQ: «где в <город>...», «сколько стоит в <регион>», «работают ли МФЦ <город> по субботам»\n- Meta description должна упомянуть город в первых 60 символах\n`;
+      case 'comparison':
+        return `\n🎯 ИНТЕНТ: COMPARISON — пользователь сравнивает варианты.\n- ОБЯЗАТЕЛЬНА таблица сравнения в первых 2 H2 (критерии: цена, срок, удобство, юр. сила)\n- H2 «Плюсы и минусы каждого варианта» с <ul> по каждому\n- H2 «Что выбрать» — итоговая рекомендация с обоснованием\n- Featured snippet = сжатый вердикт сравнения (<60 слов)\n- FAQ: «когда лучше А», «когда лучше Б», «можно ли совмещать»\n`;
+    }
+  })();
+  console.log(`[Intent] ${keyword} → ${intent}`);
+
   const improvePrompt = competitorContext
     ? `Ключ: "${keyword}"
 
@@ -1564,7 +1589,7 @@ ${parsed.content.slice(0, 3000)}
 
 КОНКУРЕНТЫ ТОП-5 (лучший конкурент: ${maxCompetitorWords} слов, средний: ${avgCompetitorWords} слов):
 ${competitorContext}
-${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${competitorAltSamplesBlock}${aggressiveBlock}
+${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${competitorAltSamplesBlock}${intentBlock}${aggressiveBlock}
 ТРЕБОВАНИЯ:
 1. Объём: минимум ${targetWords} слов — это ${aggressive ? '60' : '30'}% БОЛЬШЕ лучшего конкурента (${maxCompetitorWords} слов). Каждый раздел должен быть полным, не обрывай мысль.
 2. HTML: H1, H2 (8-14), H3 где уместно, <ul>/<ol>, <table> для сравнений и данных
