@@ -178,11 +178,14 @@ function extractKeywordFromTitle(title: string): string {
 }
 
 // Fetch top competitor articles from SERP results
+// Domain patterns for authority links (E-E-A-T signal for Russian real estate/law)
+const AUTHORITY_DOMAINS = /\b(?:rosreestr\.gov\.ru|consultant\.ru|garant\.ru|nalog\.ru|pravo\.gov\.ru|minjust\.ru|mos\.ru|gosuslugi\.ru|kremlin\.ru|sudrf\.ru)\b/i;
+
 async function fetchCompetitorArticles(
   serpResults: { url: string; domain: string; title: string }[],
   ourDomain: string,
   maxCompetitors = 5,
-): Promise<{ position: number; domain: string; title: string; headings: string; content: string; wordCount: number; imageCount: number; faqCount: number; hasTable: boolean }[]> {
+): Promise<{ position: number; domain: string; title: string; headings: string; content: string; wordCount: number; imageCount: number; faqCount: number; hasTable: boolean; altSamples: string[]; authLinkCount: number; internalLinkCount: number; videoCount: number; listCount: number; authDomains: string[] }[]> {
   // Try 2x more candidates so blocked top-5 (cian, domclick, etc.) get replaced
   // by lower-ranked pages that allow crawling
   const candidates = serpResults
@@ -198,6 +201,26 @@ async function fetchCompetitorArticles(
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
       ]);
       const html = parsed.contentHtml || '';
+      // alt samples: up to 5 non-empty, longer-than-3-chars alts (for FLUX prompt seeding)
+      const altMatches = Array.from(html.matchAll(/<img[^>]+alt=["']([^"']+)["']/gi));
+      const altSamples = altMatches
+        .map(m => m[1].trim())
+        .filter(a => a.length > 3)
+        .slice(0, 5);
+      // authority + internal link analysis
+      const hrefMatches = Array.from(html.matchAll(/href=["']([^"']+)["']/gi));
+      const authDomainsSet = new Set<string>();
+      let authLinkCount = 0, internalLinkCount = 0;
+      for (const hm of hrefMatches) {
+        const href = hm[1];
+        if (!/^https?:/i.test(href)) continue;
+        if (AUTHORITY_DOMAINS.test(href)) {
+          authLinkCount++;
+          const mdom = href.match(/https?:\/\/([^\/]+)/);
+          if (mdom) authDomainsSet.add(mdom[1].replace(/^www\./, ''));
+        }
+        if (href.includes(r.domain)) internalLinkCount++;
+      }
       const result = {
         position: i + 1,
         domain: r.domain,
@@ -208,6 +231,12 @@ async function fetchCompetitorArticles(
         imageCount: (html.match(/<img\b/gi) || []).length,
         faqCount: (html.match(/<details\b/gi) || []).length,
         hasTable: /<table\b/i.test(html),
+        altSamples,
+        authLinkCount,
+        internalLinkCount,
+        videoCount: (html.match(/<(?:iframe|video|embed)\b/gi) || []).length,
+        listCount: (html.match(/<(?:ul|ol)\b/gi) || []).length,
+        authDomains: Array.from(authDomainsSet),
       };
       if (parsed.wordCount > 0) cacheSet(pageCache, r.url, result);
       return result;
@@ -349,7 +378,12 @@ function checkArticleQuality(
   const faqCount = (html.match(/<details\b/gi) || []).length;
   const hasTable = /<table\b/i.test(html);
   const h2Count = (html.match(/<h2\b/gi) || []).length;
+  const h3Count = (html.match(/<h3\b/gi) || []).length;
   const hasExternalLinks = /href="https?:\/\/(?!kadastrmap\.info)[^"]+"/i.test(html);
+  const authLinksCount = (html.match(AUTHORITY_DOMAINS) || []).length;
+  // internal links: href starting with "/" or containing kadastrmap.info
+  const internalLinks = Array.from(html.matchAll(/href=["'](?:\/[^"']*|https?:\/\/[^"']*kadastrmap\.info[^"']*)["']/gi));
+  const internalLinkCount = internalLinks.length;
 
   const issues: string[] = [];
   if (wordCount < targetWords) issues.push(`слов: ${wordCount}/${targetWords}`);
@@ -357,9 +391,15 @@ function checkArticleQuality(
   if (h2Count < 7)             issues.push(`H2: ${h2Count} (нужно 7+)`);
   if (!hasTable)               issues.push('нет таблицы');
   if (!hasExternalLinks)       issues.push('нет внешних ссылок (E-E-A-T)');
+  // soft checks — don't FAIL on these, but log for visibility
+  const softIssues: string[] = [];
+  if (h3Count < 3)                softIssues.push(`H3:${h3Count}`);
+  if (authLinksCount < 2)         softIssues.push(`auth-links:${authLinksCount}`);
+  if (internalLinkCount < 3)      softIssues.push(`internal-links:${internalLinkCount}`);
 
   const pass = issues.length === 0;
-  const label = pass ? '✅ PASS' : `❌ FAIL [${issues.join(', ')}]`;
+  const softLabel = softIssues.length ? ` | soft[${softIssues.join(', ')}]` : '';
+  const label = pass ? `✅ PASS${softLabel}` : `❌ FAIL [${issues.join(', ')}]${softLabel}`;
   console.log(`[QA] ${url} → ${label}`);
   return { url, wordCount, targetWords, faqCount, targetFaq, h2Count, hasTable, hasExternalLinks, pass, issues };
 }
@@ -1117,6 +1157,19 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   const targetImages = Math.max(9, maxCompetitorImages + 2);
   const targetFaq = Math.max(12, avgCompetitorFaq + 2);
 
+  // New deep-competitor stats (auth links, internal links, videos, alts)
+  const avgAuthLinks = competitors.length
+    ? Math.round(competitors.reduce((s, c) => s + (c.authLinkCount || 0), 0) / competitors.length) : 0;
+  const maxAuthLinks = competitors.length
+    ? Math.max(...competitors.map(c => c.authLinkCount || 0)) : 0;
+  const avgInternalLinks = competitors.length
+    ? Math.round(competitors.reduce((s, c) => s + (c.internalLinkCount || 0), 0) / competitors.length) : 0;
+  const competitorHasVideo = competitors.some(c => (c.videoCount || 0) > 0);
+  const uniqueAuthDomains = Array.from(new Set(competitors.flatMap(c => c.authDomains || []))).slice(0, 6);
+  const targetAuthLinks = Math.max(3, maxAuthLinks);
+  const targetInternalLinks = Math.max(5, Math.round(avgInternalLinks * 0.6));
+  const altSamplesFromCompetitors = Array.from(new Set(competitors.flatMap(c => c.altSamples || []))).slice(0, 8);
+
   // Extract unique H2 headings from competitors that our article is missing
   const ourH2s = new Set(
     (parsed.headings || []).filter((h: any) => h.level === 'H2').map((h: any) => h.text.toLowerCase())
@@ -1158,7 +1211,16 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
 - Слов: лучший конкурент ${maxCompetitorWords}, наша цель ${targetWords}+
 - Изображений: макс. у конкурентов ${maxCompetitorImages}, наша цель ${targetImages}+ (равномерно по тексту, после каждого 2-го H2)
 - FAQ-вопросов: средн. у конкурентов ${avgCompetitorFaq}, наша цель ${targetFaq}+
-- Таблицы: конкуренты ${competitorHasTables ? 'используют' : 'не используют'} — ${competitorHasTables ? 'ОБЯЗАТЕЛЬНО добавить' : 'добавить для сравнения способов'}\n`;
+- Таблицы: конкуренты ${competitorHasTables ? 'используют' : 'не используют'} — ${competitorHasTables ? 'ОБЯЗАТЕЛЬНО добавить' : 'добавить для сравнения способов'}
+- Авторитетные ссылки (E-E-A-T): у конкурентов макс. ${maxAuthLinks}, средн. ${avgAuthLinks} — наша цель ${targetAuthLinks}+ (rosreestr.gov.ru, consultant.ru, garant.ru, nalog.ru, pravo.gov.ru)
+- Внутренние ссылки: у конкурентов средн. ${avgInternalLinks} — наша цель ${targetInternalLinks}+ на kadastrmap.info (ссылки на /spravki/, другие статьи)
+- Видео: конкуренты ${competitorHasVideo ? 'используют (YouTube embed)' : 'не используют'}${competitorHasVideo ? ' — добавить YouTube embed в разделе с инструкцией' : ''}\n`;
+  const competitorAuthDomainsBlock = uniqueAuthDomains.length > 0
+    ? `\nКОНКУРЕНТЫ ССЫЛАЮТСЯ НА (используй эти же источники): ${uniqueAuthDomains.join(', ')}\n`
+    : '';
+  const competitorAltSamplesBlock = altSamplesFromCompetitors.length > 0
+    ? `\nПРИМЕРЫ ALT-ТЕКСТОВ КОНКУРЕНТОВ (для понимания тематики изображений): ${altSamplesFromCompetitors.slice(0, 5).map(a => `"${a.slice(0, 60)}"`).join(', ')}\n`
+    : '';
 
   const aggressiveBlock = aggressive
     ? `\n🔥 AGGRESSIVE MODE (предыдущие попытки не попали в топ-3):
@@ -1181,7 +1243,7 @@ ${parsed.content.slice(0, 3000)}
 
 КОНКУРЕНТЫ ТОП-5 (лучший конкурент: ${maxCompetitorWords} слов, средний: ${avgCompetitorWords} слов):
 ${competitorContext}
-${missingTopicsBlock}${lsiBlock}${top3Stats}${aggressiveBlock}
+${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${competitorAltSamplesBlock}${aggressiveBlock}
 ТРЕБОВАНИЯ:
 1. Объём: минимум ${targetWords} слов — это ${aggressive ? '60' : '30'}% БОЛЬШЕ лучшего конкурента (${maxCompetitorWords} слов). Каждый раздел должен быть полным, не обрывай мысль.
 2. HTML: H1, H2 (8-14), H3 где уместно, <ul>/<ol>, <table> для сравнений и данных
@@ -1302,6 +1364,22 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${aggressiveBlock}
     focusKeyword: keyword || undefined,
     keywords: seo.keywords?.length ? seo.keywords : undefined,
   }).catch((e: any) => console.error(`[WP] Auto-publish failed for ${url}:`, e?.message ?? e));
+
+  // Post-publish image check: compare actual <img> count on the live page
+  // against our target (competitor max + 2). Runs async so it doesn't slow the loop.
+  void (async () => {
+    try {
+      await new Promise(r => setTimeout(r, 5000));  // give WP 5s to flush cache
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const liveHtml = await resp.text();
+      const imgCount = (liveHtml.match(/<img\b/gi) || []).length;
+      const ok = imgCount >= targetImages;
+      console.log(`[PostQA] ${url} → images ${imgCount}/${targetImages} ${ok ? '✅' : '⚠️ LOW'}`);
+    } catch (err: any) {
+      // swallow — PostQA is best-effort
+    }
+  })();
 
   // Notify search engines about the updated article
   void submitToIndexNow(url);
