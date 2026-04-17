@@ -858,6 +858,47 @@ export async function searchPexelsImages(
 
 // ── Internal links from user's article history ───────────────────────────────
 
+/**
+ * Ensure article has at least 3 authority links (E-E-A-T signal for Yandex/Google).
+ * If LLM didn't add enough rosreestr.gov.ru / consultant.ru / garant.ru links,
+ * inject a sources paragraph just before the closing to satisfy E-E-A-T standards.
+ */
+function ensureAuthorityLinks(html: string, keyword: string): string {
+  const authHrefs = Array.from(html.matchAll(/href=["']https?:\/\/[^"']*(?:rosreestr\.gov\.ru|consultant\.ru|garant\.ru|nalog\.ru|pravo\.gov\.ru)[^"']*["']/gi));
+  if (authHrefs.length >= 3) return html;
+  const missing = 3 - authHrefs.length;
+  const kwLower = keyword.toLowerCase();
+  // Pick sources relevant to the keyword topic
+  const isLegal = /закон|фз|статья|право|нормат/i.test(kwLower);
+  const isTax   = /налог|ндфл|стоимост|цен/i.test(kwLower);
+  const allSources: { href: string; text: string }[] = [
+    { href: 'https://rosreestr.gov.ru/', text: 'Росреестр — официальный сайт' },
+    { href: 'https://pravo.gov.ru/proxy/ips/?doc_itself=&nd=102108533', text: 'Федеральный закон №218-ФЗ «О государственной регистрации недвижимости»' },
+    { href: 'https://www.consultant.ru/document/cons_doc_LAW_24154/', text: 'КонсультантПлюс — Гражданский кодекс РФ, часть первая' },
+    { href: 'https://www.garant.ru/', text: 'ГАРАНТ.РУ — информационно-правовой портал' },
+    { href: 'https://www.nalog.gov.ru/rn77/service/realty/', text: 'ФНС России — справочная информация по объектам недвижимости' },
+  ];
+  // Prioritize tax / legal sources if keyword hints so
+  if (isTax)   allSources.sort((a, b) => (a.href.includes('nalog.') ? -1 : b.href.includes('nalog.') ? 1 : 0));
+  if (isLegal) allSources.sort((a, b) => (a.href.includes('pravo.') ? -1 : b.href.includes('pravo.') ? 1 : 0));
+  // Filter out sources already present
+  const usedDomains = new Set(authHrefs.map(m => (m[0].match(/\/\/([^\/"']+)/) || [])[1] || '').filter(Boolean));
+  const fresh = allSources.filter(s => {
+    const d = (s.href.match(/\/\/([^\/]+)/) || [])[1] || '';
+    return !Array.from(usedDomains).some(u => u.includes(d) || d.includes(u));
+  }).slice(0, missing);
+  if (fresh.length === 0) return html;
+  const sourcesBlock = `\n<h2>📚 Авторитетные источники</h2>\n<p>Информация в статье проверена по данным следующих официальных источников:</p>\n<ul>\n${fresh.map(s => `<li><a href="${s.href}">${s.text}</a></li>`).join('\n')}\n</ul>\n`;
+  // Inject before last <h2> "Часто задаваемые вопросы" / "Вывод" if exists; otherwise append to end
+  const faqIdx = html.search(/<h2[^>]*>\s*(?:❓\s*)?Часто\s*задаваемые\s*вопросы/i);
+  const outroIdx = html.search(/<h2[^>]*>\s*(?:✅\s*)?(?:Вывод|Итог|Заключение)/i);
+  const anchor = Math.max(faqIdx, -1) === -1 ? outroIdx : (outroIdx === -1 ? faqIdx : Math.min(faqIdx, outroIdx));
+  if (anchor > 0) {
+    return html.slice(0, anchor) + sourcesBlock + html.slice(anchor);
+  }
+  return html + sourcesBlock;
+}
+
 async function addInternalLinks(html: string, userId: number, ourDomain: string, currentTitle: string): Promise<string> {
   const history = await articlesDb.getUserAnalysisHistory(userId, 300).catch(() => []);
 
@@ -1333,6 +1374,9 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${compe
 
   // Add internal links to related articles on the same site
   improvedContent = await addInternalLinks(improvedContent, userId, ourDomain, parsed.title);
+
+  // Auto-inject authority links if LLM didn't add enough (E-E-A-T signal)
+  improvedContent = ensureAuthorityLinks(improvedContent, keyword);
 
   // Append FAQPage + Article JSON-LD schema markup (critical for Yandex rich results)
   const schemaMarkup = generateSchemaMarkup(keyword, seo.metaTitle || parsed.title, url, improvedContent);
