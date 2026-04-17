@@ -67,6 +67,10 @@ export type InvokeParams = {
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  // Groq: disable <think> blocks on reasoning models (qwen3, deepseek-r1).
+  // "none" (recommended for content tasks) | "default" | "low" | "medium" | "high"
+  reasoningEffort?: "none" | "default" | "low" | "medium" | "high";
+  reasoning_effort?: "none" | "default" | "low" | "medium" | "high";
 };
 
 export type ToolCall = {
@@ -298,6 +302,17 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   payload.max_tokens = params.maxTokens ?? params.max_tokens ?? 4096;
+
+  // Auto-disable reasoning for Qwen3 / DeepSeek-R1 unless explicitly overridden
+  // (reasoning models consume half of max_tokens on <think> blocks → truncated articles)
+  const modelStr = String(payload.model ?? '').toLowerCase();
+  const isReasoningModel = /qwen3|qwen-3|deepseek-r1/.test(modelStr);
+  const explicitEffort = params.reasoningEffort ?? params.reasoning_effort;
+  if (explicitEffort) {
+    payload.reasoning_effort = explicitEffort;
+  } else if (isReasoningModel) {
+    payload.reasoning_effort = "none";
+  }
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,

@@ -931,7 +931,7 @@ ${missingTopicsBlock}${lsiBlock}${gscBlock}
   let seo: SeoAnalysis;
   try {
     const seoRaw = typeof seoResponse.choices[0]?.message.content === 'string'
-      ? seoResponse.choices[0].message.content.trim() : '{}';
+      ? seoResponse.choices[0].message.content.trim().replace(/<think>[\s\S]*?<\/think>/gi, '').trim() : '{}';
     seo = JSON.parse(seoRaw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim());
   } catch {
     seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
@@ -943,6 +943,7 @@ ${missingTopicsBlock}${lsiBlock}${gscBlock}
 
   let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim()
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')  // strip reasoning blocks (Qwen3/DeepSeek-R1)
         .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
     : parsed.content;
 
@@ -1185,7 +1186,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${aggressiveBlock}
   let seo: SeoAnalysis;
   try {
     const seoRaw = typeof seoResponse.choices[0]?.message.content === 'string'
-      ? seoResponse.choices[0].message.content.trim() : '{}';
+      ? seoResponse.choices[0].message.content.trim().replace(/<think>[\s\S]*?<\/think>/gi, '').trim() : '{}';
     seo = JSON.parse(seoRaw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim());
   } catch {
     seo = { metaTitle: parsed.title, metaDescription: parsed.metaDescription, keywords: [], headingsSuggestions: [], generalSuggestions: [], score: 0 };
@@ -1195,6 +1196,7 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${aggressiveBlock}
 
   let improvedContent = typeof improvedResponse.choices[0]?.message.content === 'string'
     ? improvedResponse.choices[0].message.content.trim()
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')  // strip reasoning blocks (Qwen3/DeepSeek-R1)
         .replace(/^```html?\s*/i, '').replace(/\s*```$/i, '').trim()
     : parsed.content;
 
