@@ -288,7 +288,7 @@ function countWords(html: string): number {
 }
 
 // Generate contextual DALL-E image prompts based on article title, keyword and H2 sections
-export async function generateImagePrompts(title: string, keyword?: string, h2Sections?: string[], bodyText?: string, countRequested?: number): Promise<string[]> {
+export async function generateImagePrompts(title: string, keyword?: string, h2Sections?: string[], bodyText?: string, countRequested?: number, h2Bodies?: string[]): Promise<string[]> {
   // Reinforced quality tags — FLUX.1 responds well to stacked descriptors of photo technique.
   const QUALITY = 'cinematic lighting, sharp focus, high detail, photorealistic, professional DSLR photo, shot on Canon EOS R5, 85mm f/1.8 lens, shallow depth of field, bokeh, natural window light, color graded';
   // 2026-04-20: усилены anti-text tokens — FLUX часто пишет кривые русские буквы на документах.
@@ -317,8 +317,15 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
     `Scale architectural maquette model of a modern Russian multi-story panel-frame apartment building on dark wooden studio table, soft overhead light, ${QUALITY}, ${NEGATIVE}`,
   ];
 
+  // Per-section context — если переданы h2Bodies, даём LLM конкретное содержание каждого раздела
+  // (первые ~180 слов), чтобы сцена отражала факты из текста, а не generic-assumptions.
   const sectionsBlock = h2Sections && h2Sections.length > 0
-    ? `\nArticle sections (H2 headings): ${h2Sections.slice(0, 15).map((s, i) => `${i + 1}. ${s}`).join('; ')}\n`
+    ? (h2Bodies && h2Bodies.length > 0
+        ? `\nArticle sections — one image per section MUST be composed from the section's actual content below:\n${h2Sections.slice(0, 15).map((heading, i) => {
+            const body = (h2Bodies[i] || '').slice(0, 900);
+            return `\n--- Section ${i + 1} ---\nH2: "${heading}"\nContent (use concrete nouns/numbers/actions from this to design the scene): ${body || '[no body — use heading only]'}\n`;
+          }).join('')}\n`
+        : `\nArticle sections (H2 headings): ${h2Sections.slice(0, 15).map((s, i) => `${i + 1}. ${s}`).join('; ')}\n`)
     : '';
   const bodyBlock = bodyText
     ? `\nArticle intro (first 400 chars): "${bodyText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400)}"\n`
@@ -350,7 +357,12 @@ This article is about ordering official Russian property / cadastral documents v
 Write exactly ${targetCount} DIFFERENT prompts, one per H2 section in order. Each prompt MUST:
 - Be 15-25 words of content BEFORE the quality tags (describe subject, action, environment, lighting)
 - Vary scenes across prompts — don't repeat the same setting twice. Mix from (Russian-context pool): person-at-laptop-home-office, Russian-notary-office-abstract, Russian-bank-counter, typical-Russian-apartment-interior, Moscow-panel-building-exterior, aerial-drone-Moscow-district, Russian-family-at-kitchen, real-estate-agent-handing-keys, Russian-dacha-garden, Moscow-courtyard-with-playground, St-Petersburg-embankment, Saint-Petersburg-canal-view, keys-on-wooden-desk (no paper), calculator-and-rubles-on-desk, family-signing-document-blurred-from-angle, Russian-MFC-service-window-abstract, scale-model-of-apartment-building. AVOID close-ups of documents/forms/plans — FLUX will add garbled text.
-- Match the H2 section's specific topic (e.g., "Стоимость" → hands counting rubles over document; "Сроки" → clock + calendar + document; "Онлайн заказ" → laptop with property site open)
+- Match the H2 section's ACTUAL CONTENT provided above (not just the heading). Extract concrete nouns, numbers, actions, and objects from the section body and make them the subject. Generic "apartment interior" with no link to the text is REJECTED. Examples:
+  * Section "Стоимость выписки ЕГРН" with text mentioning "500 рублей, картой онлайн" → Close-up of Slavic hand holding Russian ruble banknotes and a bank card over a laptop keyboard, soft office light
+  * Section "Сроки получения" with text "1-3 рабочих дня" → Wall clock showing late morning next to a smartphone with notification icon on a wooden desk, warm lamp light
+  * Section "Какие сведения содержит" with text mentioning "ФИО собственника, кадастровый номер, план квартиры" → Slavic hands pointing at a blurred floor-plan mock-up on a tablet screen, no readable text
+  * Section "Когда требуется" with text "при покупке квартиры, ипотеке, наследстве" → Slavic couple receiving house keys from a real-estate agent in a bright empty Russian apartment
+  * Section "Типичные ошибки" → Slavic person at a laptop looking concerned, hand on forehead, warm evening window light
 - End EVERY prompt with EXACTLY these quality tags: "cinematic lighting, sharp focus, high detail, photorealistic, professional DSLR photo, shot on Canon EOS R5, 85mm f/1.8 lens, shallow depth of field, bokeh, natural window light, color graded"
 
 Examples of EXCELLENT prompts:
@@ -839,6 +851,32 @@ function extractH2Texts(html: string): string[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
     results.push(m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim());
+  }
+  return results;
+}
+
+// Extract each H2 heading together with the first ~180 words of its body
+// (up to the next <h2>). Used to give FLUX prompt engineer concrete per-section
+// context instead of a generic article intro.
+function extractH2Sections(html: string): { heading: string; body: string }[] {
+  const results: { heading: string; body: string }[] = [];
+  const sectionRe = /<h2[^>]*>([\s\S]*?)<\/h2>([\s\S]*?)(?=<h2[^>]*>|$)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = sectionRe.exec(html)) !== null) {
+    const heading = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (!heading) continue;
+    const bodyWords = m[2]
+      .replace(/<(?:details|summary|script|style|table)[\s\S]*?<\/(?:details|summary|script|style|table)>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&[a-z]+;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 180)
+      .join(' ');
+    results.push({ heading, body: bodyWords });
   }
   return results;
 }
@@ -1853,13 +1891,17 @@ export async function findAndInjectImages(
     const fluxNeeded = validMedia.length < imagesNeeded
       ? imagesNeeded - validMedia.length
       : 1;
-    const h2Sections = extractH2Texts(html).slice(0, Math.max(fluxNeeded, 9));
+    // 2026-04-20: извлекаем H2 + первые ~180 слов тела каждого раздела, чтобы FLUX-промпт
+    // отражал фактическое содержание раздела (цены/сроки/действия из текста), а не generic.
+    const h2SectionsData = extractH2Sections(html).slice(0, Math.max(fluxNeeded, 9));
+    const h2Sections = h2SectionsData.map(s => s.heading);
+    const h2Bodies = h2SectionsData.map(s => s.body);
     const bodyText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
     // Check cache first — allows per-article prompt customization
     const cachedPrompts = getImagePromptsFromCache(slug);
     const prompts = cachedPrompts && cachedPrompts.length >= fluxNeeded
       ? cachedPrompts
-      : await generateImagePrompts(title, titleKeywords, h2Sections, bodyText, fluxNeeded);
+      : await generateImagePrompts(title, titleKeywords, h2Sections, bodyText, fluxNeeded, h2Bodies);
     if (!cachedPrompts || cachedPrompts.length < fluxNeeded) saveImagePromptsToCache(slug, prompts);
     console.log(`[Img] Generating ${fluxNeeded} FLUX images (sequential)`);
     const fluxValid: { id: number; url: string; width?: number; height?: number }[] = [];
