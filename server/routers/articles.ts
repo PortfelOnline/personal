@@ -1510,6 +1510,10 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   // как запас на случай блокировки парсинга у cian/domclick/rosreestr).
   // 2026-04-20: 5 → 3, чтобы копировать стандарт ТОП-3, а не размывать средним по top-5.
   const competitors = await fetchCompetitorArticles(mergedSerp, ourDomain, 3);
+  // Лог сколько конкурентов реально спарсилось — сигнал качества анализа.
+  // Если 0/3 часто — надо пересмотреть список блокирующих доменов или взять фоллбэк.
+  const compStatus = competitors.length === 0 ? ' ⚠️ ZERO — SERP-snippet fallback' : (competitors.length < 3 ? ' ⚠️ partial' : ' ✅');
+  console.log(`[Competitors] "${keyword}": got ${competitors.length}/3 (from ${mergedSerp.length} SERP candidates)${compStatus}`);
   const avgCompetitorWords = competitors.length
     ? Math.round(competitors.reduce((s, c) => s + c.wordCount, 0) / competitors.length) : 1200;
   const maxCompetitorWords = competitors.length
