@@ -1465,10 +1465,13 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
     ? Math.round(competitors.reduce((s, c) => s + c.wordCount, 0) / competitors.length) : 1200;
   const maxCompetitorWords = competitors.length
     ? Math.max(...competitors.map(c => c.wordCount)) : 1200;
-  // Aggressive mode (set by loop-improve after 2+ non-top-3 attempts): push deeper.
+  // Aggressive mode (set by loop-improve after 2+ non-top-3 attempts): push depth, not bulk.
+  // 2026-04-20: уменьшены множители (было 1.6/1.3 + floor 4500/3500 → давало 2-2.6x от конкурентов)
+  // Google/AI Overviews ранжируют по query satisfaction, не по объёму. Длиннее конкурентов —
+  // максимум +25% в aggressive, +15% в обычном. Floor учитывает минимум для коммерч. статей.
   const aggressive = process.env.LOOP_AGGRESSIVE_MODE === '1';
-  const wordMultiplier = aggressive ? 1.6 : 1.3;
-  const targetWords = Math.max(aggressive ? 4500 : 3500, Math.round(maxCompetitorWords * wordMultiplier));
+  const wordMultiplier = aggressive ? 1.25 : 1.15;
+  const targetWords = Math.max(aggressive ? 2800 : 2200, Math.round(maxCompetitorWords * wordMultiplier));
 
   // Competitor media/structure stats — used to set our target
   const avgCompetitorImages = competitors.length
@@ -1596,7 +1599,7 @@ ${parsed.content.slice(0, 3000)}
 ${competitorContext}
 ${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${competitorAltSamplesBlock}${intentBlock}${aggressiveBlock}
 ТРЕБОВАНИЯ:
-1. Объём: минимум ${targetWords} слов — это ${aggressive ? '60' : '30'}% БОЛЬШЕ лучшего конкурента (${maxCompetitorWords} слов). Каждый раздел должен быть полным, не обрывай мысль.
+1. Объём: минимум ${targetWords} слов — это ${aggressive ? '25' : '15'}% больше лучшего конкурента (${maxCompetitorWords} слов). Пиши плотно, без воды — пользователь ищет ответ, а не километры текста. Каждый раздел завершён, но не разведён синонимами ради объёма.
 2. HTML: H1, H2 (8-14), H3 где уместно, <ul>/<ol>, <table> для сравнений и данных
 3. FEATURED SNIPPET (ОБЯЗАТЕЛЬНО): сразу после H1 — абзац 40-60 слов с прямым ответом на "${keyword}". Без вступлений типа "В этой статье...". Формат: "**${keyword}** — это [определение]. [Ключевой факт]. [CTA-намёк]." Это попадает в блок 0 Яндекса и Гугла.
 4. Покрой ВСЕ темы из списка "ТЕМЫ КОНКУРЕНТОВ" выше плюс добавь уникальный угол — то чего нет ни у кого
