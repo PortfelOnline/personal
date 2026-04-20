@@ -182,10 +182,37 @@ Load: `launchctl load ~/Library/LaunchAgents/com.local.refs.update.plist`
 - **Two sources, one script** — pool for fully read-only refs you want updated aggressively; extra for in-place updates of tool sources that you don't commit to but don't want moved.
 - **No symlinks across home** — moving `~/superpowers` into `refs/` would break `~/.agents/skills/superpowers` symlink chain. `extra.list` pattern solves this without touching real paths.
 
-## Commands cheat sheet
+## Helper CLI: `refs-add`
+
+Symlinked from `~/.local/bin/refs-add` → `~/.claude/scripts/refs-add.sh`. Does auto-detection of URL vs path.
 
 ```bash
-# Manual run
+refs-add https://github.com/foo/bar.git    # → pool (clone into refs/)
+refs-add ~/some/existing/repo               # → extra.list (in-place)
+refs-add --list                             # dashboard: HEAD, size, remote, schedule
+refs-add --run                              # trigger update now
+refs-add --remove awesome-design-md         # remove (pool: rm -rf; extra: comment out)
+refs-add --help
+```
+
+Sample `--list` output:
+```
+Pool (~/.claude/refs/):
+  awesome-claude-code            84c0750  31M   https://github.com/hesreallyhim/awesome-claude-code.git
+  awesome-design-md              6dc4def  428K  https://github.com/VoltAgent/awesome-design-md.git
+
+Extra (~/.claude/refs/extra.list):
+  ~/.agents/superpowers_repo    b557648   https://github.com/obra/superpowers.git
+  ~/serena                      84891b59  https://github.com/oraios/serena
+
+Updater: /Users/<user>/.claude/scripts/update-refs.sh
+Schedule: com.local.refs.update (launchd) — Mon 09:00
+```
+
+## Low-level commands
+
+```bash
+# Manual run (bypass helper)
 ~/.claude/scripts/update-refs.sh && tail ~/.claude/logs/refs.log
 
 # Check launchd status
@@ -195,6 +222,25 @@ launchctl list | grep refs.update
 launchctl unload ~/Library/LaunchAgents/com.local.refs.update.plist
 
 # Re-enable
+launchctl load ~/Library/LaunchAgents/com.local.refs.update.plist
+```
+
+## Restoring on a new machine
+
+This repo stashes all three artifacts under `scripts/`:
+- `scripts/update-refs.sh`
+- `scripts/refs-add.sh`
+- `scripts/com.local.refs.update.plist`
+
+Bootstrap:
+```bash
+mkdir -p ~/.claude/scripts ~/.claude/refs ~/.claude/logs ~/.local/bin
+cp scripts/update-refs.sh scripts/refs-add.sh ~/.claude/scripts/
+chmod +x ~/.claude/scripts/{update-refs.sh,refs-add.sh}
+ln -sf ~/.claude/scripts/refs-add.sh ~/.local/bin/refs-add
+
+# Edit the plist to use your username, then:
+cp scripts/com.local.refs.update.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.local.refs.update.plist
 ```
 
