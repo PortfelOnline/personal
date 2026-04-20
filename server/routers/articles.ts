@@ -1227,23 +1227,61 @@ function ensureAuthorityLinks(html: string, keyword: string): string {
   return html + sourcesBlock;
 }
 
-async function addInternalLinks(html: string, userId: number, ourDomain: string, currentTitle: string): Promise<string> {
-  const history = await articlesDb.getUserAnalysisHistory(userId, 300).catch(() => []);
+// 2026-04-20: глобальный кэш всех постов сайта через публичный WP REST API.
+// Старое: getUserAnalysisHistory(300) — только проанализированные статьи (покрывало ~20%
+// от реальных 1612 постов сайта). Новое: публичный /wp-json/wp/v2/posts без auth,
+// всю статью кэшируем на 1 час → internal linking расширяется с ~300 до 1600+ статей.
+const sitePostsCache = new Map<string, { posts: { url: string; title: string }[]; expiresAt: number }>();
 
-  // Only articles from same domain, deduplicated by URL
-  const seen = new Set<string>();
-  const siteArticles = history
-    .filter(a => {
-      try {
-        const domain = new URL(a.url).hostname.replace(/^www\./, '');
-        if (domain !== ourDomain || seen.has(a.url)) return false;
-        seen.add(a.url);
-        return true;
-      } catch { return false; }
-    })
-    .map(a => ({ url: a.url, title: a.originalTitle || '' }))
-    .filter(a => a.title && a.title !== currentTitle)
-    .slice(0, 100);
+async function getAllSitePosts(ourDomain: string): Promise<{ url: string; title: string }[]> {
+  const cached = sitePostsCache.get(ourDomain);
+  if (cached && Date.now() < cached.expiresAt) return cached.posts;
+
+  const posts: { url: string; title: string }[] = [];
+  try {
+    for (let page = 1; page <= 25; page++) { // cap 2500 постов
+      const resp = await axios.get(
+        `https://${ourDomain}/wp-json/wp/v2/posts`,
+        {
+          params: { per_page: 100, page, _fields: 'id,title,link', status: 'publish' },
+          timeout: 15000,
+        },
+      );
+      const batch = Array.isArray(resp.data) ? resp.data : [];
+      if (!batch.length) break;
+      for (const p of batch) {
+        const title = (p.title?.rendered || '').replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim();
+        if (title && p.link) posts.push({ url: p.link, title });
+      }
+      if (batch.length < 100) break;
+    }
+  } catch (e: any) {
+    console.warn(`[InternalLinks] WP API fetch failed for ${ourDomain}: ${e?.message}`);
+  }
+
+  console.log(`[InternalLinks] cached ${posts.length} posts for ${ourDomain}`);
+  sitePostsCache.set(ourDomain, { posts, expiresAt: Date.now() + 60 * 60 * 1000 });
+  return posts;
+}
+
+async function addInternalLinks(html: string, userId: number, ourDomain: string, currentTitle: string): Promise<string> {
+  // Primary: полный WP-postlist (1600+). Fallback: история анализов (300).
+  let siteArticles = await getAllSitePosts(ourDomain);
+  if (siteArticles.length === 0) {
+    const history = await articlesDb.getUserAnalysisHistory(userId, 300).catch(() => []);
+    const seen = new Set<string>();
+    siteArticles = history
+      .filter(a => {
+        try {
+          const domain = new URL(a.url).hostname.replace(/^www\./, '');
+          if (domain !== ourDomain || seen.has(a.url)) return false;
+          seen.add(a.url);
+          return true;
+        } catch { return false; }
+      })
+      .map(a => ({ url: a.url, title: a.originalTitle || '' }));
+  }
+  siteArticles = siteArticles.filter(a => a.title && a.title !== currentTitle);
 
   if (siteArticles.length === 0) return html;
 
