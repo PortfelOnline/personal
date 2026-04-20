@@ -1240,14 +1240,18 @@ async function getAllSitePosts(ourDomain: string): Promise<{ url: string; title:
   const posts: { url: string; title: string }[] = [];
   try {
     for (let page = 1; page <= 25; page++) { // cap 2500 постов
-      const resp = await axios.get(
-        `https://${ourDomain}/wp-json/wp/v2/posts`,
-        {
-          params: { per_page: 100, page, _fields: 'id,title,link', status: 'publish' },
-          timeout: 15000,
-        },
-      );
-      const batch = Array.isArray(resp.data) ? resp.data : [];
+      const qs = new URLSearchParams({ per_page: '100', page: String(page), _fields: 'id,title,link', status: 'publish' });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      let batch: any[] = [];
+      try {
+        const resp = await fetch(`https://${ourDomain}/wp-json/wp/v2/posts?${qs}`, { signal: controller.signal });
+        if (!resp.ok) break;
+        const data = await resp.json();
+        batch = Array.isArray(data) ? data : [];
+      } finally {
+        clearTimeout(timer);
+      }
       if (!batch.length) break;
       for (const p of batch) {
         const title = (p.title?.rendered || '').replace(/<[^>]+>/g, '').replace(/&[a-z]+;/gi, ' ').trim();
