@@ -294,22 +294,27 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
   // 2026-04-20: усилены anti-text tokens — FLUX часто пишет кривые русские буквы на документах.
   // Избегаем сцен, где в кадре виден текст на документе. Если документ в сцене — только blurred / angle.
   const NEGATIVE = 'NO TEXT, no letters, no words, no numbers, no digits, no characters, no labels, no captions, no handwriting, no script, no cyrillic, no russian letters, no signs with text, no typography, no readable document text, no watermarks, no logos, no low quality, no blurry faces, no distorted faces, no extra limbs, no cartoon, no illustration, no stock-photo look';
-  const SLAVIC = 'Slavic Eastern European appearance, light fair skin, natural look';
+  // 2026-04-20: усилен Russian-контекст — нужны узнаваемые русские люди/среда, не generic Western.
+  const SLAVIC = 'Slavic Eastern European appearance, light fair skin, natural no-makeup look, modern Russian urban smart-casual clothing in muted colors';
+  // Russian setting tokens (append to scenes where environment visible)
+  const RU_SETTING = 'recognizably Russian setting, Moscow region aesthetic, typical Russian middle-class context';
   const kw = keyword || title;
 
   // 10 diverse fallback prompts covering the common scenes for this site vertical.
   // Used when LLM call fails or doesn't return enough items; now cycled if target > 10.
+  // 2026-04-20: убраны сцены с крупным планом документа/плана (FLUX пишет кривые буквы)
+  // и Scandinavian-стиль (non-Russian); добавлены Russian-specific settings — двор с панельками, дача, канал Петербурга, МФЦ-интерьер.
   const fallback = [
-    `Official Russian EGRN property extract document on elegant wooden desk, golden hour light, ${QUALITY}, ${NEGATIVE}`,
-    `Russian woman in her 30s at bright modern home office reviewing property documents on laptop, ${SLAVIC}, warm morning light, ${QUALITY}, ${NEGATIVE}`,
-    `Aerial drone view of Moscow residential district, rows of modern apartment buildings, clear blue sky, ${QUALITY}, ${NEGATIVE}`,
-    `Close-up hands of notary stamping official document with embossing seal, wooden desk, ${SLAVIC}, ${QUALITY}, ${NEGATIVE}`,
-    `Modern Russian apartment interior living room with large windows, sunlit, minimalist Scandinavian furniture, ${QUALITY}, ${NEGATIVE}`,
-    `Young Russian family parents with child reviewing property papers at kitchen table, warm cozy home, ${SLAVIC}, ${QUALITY}, ${NEGATIVE}`,
-    `Russian government building (Росреестр) exterior, Saint Petersburg classical architecture, sunny day, ${QUALITY}, ${NEGATIVE}`,
-    `Professional real estate agent in business attire showing apartment to clients, bright empty living room, ${SLAVIC}, ${QUALITY}, ${NEGATIVE}`,
-    `Russian countryside cottage house with garden, summer daylight, picket fence, ${QUALITY}, ${NEGATIVE}`,
-    `Hand-drawn architectural floor plan of apartment on drafting desk with ruler and pencil, top-down view, ${QUALITY}, ${NEGATIVE}`,
+    `Slavic hands holding house keys on small ribbon above a blurred folded paper on wooden desk, warm ambient light, ${QUALITY}, ${NEGATIVE}`,
+    `Russian woman in her 30s at bright modern home office using laptop on internet banking task, ${SLAVIC}, warm morning light through window, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
+    `Aerial drone view of a modern Moscow residential complex with colourful courtyards, playgrounds and new high-rise panel-frame buildings, clear blue sky, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
+    `Close-up Slavic hands holding embossing stamp tool over a blurred folded paper on varnished wooden desk, ${SLAVIC}, warm office ambient light, ${QUALITY}, ${NEGATIVE}`,
+    `Modern Russian middle-class apartment interior living room with large balcony windows, sunlit, neutral furniture in muted colors, family atmosphere, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
+    `Young Russian family of three at kitchen table having breakfast, bright modern kitchen, warm cozy home, ${SLAVIC}, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
+    `Saint Petersburg Winter Palace embankment at sunset, classical imperial Russian architecture, Neva river reflecting golden light, ${QUALITY}, ${NEGATIVE}`,
+    `Professional Russian real estate agent in business attire handing keys to a smiling couple, bright empty living room of a new flat, ${SLAVIC}, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
+    `Typical Russian countryside dacha with wooden porch, fence and flower garden, summer afternoon warm daylight, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
+    `Scale architectural maquette model of a modern Russian multi-story panel-frame apartment building on dark wooden studio table, soft overhead light, ${QUALITY}, ${NEGATIVE}`,
   ];
 
   const sectionsBlock = h2Sections && h2Sections.length > 0
@@ -331,7 +336,8 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
           content: `You are a senior FLUX.1 image prompt engineer for a Russian real estate / cadastral documents blog. Write cinematic, photorealistic prompts in English for landscape 16:9 compositions.
 Use the following style tokens in every prompt: cinematic lighting, sharp focus, high detail, photorealistic, professional DSLR photo, shot on Canon EOS R5, 85mm f/1.8 lens, shallow depth of field, bokeh, natural window light, color graded.
 CRITICAL — NO TEXT AT ALL. AI image models (FLUX) cannot render text legibly, especially Cyrillic/Russian — any visible letters come out garbled and unprofessional. Negative tokens (must be absent): no text, no letters, no words, no numbers, no digits, no characters, no labels, no captions, no Cyrillic, no Russian letters, no handwriting, no typography, no watermarks, no logos, no signs with text. If a document/form/paper appears in the scene, it MUST be shown from a steep angle, folded, or out-of-focus so no text is readable. PREFER scenes WITHOUT visible documents — focus on people, hands, interiors, architecture, objects (keys, pens, laptops). Also avoid: low quality, distorted faces, extra limbs, cartoon/illustration/stock-photo look.
-All people must have Slavic Eastern European appearance with light/fair skin.
+All people MUST have Slavic Eastern European appearance with light/fair skin, modern Russian urban smart-casual clothing in muted colors (no Western-coded wardrobe, no suburban-US look).
+ALL settings MUST be recognizably Russian — Moscow/Saint Petersburg architecture, Russian panel-frame apartment buildings (не хрущёвки, но типовые серии), Russian middle-class interiors, Russian dacha aesthetic. NO Scandinavian minimalism, NO American suburban houses, NO generic Western offices. When in doubt — tilt toward Moscow residential district / St Petersburg canal / typical Russian kitchen.
 Each prompt must be UNIQUE, match its specific H2 section, and feature a concrete composition + subject + environment + lighting time-of-day.`,
         },
         {
@@ -343,7 +349,7 @@ This article is about ordering official Russian property / cadastral documents v
 
 Write exactly ${targetCount} DIFFERENT prompts, one per H2 section in order. Each prompt MUST:
 - Be 15-25 words of content BEFORE the quality tags (describe subject, action, environment, lighting)
-- Vary scenes across prompts — don't repeat the same setting twice. Mix from: person-at-desk-with-laptop, document-close-up, notary-office, bank-counter, apartment-interior, building-exterior, aerial-drone-view, family-at-kitchen, real-estate-agent-tour, architectural-floor-plan, key-exchange-handover, moscow-skyline, countryside-cottage
+- Vary scenes across prompts — don't repeat the same setting twice. Mix from (Russian-context pool): person-at-laptop-home-office, Russian-notary-office-abstract, Russian-bank-counter, typical-Russian-apartment-interior, Moscow-panel-building-exterior, aerial-drone-Moscow-district, Russian-family-at-kitchen, real-estate-agent-handing-keys, Russian-dacha-garden, Moscow-courtyard-with-playground, St-Petersburg-embankment, Saint-Petersburg-canal-view, keys-on-wooden-desk (no paper), calculator-and-rubles-on-desk, family-signing-document-blurred-from-angle, Russian-MFC-service-window-abstract, scale-model-of-apartment-building. AVOID close-ups of documents/forms/plans — FLUX will add garbled text.
 - Match the H2 section's specific topic (e.g., "Стоимость" → hands counting rubles over document; "Сроки" → clock + calendar + document; "Онлайн заказ" → laptop with property site open)
 - End EVERY prompt with EXACTLY these quality tags: "cinematic lighting, sharp focus, high detail, photorealistic, professional DSLR photo, shot on Canon EOS R5, 85mm f/1.8 lens, shallow depth of field, bokeh, natural window light, color graded"
 
