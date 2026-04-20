@@ -944,7 +944,9 @@ function extractH2Sections(html: string): { heading: string; body: string }[] {
 // EU symbols. Called ONLY for keyword-risky articles to keep cost +$0.006/статья.
 function isImageRiskyTopic(keyword: string, title: string): boolean {
   const s = (keyword + ' ' + title).toLowerCase();
-  return /\b(стоимост|цена|тариф|плат|оплат|деньг|рубл|купить|заказать|мфц|гос(услуг|центр)|ключ|паспорт)\b/i.test(s);
+  // 2026-04-20: убраны \b границы — в JS regex они не работают с кириллицей без /u-flag.
+  // Substring match ок для наших целей.
+  return /(стоимост|цена|тариф|плат|оплат|деньг|рубл|купить|заказать|мфц|госуслуг|госцентр|ключ|паспорт)/i.test(s);
 }
 
 async function validateFluxImage(imageUrl: string, topic: string): Promise<{ ok: boolean; issues: string[] }> {
