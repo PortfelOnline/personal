@@ -1250,14 +1250,16 @@ async function addInternalLinks(html: string, userId: number, ourDomain: string,
   // Extract key words from current article title (first 4 words)
   const currentWords = currentTitle.toLowerCase().split(/\s+/).slice(0, 4);
 
-  // Find articles with 2+ matching words
+  // Find articles with 1+ matching word (2026-04-20: 2→1 т.к. русские заголовки
+  // короткие, часто 2 совпадений не набирается — "кадастровая выписка" vs
+  // "кадастровая стоимость" имели 1 match и отбрасывались.)
   const related = siteArticles
     .map(a => {
       const titleWords = a.title.toLowerCase().split(/\s+/);
       const matches = currentWords.filter(w => w.length > 3 && titleWords.some(tw => tw.includes(w) || w.includes(tw)));
       return { ...a, score: matches.length };
     })
-    .filter(a => a.score >= 2)
+    .filter(a => a.score >= 1)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
