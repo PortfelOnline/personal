@@ -293,7 +293,7 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
   const QUALITY = 'cinematic lighting, sharp focus, high detail, photorealistic, professional DSLR photo, shot on Canon EOS R5, 85mm f/1.8 lens, shallow depth of field, bokeh, natural window light, color graded';
   // 2026-04-20 v3: ZERO text of any language. FLUX не умеет ни кириллицу, ни латиницу хорошо.
   // Любые буквы в кадре = визуальный мусор. Плюс запрет на dating/social-media UI на экранах.
-  const NEGATIVE = 'ABSOLUTELY NO TEXT IN ANY LANGUAGE, no letters at all, no words, no numbers, no digits, no characters, no alphabet, no Latin letters, no English text, no Cyrillic letters, no Russian text, no Chinese characters, no labels, no captions, no handwriting, no signatures, no script, no typography, no signs with any writing, no readable anything, no brand names, no logos, no watermarks, no URLs, no email addresses, no document headers, no form field labels, NO ENGRAVINGS ON OBJECTS, no inscriptions on keys, no brand logos on keys, no manufacturer marks on keys, no lettered keychains, no text on pens, no text on cups, no text on card faces, NO VISIBLE SCREEN UI, no dating app interface, no social media thumbnails, no tinder-like avatar grid, no instagram feed, no facebook UI, no profile cards with hearts, no app icons grid, no website layout visible, no browser tabs with thumbnails, NO BANKNOTES OF ANY KIND, no paper money, no bills in hand, no rolled bills, no fanned banknotes, no stacks of banknotes, no Euro banknotes, no US Dollar bills, no British Pound, no Yuan, no non-Russian money, no international currency, no foreign coins, no Greek architecture on banknotes, no European Union symbols, no EU flag, no UE emblem, NO WESTERN AESTHETIC, no Instagram-style food photo, no Pinterest-style flatlay, no hyugge Scandinavian, no American suburban kitchen, no acrylic nails manicure, no low quality, no blurry faces, no distorted faces, no extra limbs, no cartoon, no illustration, no stock-photo look';
+  const NEGATIVE = 'ABSOLUTELY NO TEXT IN ANY LANGUAGE, no letters at all, no words, no numbers, no digits, no characters, no alphabet, no Latin letters, no English text, no Cyrillic letters, no Russian text, no Chinese characters, no labels, no captions, no handwriting, no signatures, no script, no typography, no signs with any writing, no readable anything, no brand names, no logos, no watermarks, no URLs, no email addresses, no document headers, no form field labels, NO ENGRAVINGS ON OBJECTS, no inscriptions on keys, no brand logos on keys, no manufacturer marks on keys, no lettered keychains, no text on pens, no text on cups, no text on card faces, NO VISIBLE SCREEN UI, no dating app interface, no social media thumbnails, no tinder-like avatar grid, no instagram feed, no facebook UI, no profile cards with hearts, no app icons grid, no website layout visible, no browser tabs with thumbnails, NO BANKNOTES OF ANY KIND, no paper money, no bills in hand, no rolled bills, no fanned banknotes, no stacks of banknotes, no Euro banknotes, no US Dollar bills, no British Pound, no Yuan, no non-Russian money, no international currency, no foreign coins, no Greek architecture on banknotes, no European Union symbols, no EU flag, no UE emblem, NO WESTERN AESTHETIC, no Instagram-style food photo, no Pinterest-style flatlay, no hyugge Scandinavian, no American suburban kitchen, no acrylic nails manicure, NO AMERICAN OR BRITISH LAW FIRM AESTHETIC, no ornate wooden-panelled office, no gothic arched windows, no classical courthouse columns, no Lady Justice bronze statue, no Themis statue, no green banker desk lamp, no massive oak executive desk, no English gentleman club library, no Victorian study interior, no 19th-century European chamber, no low quality, no blurry faces, no distorted faces, no extra limbs, no cartoon, no illustration, no stock-photo look';
   // 2026-04-20: усилен Russian-контекст — нужны узнаваемые русские люди/среда, не generic Western.
   const SLAVIC = 'Slavic Eastern European appearance, light fair skin, natural no-makeup look, modern Russian urban smart-casual clothing in muted colors';
   // Russian setting tokens (append to scenes where environment visible)
@@ -348,7 +348,7 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
     `Slavic hands holding house keys on small ribbon above a blurred folded paper on wooden desk, warm ambient light, ${QUALITY}, ${NEGATIVE}`,
     `Russian woman in her 30s at bright modern home office, side-profile view, laptop on desk with screen heavily blurred and turned partially away from camera, hands over keyboard, ${SLAVIC}, warm morning light through window, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
     `Aerial drone view of a modern Moscow residential complex with colourful courtyards, playgrounds and new high-rise panel-frame buildings, clear blue sky, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
-    `Close-up Slavic hands holding embossing stamp tool over a blurred folded paper on varnished wooden desk, ${SLAVIC}, warm office ambient light, ${QUALITY}, ${NEGATIVE}`,
+    `Close-up Slavic hands holding embossing stamp tool over a blurred folded paper on a plain modern desk in a simple office with neutral walls and a regular rectangular window (NOT a classical oak-panelled law firm, NOT gothic windows), ${SLAVIC}, ${QUALITY}, ${NEGATIVE}`,
     `Modern Russian middle-class apartment interior living room with large balcony windows, sunlit, neutral furniture in muted colors, family atmosphere, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
     `Young Russian family of three at kitchen table having breakfast, bright modern kitchen, warm cozy home, ${SLAVIC}, ${RU_SETTING}, ${QUALITY}, ${NEGATIVE}`,
     `Saint Petersburg Winter Palace embankment at sunset, classical imperial Russian architecture, Neva river reflecting golden light, ${QUALITY}, ${NEGATIVE}`,
@@ -956,17 +956,17 @@ async function validateFluxImage(imageUrl: string, topic: string): Promise<{ ok:
       messages: [
         {
           role: 'system',
-          content: 'You are an image QA validator for a Russian cadastral blog. Answer with strict JSON only: {"foreignMoney":bool,"englishText":bool,"brandLogos":bool,"euSymbols":bool,"westernLook":bool}. No explanations.',
+          content: 'You are a STRICT image QA validator for a modern Russian cadastral blog (2020s аудитория — обычные россияне, не юристы в США). All imagery must look recognizably modern Russian middle-class: IKEA-style furniture, panel-frame apartments, простые кабинеты. REJECT anything that looks like a Western lawyer firm, English gentleman club, American courthouse, or ornate European 19th-century interior. Answer with strict JSON only: {"foreignMoney":bool,"englishText":bool,"brandLogos":bool,"euSymbols":bool,"westernLook":bool,"ornateLawFirm":bool}. No explanations.',
         },
         {
           role: 'user',
           content: [
-            { type: 'text', text: `Topic: "${topic}". Check this image for:\n1. foreignMoney — any banknotes visible (Euro/USD/other), any Greek architecture on bills, any non-Russian currency\n2. englishText — any readable English/Latin text on signs/objects/screens (small logos ok)\n3. brandLogos — Visa/Mastercard/Yale/Cisa/manufacturer marks on objects\n4. euSymbols — EU flag, UE emblem, Euro symbol\n5. westernLook — overtly Instagram/Pinterest/American suburban aesthetic (acrylic nails, hyugge)\n\nAnswer strict JSON only.` },
+            { type: 'text', text: `Topic: "${topic}". Check this image for:\n1. foreignMoney — any banknotes visible (Euro/USD/other), any Greek architecture on bills, any non-Russian currency\n2. englishText — any readable English/Latin text on signs/objects/screens (small logos ok)\n3. brandLogos — Visa/Mastercard/Yale/Cisa/manufacturer marks on objects\n4. euSymbols — EU flag, UE emblem, Euro symbol\n5. westernLook — overtly Instagram/Pinterest/American suburban aesthetic (acrylic nails, hyugge, Scandinavian minimalism)\n6. ornateLawFirm — ornate wooden-panelled office, gothic arched windows, Lady Justice bronze statue, green banker desk lamp, massive oak desk, classical courthouse architecture, English-club style library — anything that screams "American/British law firm". A normal Russian notary/office is plain neutral with modern IKEA furniture, NOT ornate Victorian.\n\nAnswer strict JSON only.` },
             { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
           ],
         },
       ],
-      maxTokens: 120,
+      maxTokens: 180,
     });
     const text = typeof resp.choices[0]?.message.content === 'string' ? resp.choices[0].message.content : '';
     const m = text.match(/\{[\s\S]*?\}/);
@@ -977,6 +977,7 @@ async function validateFluxImage(imageUrl: string, topic: string): Promise<{ ok:
     if (flags.englishText) issues.push('englishText');
     if (flags.brandLogos) issues.push('brandLogos');
     if (flags.euSymbols) issues.push('euSymbols');
+    if (flags.ornateLawFirm) issues.push('ornateLawFirm');
     if (flags.westernLook) issues.push('westernLook');
     return { ok: issues.length === 0, issues };
   } catch (e: any) {
@@ -1682,9 +1683,10 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   const avgCompetitorFaq = competitors.length
     ? Math.round(competitors.reduce((s, c) => s + (c.faqCount || 0), 0) / competitors.length) : 0;
   const competitorHasTables = competitors.some(c => c.hasTable);
-  // 2026-04-20: оптимизация расхода — floor 9→6, cap 12. Картинок после каждого 2-го H2
-  // достаточно для UX; 14-20 не давали доп. SEO-сигнала, но съедали 30% стоимости и 2 мин/статья.
-  const targetImages = Math.max(6, Math.min(12, maxCompetitorImages));
+  // 2026-04-20 v2: не отстаём от конкурентов — floor 8, cap 16, target = maxCompetitor+1.
+  // Предыдущая правка (cap 12) оказалась слишком консервативной: если у конкурентов 15 картинок,
+  // наша статья выглядела "пустой" в конце. Держим паритет +1 с потолком 16 (cost-safe).
+  const targetImages = Math.max(8, Math.min(16, maxCompetitorImages + 1));
   const targetFaq = Math.max(12, avgCompetitorFaq + 2);
 
   // New deep-competitor stats (auth links, internal links, videos, alts)
@@ -1944,9 +1946,10 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${compe
   // to prevent runaway FLUX generation (each image ≈ 30s sequential). Default cap 20 —
   // matches top-3 competitors' image count (our audit found some have 23+ images).
   // Each +5 images costs ~2-3 min per article, trade-off vs matching competitor parity.
-  // 2026-04-20: cap 20→12, floor 9→6 (sync with targetImages)
-  const fluxCap = Number(process.env.MAX_FLUX_IMAGES ?? 12);
-  const imagesForWp = Math.min(Math.max(targetImages, 6), fluxCap);
+  // 2026-04-20 v2: cap 12→16, floor 6→8 (sync with targetImages — паритет с конкурентами)
+  const fluxCap = Number(process.env.MAX_FLUX_IMAGES ?? 16);
+  const imagesForWp = Math.min(Math.max(targetImages, 8), fluxCap);
+  console.log(`[Img] Competitors: max=${maxCompetitorImages}, avg=${avgCompetitorImages} → our target=${imagesForWp}`);
   await autoPublishToWP(userId, url, seo.metaTitle || parsed.title, improvedContent, {
     metaDescription: seo.metaDescription ? truncateMetaDesc(seo.metaDescription) : undefined,
     focusKeyword: keyword || undefined,
@@ -2326,9 +2329,10 @@ export const articlesRouter = router({
       const avgCompetitorFaq = competitors.length > 0
         ? Math.round(competitors.reduce((s, c) => s + (c.faqCount || 0), 0) / competitors.length) : 0;
       const competitorHasTables = competitors.some(c => c.hasTable);
-      // 2026-04-20: оптимизация расхода — floor 9→6, cap 12. Картинок после каждого 2-го H2
-  // достаточно для UX; 14-20 не давали доп. SEO-сигнала, но съедали 30% стоимости и 2 мин/статья.
-  const targetImages = Math.max(6, Math.min(12, maxCompetitorImages));
+      // 2026-04-20 v2: не отстаём от конкурентов — floor 8, cap 16, target = maxCompetitor+1.
+  // Предыдущая правка (cap 12) оказалась слишком консервативной: если у конкурентов 15 картинок,
+  // наша статья выглядела "пустой" в конце. Держим паритет +1 с потолком 16 (cost-safe).
+  const targetImages = Math.max(8, Math.min(16, maxCompetitorImages + 1));
       const targetFaq = Math.max(12, avgCompetitorFaq + 2);
 
       // Extract unique H2 topics from competitors missing in our article
