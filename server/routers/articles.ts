@@ -1530,7 +1530,9 @@ async function rewriteArticle(userId: number, url: string): Promise<void> {
   const avgCompetitorFaq = competitors.length
     ? Math.round(competitors.reduce((s, c) => s + (c.faqCount || 0), 0) / competitors.length) : 0;
   const competitorHasTables = competitors.some(c => c.hasTable);
-  const targetImages = Math.max(9, maxCompetitorImages + 2);
+  // 2026-04-20: оптимизация расхода — floor 9→6, cap 12. Картинок после каждого 2-го H2
+  // достаточно для UX; 14-20 не давали доп. SEO-сигнала, но съедали 30% стоимости и 2 мин/статья.
+  const targetImages = Math.max(6, Math.min(12, maxCompetitorImages));
   const targetFaq = Math.max(12, avgCompetitorFaq + 2);
 
   // New deep-competitor stats (auth links, internal links, videos, alts)
@@ -1790,8 +1792,9 @@ ${missingTopicsBlock}${lsiBlock}${top3Stats}${competitorAuthDomainsBlock}${compe
   // to prevent runaway FLUX generation (each image ≈ 30s sequential). Default cap 20 —
   // matches top-3 competitors' image count (our audit found some have 23+ images).
   // Each +5 images costs ~2-3 min per article, trade-off vs matching competitor parity.
-  const fluxCap = Number(process.env.MAX_FLUX_IMAGES ?? 20);
-  const imagesForWp = Math.min(Math.max(targetImages, 9), fluxCap);
+  // 2026-04-20: cap 20→12, floor 9→6 (sync with targetImages)
+  const fluxCap = Number(process.env.MAX_FLUX_IMAGES ?? 12);
+  const imagesForWp = Math.min(Math.max(targetImages, 6), fluxCap);
   await autoPublishToWP(userId, url, seo.metaTitle || parsed.title, improvedContent, {
     metaDescription: seo.metaDescription ? truncateMetaDesc(seo.metaDescription) : undefined,
     focusKeyword: keyword || undefined,
@@ -2124,7 +2127,9 @@ export const articlesRouter = router({
       const avgCompetitorFaq = competitors.length > 0
         ? Math.round(competitors.reduce((s, c) => s + (c.faqCount || 0), 0) / competitors.length) : 0;
       const competitorHasTables = competitors.some(c => c.hasTable);
-      const targetImages = Math.max(9, maxCompetitorImages + 2);
+      // 2026-04-20: оптимизация расхода — floor 9→6, cap 12. Картинок после каждого 2-го H2
+  // достаточно для UX; 14-20 не давали доп. SEO-сигнала, но съедали 30% стоимости и 2 мин/статья.
+  const targetImages = Math.max(6, Math.min(12, maxCompetitorImages));
       const targetFaq = Math.max(12, avgCompetitorFaq + 2);
 
       // Extract unique H2 topics from competitors missing in our article
