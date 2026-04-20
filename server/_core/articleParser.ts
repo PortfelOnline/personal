@@ -134,6 +134,16 @@ const UA_LIST = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 YaBrowser/25.1.0.0 Yowser/2.5 Safari/537.36',
 ];
 
+// Домены которые ВСЕГДА timeout'ятся (server-side rendered, старый CMS, либо анти-бот):
+// тратить на них 3×25=75 сек бесполезно, шансы спарсить ~0%. Skip immediately.
+const SLOW_DOMAINS = [
+  'rosreestr.gov.ru',       // госпортал, 15-30 сек server-side render
+  'mos.ru',                 // то же + очень агрессивный anti-bot
+  'gosuslugi.ru',           // госпортал с JS-redirect
+  'pgu2.mos.ru',
+  'www.gosuslugi.ru',
+];
+
 export async function parseArticleFromUrl(url: string): Promise<ParsedArticle> {
   // Skip punycode (cyrillic) домены — Node DNS нестабильно их резолвит (ENOTFOUND),
   // тратим 3 × 45s = 2.25 мин на попытки. Fail fast.
@@ -143,8 +153,12 @@ export async function parseArticleFromUrl(url: string): Promise<ParsedArticle> {
       console.warn(`[articleParser] SKIP punycode domain: ${hostname}`);
       throw new Error(`punycode domain not supported: ${hostname}`);
     }
+    if (SLOW_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d))) {
+      console.warn(`[articleParser] SKIP slow domain: ${hostname}`);
+      throw new Error(`slow domain bypassed: ${hostname}`);
+    }
   } catch (e: any) {
-    if (e.message?.includes('punycode')) throw e;
+    if (e.message?.includes('punycode') || e.message?.includes('slow domain')) throw e;
     // если URL.parse упал — пускай axios вернёт нормальную ошибку
   }
 
