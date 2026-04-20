@@ -300,6 +300,46 @@ export async function generateImagePrompts(title: string, keyword?: string, h2Se
   const RU_SETTING = 'recognizably Russian setting, Moscow region aesthetic, typical Russian middle-class context';
   const kw = keyword || title;
 
+  // 2026-04-20: keyword-aware theme detection — если тема статьи конкретная (дача, квартира,
+  // участок, гараж), добавляем topical scenes в пул чтобы LLM выбирал их приоритетно.
+  // Без этого FLUX-prompts скатываются в "generic real-estate" (ключи+нотариус+СПб).
+  const themeHints: string[] = [];
+  const kwLower = (kw + ' ' + title).toLowerCase();
+  if (/\b(дач\w*|снт|сад\w+ участ|садовод|огород)\b/i.test(kwLower)) {
+    themeHints.push(
+      `Typical Russian SNT dacha — small wooden house with pitched roof, porch with flower pots, fenced garden plot with vegetable beds, summer sunlight, ${RU_SETTING}`,
+      `Aerial view of Russian SNT (gardening cooperative) — rows of small dachas with gardens divided by narrow roads, summer green, ${RU_SETTING}`,
+    );
+  }
+  if (/\b(квартир\w*|многоэтаж|панельн|многоквартирн|этаж\w*)\b/i.test(kwLower)) {
+    themeHints.push(
+      `Exterior of a typical Russian panel-frame apartment building (серия П-44Т или И-155), colourful facade, balconies with laundry, courtyard trees, ${RU_SETTING}`,
+      `Modern Russian apartment entrance hall (подъезд) with intercom panel and elevator doors, clean neutral interior, natural light, ${RU_SETTING}`,
+    );
+  }
+  if (/\b(земельн\w+ участ|земл\w+|надел|пай|межеван|кадастровая съёмка)\b/i.test(kwLower)) {
+    themeHints.push(
+      `Russian countryside land plot with wooden fence, tall grass and a small surveyor tripod in the foreground, summer daylight, ${RU_SETTING}`,
+      `Aerial drone view of a Russian rural land plot with visible boundaries, neighbouring fields and a dirt road, ${RU_SETTING}`,
+    );
+  }
+  if (/\b(дом\b|частн\w+ дом|коттедж|особняк|жилой дом|ИЖС|строительств)/i.test(kwLower)) {
+    themeHints.push(
+      `Russian private house (частный дом) — two-story brick cottage with pitched roof and small porch, garden fence, autumn evening light, ${RU_SETTING}`,
+      `Russian wooden log house (сруб) in countryside, traditional windows with wooden shutters, smoke from chimney, winter morning, ${RU_SETTING}`,
+    );
+  }
+  if (/\b(гараж|машиноместо|паркинг)\b/i.test(kwLower)) {
+    themeHints.push(
+      `Row of typical Russian garage cooperatives (ГСК) — metal garage doors in a long row, snow on the ground, winter morning, ${RU_SETTING}`,
+    );
+  }
+  if (/\b(нежил\w+|коммерческ\w+|склад|офис|магазин)\b/i.test(kwLower)) {
+    themeHints.push(
+      `Russian commercial property exterior — a small storefront in a panel-frame building ground floor, neutral cyrillic-free signage, ${RU_SETTING}`,
+    );
+  }
+
   // 10 diverse fallback prompts covering the common scenes for this site vertical.
   // Used when LLM call fails or doesn't return enough items; now cycled if target > 10.
   // 2026-04-20: убраны сцены с крупным планом документа/плана (FLUX пишет кривые буквы)
@@ -360,7 +400,7 @@ Each prompt must be UNIQUE, match its specific H2 section, and feature a concret
           role: 'user',
           content: `Article title: "${title}"
 Search keyword: "${kw}"
-${sectionsBlock}${bodyBlock}
+${sectionsBlock}${bodyBlock}${themeHints.length > 0 ? `\nTHEMATIC SCENES (use at least 2 of these — they match the specific subject of this article, NOT just generic real-estate):\n${themeHints.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n` : ''}
 This article is about ordering official Russian property / cadastral documents via kadastrmap.info.
 
 Write exactly ${targetCount} DIFFERENT prompts, one per H2 section in order. Each prompt MUST:
