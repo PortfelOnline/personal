@@ -414,7 +414,7 @@ This article is about ordering official Russian property / cadastral documents v
 
 Write exactly ${targetCount} DIFFERENT prompts, one per H2 section in order. Each prompt MUST:
 - Be 15-25 words of content BEFORE the quality tags (describe subject, action, environment, lighting)
-- Vary scenes across prompts — don't repeat the same setting twice. Mix from (Russian-context pool): person-at-laptop-home-office (SCREEN MUST BE blurred/turned-away/closed-lid, never "showing website/form"), Russian-notary-office-wooden-interior (no signage), Russian-bank-counter-with-service-staff, typical-Russian-apartment-interior, Moscow-panel-building-exterior, aerial-drone-Moscow-district, Russian-family-at-kitchen, real-estate-agent-handing-keys, Russian-dacha-garden, Moscow-courtyard-with-playground, St-Petersburg-embankment, Saint-Petersburg-canal-view, keys-on-wooden-desk (no paper), calculator-and-coins-on-desk (no banknotes), family-signing-document-blurred-from-angle, government-service-centre-with-people-queueing (NO "MFC"/"МФЦ" signage — FLUX will render garbled letters), scale-model-of-apartment-building. AVOID close-ups of documents/forms/plans — FLUX will add garbled text. AVOID describing any laptop/phone screen CONTENT — say "blurred" or "turned away" or "closed lid" only. AVOID naming ANY organization/place by acronym or word (МФЦ, Росреестр, ЕГРН, etc.) in visible positions (walls, signs, doors) — FLUX will transliterate to "MFC" / "ROSREESTR" / garbled letters.
+- Vary scenes across prompts — don't repeat the same setting twice. Mix from (Russian-context pool): person-at-laptop-home-office (SCREEN MUST BE blurred/turned-away/closed-lid, never "showing website/form"), Russian-notary-office-wooden-interior (no signage), Russian-bank-counter-with-service-staff, typical-Russian-apartment-interior, Moscow-panel-building-exterior, aerial-drone-Moscow-district, Russian-family-at-kitchen, real-estate-agent-handing-keys, Russian-dacha-garden, Moscow-courtyard-with-playground, St-Petersburg-embankment, Saint-Petersburg-canal-view, keys-on-wooden-desk (no paper), calculator-and-coins-on-desk (no banknotes), family-signing-document-blurred-from-angle, crowd-of-slavic-people-indoors-waiting (описывать как "group of Russian-looking people standing indoors", БЕЗ слов "service centre" / "MFC" / "government" — FLUX тут же рисует вывески с надписями даже при negative prompts), scale-model-of-apartment-building. AVOID close-ups of documents/forms/plans — FLUX will add garbled text. AVOID describing any laptop/phone screen CONTENT — say "blurred" or "turned away" or "closed lid" only. AVOID naming ANY organization/place by acronym or word (МФЦ, Росреестр, ЕГРН, etc.) in visible positions (walls, signs, doors) — FLUX will transliterate to "MFC" / "ROSREESTR" / garbled letters.
 - Match the H2 section's ACTUAL CONTENT provided above (not just the heading). Extract concrete nouns, numbers, actions, and objects from the section body and make them the subject. Generic "apartment interior" with no link to the text is REJECTED. Examples:
   * Section "Стоимость выписки ЕГРН" with text mentioning "500 рублей, картой онлайн" → Close-up of Slavic hand holding a plain blue bank debit card above a calculator on a wooden desk, a single small kopeyka coin next to it, soft office light. DO NOT draw banknotes — FLUX will produce Euros.
   * Section "Сроки получения" with text "1-3 рабочих дня" → Wall clock showing late morning next to a smartphone with notification icon on a wooden desk, warm lamp light
@@ -937,6 +937,50 @@ function extractH2Sections(html: string): { heading: string; body: string }[] {
     results.push({ heading, body: bodyWords });
   }
   return results;
+}
+
+// ── Vision-based post-FLUX validation for risky topics (cost/МФЦ/ключи) ─────
+// Rejects images with visible foreign currency, English signage, brand logos,
+// EU symbols. Called ONLY for keyword-risky articles to keep cost +$0.006/статья.
+function isImageRiskyTopic(keyword: string, title: string): boolean {
+  const s = (keyword + ' ' + title).toLowerCase();
+  return /\b(стоимост|цена|тариф|плат|оплат|деньг|рубл|купить|заказать|мфц|гос(услуг|центр)|ключ|паспорт)\b/i.test(s);
+}
+
+async function validateFluxImage(imageUrl: string, topic: string): Promise<{ ok: boolean; issues: string[] }> {
+  try {
+    const resp = await invokeLLM({
+      model: process.env.LLM_VISION_MODEL ?? 'meta-llama/llama-4-scout-17b-16e-instruct',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an image QA validator for a Russian cadastral blog. Answer with strict JSON only: {"foreignMoney":bool,"englishText":bool,"brandLogos":bool,"euSymbols":bool,"westernLook":bool}. No explanations.',
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: `Topic: "${topic}". Check this image for:\n1. foreignMoney — any banknotes visible (Euro/USD/other), any Greek architecture on bills, any non-Russian currency\n2. englishText — any readable English/Latin text on signs/objects/screens (small logos ok)\n3. brandLogos — Visa/Mastercard/Yale/Cisa/manufacturer marks on objects\n4. euSymbols — EU flag, UE emblem, Euro symbol\n5. westernLook — overtly Instagram/Pinterest/American suburban aesthetic (acrylic nails, hyugge)\n\nAnswer strict JSON only.` },
+            { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+          ],
+        },
+      ],
+      maxTokens: 120,
+    });
+    const text = typeof resp.choices[0]?.message.content === 'string' ? resp.choices[0].message.content : '';
+    const m = text.match(/\{[\s\S]*?\}/);
+    if (!m) return { ok: true, issues: [] }; // parsing failed — assume ok to avoid blocking
+    const flags = JSON.parse(m[0]) as Record<string, boolean>;
+    const issues: string[] = [];
+    if (flags.foreignMoney) issues.push('foreignMoney');
+    if (flags.englishText) issues.push('englishText');
+    if (flags.brandLogos) issues.push('brandLogos');
+    if (flags.euSymbols) issues.push('euSymbols');
+    if (flags.westernLook) issues.push('westernLook');
+    return { ok: issues.length === 0, issues };
+  } catch (e: any) {
+    console.warn('[VisionCheck] failed:', e?.message?.slice(0, 80));
+    return { ok: true, issues: [] }; // fail-open: не блокируем публикацию
+  }
 }
 
 // ── Replace hardcoded price tables with [BLOCK_PRICE] shortcode ───────────────
@@ -2031,11 +2075,35 @@ export async function findAndInjectImages(
           return { i, up };
         })
       );
+      // Vision-validation для risky topics (деньги, МФЦ, ключи, паспорт).
+      // Проверяем только 15% «risky»-статей, не все — экономим $0.014/статья.
+      const needsVisionCheck = isImageRiskyTopic(titleKeywords, title);
       for (const [k, r] of results.entries()) {
         const i = indices[k];
         if (r.status === 'fulfilled') {
-          fluxValid.push(r.value.up);
-          console.log(`[Img] FLUX[${i}] uploaded → WP id ${r.value.up.id}`);
+          const uploaded = r.value.up;
+          if (needsVisionCheck) {
+            const check = await validateFluxImage(uploaded.url, title);
+            if (!check.ok) {
+              console.warn(`[VisionCheck] FLUX[${i}] REJECTED: ${check.issues.join(', ')} — regenerating once`);
+              // One retry с усиленным промптом — добавляем "STRICTLY NO <issue>"
+              const retryPrompt = prompts[i] + `. STRICT REJECT ON: ${check.issues.map(x => `NO ${x}`).join(', ')}. Russian middle-class context only, no western/EU aesthetic.`;
+              try {
+                const newUrl = await generateDallEImage(retryPrompt);
+                const newUp = await wp.uploadMediaFromUrl(siteUrl, username, appPassword, newUrl, `${slug}-flux-${i + 1}-v2.jpg`);
+                fluxValid.push(newUp);
+                console.log(`[Img] FLUX[${i}] regenerated → WP id ${newUp.id} (v2)`);
+                continue;
+              } catch (re: any) {
+                console.warn(`[VisionCheck] retry failed: ${re?.message?.slice(0, 60)} — using original`);
+              }
+            } else {
+              console.log(`[Img] FLUX[${i}] uploaded → WP id ${uploaded.id} ✅ vision-passed`);
+            }
+          } else {
+            console.log(`[Img] FLUX[${i}] uploaded → WP id ${uploaded.id}`);
+          }
+          fluxValid.push(uploaded);
         } else {
           const msg = (r.reason as any)?.message || '';
           console.warn(`[Img] FLUX[${i}] failed:`, msg);
