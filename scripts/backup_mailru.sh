@@ -89,6 +89,18 @@ nice -n 19 "$RCLONE" sync "$SOURCE" "$REMOTE/current" \
     --exclude ".remember/logs/**" \
     --exclude ".gradle/caches/**" \
     --exclude ".gradle/wrapper/**" \
+    --exclude ".ollama/**" \
+    --exclude ".gemini/**" \
+    --exclude ".websiteauditor/**" \
+    --exclude ".serena/**" \
+    --exclude ".codex/**" \
+    --exclude ".npm-global/**" \
+    --exclude ".vscode/**" \
+    --exclude "mac_runner_watchdog_logs/**" \
+    --exclude "jdk17/**" \
+    --exclude "android-sdk-tmp/**" \
+    --exclude "actions-runner/**" \
+    --exclude "actions-runner-2/**" \
     --log-file="$LOG_FILE" \
     --log-level INFO \
     --stats 60s \
@@ -139,6 +151,18 @@ CHECK_ERRORS=0
     --exclude ".remember/logs/**" \
     --exclude ".gradle/caches/**" \
     --exclude ".gradle/wrapper/**" \
+    --exclude ".ollama/**" \
+    --exclude ".gemini/**" \
+    --exclude ".websiteauditor/**" \
+    --exclude ".serena/**" \
+    --exclude ".codex/**" \
+    --exclude ".npm-global/**" \
+    --exclude ".vscode/**" \
+    --exclude "mac_runner_watchdog_logs/**" \
+    --exclude "jdk17/**" \
+    --exclude "android-sdk-tmp/**" \
+    --exclude "actions-runner/**" \
+    --exclude "actions-runner-2/**" \
     --max-size 1900M \
     --log-file="$LOG_FILE" \
     --log-level ERROR \
