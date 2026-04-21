@@ -87,6 +87,8 @@ nice -n 19 "$RCLONE" sync "$SOURCE" "$REMOTE/current" \
     --exclude ".ScreamingFrogSEOSpider/**" \
     --exclude ".cpanm/**" \
     --exclude ".remember/logs/**" \
+    --exclude ".gradle/caches/**" \
+    --exclude ".gradle/wrapper/**" \
     --log-file="$LOG_FILE" \
     --log-level INFO \
     --stats 60s \
@@ -135,6 +137,8 @@ CHECK_ERRORS=0
     --exclude ".ScreamingFrogSEOSpider/**" \
     --exclude ".cpanm/**" \
     --exclude ".remember/logs/**" \
+    --exclude ".gradle/caches/**" \
+    --exclude ".gradle/wrapper/**" \
     --max-size 1900M \
     --log-file="$LOG_FILE" \
     --log-level ERROR \
