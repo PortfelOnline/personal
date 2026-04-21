@@ -78,6 +78,7 @@ nice -n 19 "$RCLONE" sync "$SOURCE" "$REMOTE/current" \
     --exclude ".local/share/solana/**" \
     --exclude ".ScreamingFrogSEOSpider/**" \
     --exclude ".cpanm/**" \
+    --exclude ".remember/logs/**" \
     --log-file="$LOG_FILE" \
     --log-level INFO \
     --stats 60s \
@@ -125,6 +126,7 @@ CHECK_ERRORS=0
     --exclude ".local/share/solana/**" \
     --exclude ".ScreamingFrogSEOSpider/**" \
     --exclude ".cpanm/**" \
+    --exclude ".remember/logs/**" \
     --max-size 1900M \
     --log-file="$LOG_FILE" \
     --log-level ERROR \
