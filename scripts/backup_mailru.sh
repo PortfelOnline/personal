@@ -22,6 +22,14 @@ if ! ping -c 1 -t 5 cloud.mail.ru &>/dev/null; then
     exit 0
 fi
 
+# Только WiFi — не заливать через мобильный интернет
+ACTIVE_IFACE=$(route get default 2>/dev/null | awk '/interface:/ {print $2}')
+WIFI_IFACE=$(networksetup -listallhardwareports 2>/dev/null | awk '/Wi-Fi/{getline; print $2}')
+if [ "$ACTIVE_IFACE" != "$WIFI_IFACE" ]; then
+    echo "Not on WiFi (active: $ACTIVE_IFACE, wifi: $WIFI_IFACE) — skipping." >> "$LOG_FILE"
+    exit 0
+fi
+
 # Пропускаем если Mac простаивает > 4 часа (спит/заблокирован)
 IDLE_MS=$(/usr/sbin/ioreg -c IOHIDSystem | awk '/HIDIdleTime/ {print int($NF/1000000); exit}' || true)
 IDLE_HOURS=$((IDLE_MS / 3600000))
