@@ -1,1 +1,1933 @@
-{"_updated":"2026-04-14","articles":{}}
+{
+  "_updated": "2026-04-20",
+  "articles": {
+    "https://kadastrmap.info/kadastr/kadastrovaya-spravka-onlajn/": {
+      "lastImproved": "2026-04-14T09:08:47.954Z",
+      "lastChecked": "2026-04-14T09:08:47.957Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/generalnyj-plan-zemelnogo-uchastka-chto-eto-i-gde-poluchit/": {
+      "lastImproved": "2026-04-14T09:11:30.077Z",
+      "lastChecked": "2026-04-14T09:11:30.078Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/chto-nuzhno-znat-o-kadastrovyh-vypiskah/": {
+      "lastImproved": "2026-04-14T09:14:09.606Z",
+      "lastChecked": "2026-04-14T09:14:09.606Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/situatsionnyj-plan-dlya-izhs-zachem-nuzhen-i-kak-zakazat-onlajn-bez-ocheredej/": {
+      "lastImproved": "2026-04-14T09:17:05.962Z",
+      "lastChecked": "2026-04-14T09:17:05.962Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/kak-uznat-vladeltsa-kvartiry-po-adresu-zakonnye-sposoby-i-vypiska/": {
+      "lastImproved": "2026-04-14T09:26:16.204Z",
+      "lastChecked": "2026-04-14T09:26:16.219Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/kak-oformit-obedinenie-zemelnyh-uchastkov-polnyj-i-prakticheskij-gid/": {
+      "lastImproved": "2026-04-14T09:34:02.674Z",
+      "lastChecked": "2026-04-14T09:34:02.674Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-kadastrovyj-plan-zemelnogo-uchastka-bystro-i-onlajn/": {
+      "lastImproved": "2026-04-14T09:41:46.108Z",
+      "lastChecked": "2026-04-14T09:41:46.108Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovuyu-vypisku-onlajn-tsena-sposoby-polucheniya/": {
+      "lastImproved": "2026-04-14T09:49:08.301Z",
+      "lastChecked": "2026-04-14T09:49:08.301Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/poluchit-vypisku-o-perehode-prav-na-nedvizhimost-onlajn-bystro-i-udobno/": {
+      "lastImproved": "2026-04-14T09:57:02.285Z",
+      "lastChecked": "2026-04-14T09:57:02.285Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/zakazat-spravku-ob-obremenenii-nedvizhimosti-v-moskve-poshagovoe-rukovodstvo/": {
+      "lastImproved": "2026-04-14T10:05:12.142Z",
+      "lastChecked": "2026-04-14T10:05:12.142Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-kadastrovyj-pasport-v-moskve-polnoe-rukovodstvo/": {
+      "lastImproved": "2026-04-14T10:12:14.735Z",
+      "lastChecked": "2026-04-14T10:12:14.735Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/plan-pomeshheniya-kogda-on-nuzhen-i-kak-ego-poluchit/": {
+      "lastImproved": "2026-04-14T10:19:59.958Z",
+      "lastChecked": "2026-04-14T10:19:59.958Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/plan-pomeshheniya-dlya-arendy-ili-prodazhi-zachem-on-nuzhen-i-kak-ego-oformit/": {
+      "lastImproved": "2026-04-14T10:27:58.751Z",
+      "lastChecked": "2026-04-14T10:27:58.751Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/plan-pomeshheniya-i-kadastrovaya-vypiska-kak-oni-svyazany/": {
+      "lastImproved": "2026-04-17T06:31:23.484Z",
+      "lastChecked": "2026-04-17T06:31:23.488Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-plan-bti/": {
+      "lastImproved": "2026-04-17T06:33:35.895Z",
+      "lastChecked": "2026-04-17T06:33:35.895Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/eksplikatsiya-kvartiry-kak-zakazat-dokument-dlya-razlichnyh-zhiznennyh-situatsij/": {
+      "lastImproved": "2026-04-17T06:35:33.385Z",
+      "lastChecked": "2026-04-17T06:35:33.385Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/gde-zakazat-tehnicheskij-plan-kvartiry/": {
+      "lastImproved": "2026-04-17T06:38:12.685Z",
+      "lastChecked": "2026-04-17T06:38:12.685Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-pri-arende-kvartiry/": {
+      "lastImproved": "2026-04-17T07:07:23.251Z",
+      "lastChecked": "2026-04-17T07:07:23.259Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrn-dlya-fizicheskih-lits/": {
+      "lastImproved": "2026-04-17T07:09:36.419Z",
+      "lastChecked": "2026-04-17T07:09:36.419Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/srochnaya-vypiska-iz-egrn-v-mfts/": {
+      "lastImproved": "2026-04-17T07:11:57.833Z",
+      "lastChecked": "2026-04-17T07:11:57.833Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-dlya-ooo-iz-egrn/": {
+      "lastImproved": "2026-04-17T07:14:10.348Z",
+      "lastChecked": "2026-04-17T07:14:10.348Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-egrn-v-elektronnom-vide/": {
+      "lastImproved": "2026-04-17T07:16:50.584Z",
+      "lastChecked": "2026-04-17T07:16:50.584Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-spravku-vypisku-iz-egrn/": {
+      "lastImproved": "2026-04-17T07:18:47.857Z",
+      "lastChecked": "2026-04-17T07:18:47.857Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-s-rosreestra/": {
+      "lastImproved": "2026-04-17T07:20:50.273Z",
+      "lastChecked": "2026-04-17T07:20:50.273Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-vypiska-iz-egrn-na-kvartiru/": {
+      "lastImproved": "2026-04-17T07:22:56.821Z",
+      "lastChecked": "2026-04-17T07:22:56.821Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-iz-egrn-dlya-registratsii/": {
+      "lastImproved": "2026-04-17T07:25:40.855Z",
+      "lastChecked": "2026-04-17T07:25:40.856Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-spravku-vypisku-egrn/": {
+      "lastImproved": "2026-04-17T07:27:47.705Z",
+      "lastChecked": "2026-04-17T07:27:47.705Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zemelnaya-spravka-iz-egrn/": {
+      "lastImproved": "2026-04-17T07:29:46.885Z",
+      "lastChecked": "2026-04-17T07:29:46.885Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-spravku-iz-egrn-o-nedvizhimosti/": {
+      "lastImproved": "2026-04-17T07:31:47.513Z",
+      "lastChecked": "2026-04-17T07:31:47.513Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovaya-spravka-iz-egrn/": {
+      "lastImproved": "2026-04-17T07:34:03.770Z",
+      "lastChecked": "2026-04-17T07:34:03.770Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-spravku-egrn-cherez-mfts/": {
+      "lastImproved": "2026-04-17T07:36:06.692Z",
+      "lastChecked": "2026-04-17T07:36:06.692Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-po-vsej-rossii/": {
+      "lastImproved": "2026-04-17T07:38:15.277Z",
+      "lastChecked": "2026-04-17T07:38:15.277Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-mozhno-zakazat-spravku-egrn/": {
+      "lastImproved": "2026-04-17T07:40:06.132Z",
+      "lastChecked": "2026-04-17T07:40:06.132Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-chto-eto-i-gde-poluchit/": {
+      "lastImproved": "2026-04-17T07:42:11.325Z",
+      "lastChecked": "2026-04-17T07:42:11.325Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-skolko-delaetsya-po-vremeni/": {
+      "lastImproved": "2026-04-17T07:44:08.039Z",
+      "lastChecked": "2026-04-17T07:44:08.039Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/gde-poluchit-situatsionnyj-plan/": {
+      "lastImproved": "2026-04-17T07:46:27.433Z",
+      "lastChecked": "2026-04-17T07:46:27.433Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/chto-takoe-spravka-egrn-na-kvartiru-i-gde-ee-vzyat/": {
+      "lastImproved": "2026-04-17T07:48:41.516Z",
+      "lastChecked": "2026-04-17T07:48:41.516Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-spravku-egrn-srochno/": {
+      "lastImproved": "2026-04-17T07:51:08.192Z",
+      "lastChecked": "2026-04-17T07:51:08.192Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-skolko-stoit/": {
+      "lastImproved": "2026-04-17T08:20:37.164Z",
+      "lastChecked": "2026-04-17T08:20:37.166Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-egrn-za-chas/": {
+      "lastImproved": "2026-04-17T08:20:53.315Z",
+      "lastChecked": "2026-04-17T08:20:53.315Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-spravku-egrn-na-kvartiru/": {
+      "lastImproved": "2026-04-17T08:21:07.396Z",
+      "lastChecked": "2026-04-17T08:21:07.396Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-vypisku-iz-egrn-na-dom-onlajn/": {
+      "lastImproved": "2026-04-17T08:21:25.184Z",
+      "lastChecked": "2026-04-17T08:21:25.185Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-na-mashinomesto/": {
+      "lastImproved": "2026-04-17T08:21:40.427Z",
+      "lastChecked": "2026-04-17T08:21:40.427Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-egrn-dlya-prodazhi-kvartiry/": {
+      "lastImproved": "2026-04-17T08:21:52.936Z",
+      "lastChecked": "2026-04-17T08:21:52.936Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-o-postanovke-obekta-na-kadastrovyj-uchet/": {
+      "lastImproved": "2026-04-17T08:22:05.838Z",
+      "lastChecked": "2026-04-17T08:22:05.838Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-vyglyadit-vypiska-iz-egrn-ob-obekte-nedvizhimosti/": {
+      "lastImproved": "2026-04-17T08:22:19.362Z",
+      "lastChecked": "2026-04-17T08:22:19.362Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/rasshirennaya-vypiska-egrn-na-kvartiru/": {
+      "lastImproved": "2026-04-17T08:22:33.996Z",
+      "lastChecked": "2026-04-17T08:22:33.996Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/nuzhna-li-vypiska-iz-egrn-dlya-prodazhi-kvartiry/": {
+      "lastImproved": "2026-04-17T08:32:14.580Z",
+      "lastChecked": "2026-04-17T08:32:14.581Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-vypisku-iz-egrn-o-kadastrovoj-stoimosti-obekta-nedvizhimosti/": {
+      "lastImproved": "2026-04-17T08:34:25.147Z",
+      "lastChecked": "2026-04-17T08:34:25.147Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-egrn-dlya-fizicheskogo-litsa/": {
+      "lastImproved": "2026-04-17T08:36:29.186Z",
+      "lastChecked": "2026-04-17T08:36:29.186Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-spravku-egrn-iz-rosreestra/": {
+      "lastImproved": "2026-04-17T08:38:28.400Z",
+      "lastChecked": "2026-04-17T08:38:28.400Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-novuyu-vypisku-iz-egrn/": {
+      "lastImproved": "2026-04-17T08:40:16.459Z",
+      "lastChecked": "2026-04-17T08:40:16.459Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-dlya-propiski/": {
+      "lastImproved": "2026-04-17T08:41:59.759Z",
+      "lastChecked": "2026-04-17T08:41:59.759Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-zakazat-cherez-rosreestr/": {
+      "lastImproved": "2026-04-17T08:44:04.550Z",
+      "lastChecked": "2026-04-17T08:44:04.550Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-ob-osnovnyh-harakteristikah-obekta/": {
+      "lastImproved": "2026-04-17T08:46:01.757Z",
+      "lastChecked": "2026-04-17T08:46:01.757Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-po-obremeneniyam/": {
+      "lastImproved": "2026-04-17T08:48:19.792Z",
+      "lastChecked": "2026-04-17T08:48:19.792Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kakaya-vypiska-iz-egrn-nuzhna-pri-pokupke-kvartiry/": {
+      "lastImproved": "2026-04-17T08:50:03.973Z",
+      "lastChecked": "2026-04-17T08:50:03.973Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-na-sadovyj-dom/": {
+      "lastImproved": "2026-04-17T08:52:32.244Z",
+      "lastChecked": "2026-04-17T08:52:32.244Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-o-pravoobladatele/": {
+      "lastImproved": "2026-04-17T08:55:49.068Z",
+      "lastChecked": "2026-04-17T08:55:49.071Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-vypisku-iz-egrn-v-rezhime-onlajn-v-rosreestr/": {
+      "lastImproved": "2026-04-17T08:57:34.420Z",
+      "lastChecked": "2026-04-17T08:57:34.420Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-na-zhiloj-dom/": {
+      "lastImproved": "2026-04-17T08:59:35.954Z",
+      "lastChecked": "2026-04-17T08:59:35.954Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-na-nedvizhimoe-imushhestvo/": {
+      "lastImproved": "2026-04-17T09:01:24.974Z",
+      "lastChecked": "2026-04-17T09:01:24.974Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-spravku-iz-egrn-o-sobstvennosti/": {
+      "lastImproved": "2026-04-17T09:03:36.213Z",
+      "lastChecked": "2026-04-17T09:03:36.213Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-na-dom-v-egrn/": {
+      "lastImproved": "2026-04-17T09:05:48.448Z",
+      "lastChecked": "2026-04-17T09:05:48.448Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/chto-takoe-vypiska-iz-egrn-na-zemlyu-i-dom-2/": {
+      "lastImproved": "2026-04-17T09:12:41.386Z",
+      "lastChecked": "2026-04-17T09:12:41.387Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-onlajn-fns/": {
+      "lastImproved": "2026-04-17T09:17:27.107Z",
+      "lastChecked": "2026-04-17T09:17:27.107Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/chto-takoe-vypiska-iz-egrn-na-zemlyu-i-dom/": {
+      "lastImproved": "2026-04-17T09:21:54.361Z",
+      "lastChecked": "2026-04-17T09:21:54.361Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrn-v-rosreestre-cherez-internet/": {
+      "lastImproved": "2026-04-17T09:27:49.044Z",
+      "lastChecked": "2026-04-17T09:27:49.045Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-egrn-o-prave-sobstvennosti/": {
+      "lastImproved": "2026-04-17T09:30:54.324Z",
+      "lastChecked": "2026-04-17T09:30:54.324Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-situatsionnyj-plan/": {
+      "lastImproved": "2026-04-17T09:33:58.588Z",
+      "lastChecked": "2026-04-17T09:33:58.588Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-spravku-egrn-v-rosreestre-cherez-internet/": {
+      "lastImproved": "2026-04-17T09:36:45.217Z",
+      "lastChecked": "2026-04-17T09:36:45.218Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-na-zdanie-iz-egrn/": {
+      "lastImproved": "2026-04-17T09:44:26.586Z",
+      "lastChecked": "2026-04-17T09:44:26.587Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-iz-egrn-o-nedvizhimosti/": {
+      "lastImproved": "2026-04-17T09:56:15.605Z",
+      "lastChecked": "2026-04-17T09:56:15.605Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/usluga-onlajn-vypiska-egrn-iz-rosreestra/": {
+      "lastImproved": "2026-04-17T10:04:31.981Z",
+      "lastChecked": "2026-04-17T10:04:31.981Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-o-sobstvennosti-kvartiry-iz-egrn/": {
+      "lastImproved": "2026-04-17T10:08:12.636Z",
+      "lastChecked": "2026-04-17T10:08:12.636Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/gde-mozhno-poluchit-spravku-egrn/": {
+      "lastImproved": "2026-04-17T11:11:40.740Z",
+      "lastChecked": "2026-04-17T11:11:40.740Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-spravku-egrn-onlajn/": {
+      "lastImproved": "2026-04-17T12:57:30.088Z",
+      "lastChecked": "2026-04-17T12:57:30.089Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/chto-pokazyvaet-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-17T13:01:37.955Z",
+      "lastChecked": "2026-04-17T13:01:37.955Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrn-dlya-fizicheskih-lits-na-kvartiru/": {
+      "lastImproved": "2026-04-17T14:04:37.493Z",
+      "lastChecked": "2026-04-17T14:04:37.494Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kakaya-vypiska-iz-egrn-nuzhna-pri-prodazhe-kvartiry/": {
+      "lastImproved": "2026-04-17T15:07:05.342Z",
+      "lastChecked": "2026-04-17T15:07:05.344Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/dlya-chego-nuzhna-vypiska-iz-egrn-ob-obekte-nedvizhimosti/": {
+      "lastImproved": "2026-04-17T15:09:57.183Z",
+      "lastChecked": "2026-04-17T15:09:57.183Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/dlya-chego-nuzhna-vypiska-iz-egrn-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-17T15:13:29.644Z",
+      "lastChecked": "2026-04-17T15:13:29.644Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kakaya-vypiska-nuzhna-iz-egrn-dlya-propiski/": {
+      "lastImproved": "2026-04-17T15:17:13.496Z",
+      "lastChecked": "2026-04-17T15:17:13.496Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zachem-nuzhna-vypiska-iz-egrn-na-kvartiru/": {
+      "lastImproved": "2026-04-17T15:20:42.433Z",
+      "lastChecked": "2026-04-17T15:20:42.433Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-spravku-iz-egrn-srochno/": {
+      "lastImproved": "2026-04-17T15:25:11.466Z",
+      "lastChecked": "2026-04-17T15:25:11.466Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-reestr-sobstvennikov-zhilya-mnogokvartirnogo-doma/": {
+      "lastImproved": "2026-04-17T15:28:23.445Z",
+      "lastChecked": "2026-04-17T15:28:23.445Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-reestr-pomeshhenij-mnogokvartirnogo-doma/": {
+      "lastImproved": "2026-04-17T15:31:25.676Z",
+      "lastChecked": "2026-04-17T15:31:25.676Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/skolko-stoit-rasshirennaya-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-17T15:35:04.242Z",
+      "lastChecked": "2026-04-17T15:35:04.242Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/chto-nuzhno-chtoby-poluchit-vypisku-iz-egrn/": {
+      "lastImproved": "2026-04-17T15:38:06.719Z",
+      "lastChecked": "2026-04-17T15:38:06.719Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/chto-takoe-vypiska-egrn-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-17T15:41:55.634Z",
+      "lastChecked": "2026-04-17T15:41:55.634Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-vypisku-egrn-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-17T15:44:51.152Z",
+      "lastChecked": "2026-04-17T15:44:51.152Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-egrn-na-zemlyu/": {
+      "lastImproved": "2026-04-17T15:47:58.440Z",
+      "lastChecked": "2026-04-17T15:47:58.440Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-oformit-dom-v-rosreestre/": {
+      "lastImproved": "2026-04-17T15:51:56.175Z",
+      "lastChecked": "2026-04-17T15:51:56.175Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/pochemu-vypiska-iz-egrn-platnaya/": {
+      "lastImproved": "2026-04-17T15:57:27.477Z",
+      "lastChecked": "2026-04-17T15:57:27.477Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/skolko-stoit-vypiska-iz-egrn-v-mfts/": {
+      "lastImproved": "2026-04-17T16:01:02.935Z",
+      "lastChecked": "2026-04-17T16:01:02.935Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-vypisku-iz-egrn-instruktsiya/": {
+      "lastImproved": "2026-04-17T16:04:07.970Z",
+      "lastChecked": "2026-04-17T16:04:07.970Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/dlya-chego-nuzhna-vypiska-egrn/": {
+      "lastImproved": "2026-04-20T04:08:19.422Z",
+      "lastChecked": "2026-04-20T04:08:19.423Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kto-mozhet-poluchit-vypisku-iz-egrn/": {
+      "lastImproved": "2026-04-20T04:12:58.126Z",
+      "lastChecked": "2026-04-20T04:12:58.126Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-egrn-v-mfts/": {
+      "lastImproved": "2026-04-20T04:15:57.908Z",
+      "lastChecked": "2026-04-20T04:15:57.908Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/gde-poluchit-vypisku-iz-egrn-na-kvartiru/": {
+      "lastImproved": "2026-04-20T04:18:52.153Z",
+      "lastChecked": "2026-04-20T04:18:52.153Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-vypisku-egrn-na-kvartiru/": {
+      "lastImproved": "2026-04-20T04:22:24.160Z",
+      "lastChecked": "2026-04-20T04:22:24.160Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/dachnye-zemli-mogut-poluchit-status-selskie-territorii/": {
+      "lastImproved": "2026-04-20T04:24:53.994Z",
+      "lastChecked": "2026-04-20T04:24:53.994Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-svedeniya-iz-reestra-nedvizhimosti/": {
+      "lastImproved": "2026-04-20T04:28:31.430Z",
+      "lastChecked": "2026-04-20T04:28:31.430Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/mozhno-li-oformit-zabroshennyj-zemelnyj-uchastok-v-sobstvennost/": {
+      "lastImproved": "2026-04-20T04:30:35.209Z",
+      "lastChecked": "2026-04-20T04:30:35.209Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-ob-otsutstvii-nedvizhimosti-v-sobstvennosti/": {
+      "lastImproved": "2026-04-20T04:34:18.062Z",
+      "lastChecked": "2026-04-20T04:34:18.062Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-oformit-zemelnyj-uchastok-bez-lishnej-suety/": {
+      "lastImproved": "2026-04-20T04:36:22.195Z",
+      "lastChecked": "2026-04-20T04:36:22.195Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/skolko-vremeni-dejstvitelna-kadastrovaya-spravka-na-nedvizhimost/": {
+      "lastImproved": "2026-04-20T04:39:57.292Z",
+      "lastChecked": "2026-04-20T04:39:57.292Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-ili-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-20T04:42:37.890Z",
+      "lastChecked": "2026-04-20T04:42:37.890Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-oformit-dachnyj-uchastok-v-sobstvennost-esli-umershij-ne-oformil-na-nego-pravo/": {
+      "lastImproved": "2026-04-20T04:46:17.033Z",
+      "lastChecked": "2026-04-20T04:46:17.034Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-postoyannuyu-propisku-na-dache/": {
+      "lastImproved": "2026-04-20T04:50:46.032Z",
+      "lastChecked": "2026-04-20T04:50:46.032Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/mozhno-li-oformit-pravo-na-nedvizhimosti-v-drugom-regione-rossii/": {
+      "lastImproved": "2026-04-20T04:51:49.153Z",
+      "lastChecked": "2026-04-20T04:51:49.153Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/tehnicheskij-plan-i-tehnicheskij-pasport-v-chem-otlichie-dokumentov/": {
+      "lastImproved": "2026-04-20T04:55:11.160Z",
+      "lastChecked": "2026-04-20T04:55:11.160Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-poluchit-zemlyu-v-chastnuyu-sobstvennost/": {
+      "lastImproved": "2026-04-20T05:45:07.357Z",
+      "lastChecked": "2026-04-20T05:45:07.357Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/pasport-na-zemlyu-chto-nuzhno-znat-sobstvenniku/": {
+      "lastImproved": "2026-04-20T05:55:02.153Z",
+      "lastChecked": "2026-04-20T05:55:02.153Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-edinogo-reestra-prav-na-nedvizhimoe-imushhestvo/": {
+      "lastImproved": "2026-04-20T06:01:23.633Z",
+      "lastChecked": "2026-04-20T06:01:23.633Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovuyu-vipisku/": {
+      "lastImproved": "2026-04-20T06:07:10.683Z",
+      "lastChecked": "2026-04-20T06:07:10.684Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/imeet-li-zakonnuyu-silu-elektronnaya-spravka-iz-goskadastra/": {
+      "lastImproved": "2026-04-20T06:10:07.943Z",
+      "lastChecked": "2026-04-20T06:10:07.943Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/v-kakom-vide-mozhno-poluchit-dannye-iz-rosreestra/": {
+      "lastImproved": "2026-04-20T06:15:41.229Z",
+      "lastChecked": "2026-04-20T06:15:41.230Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-pravilno-oformit-garazh-v-sobstvennost/": {
+      "lastImproved": "2026-04-20T06:22:55.414Z",
+      "lastChecked": "2026-04-20T06:22:55.414Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/nuzhna-li-vypiska-iz-rosreestra-pri-registratsii-dogovora-kupli-prodazhi/": {
+      "lastImproved": "2026-04-20T06:25:04.225Z",
+      "lastChecked": "2026-04-20T06:25:04.225Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-oformit-dachnuyu-amnistiyu/": {
+      "lastImproved": "2026-04-20T06:27:17.007Z",
+      "lastChecked": "2026-04-20T06:27:17.007Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-gosreestra/": {
+      "lastImproved": "2026-04-20T06:29:24.692Z",
+      "lastChecked": "2026-04-20T06:29:24.692Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-i-kadastrovyj-plan/": {
+      "lastImproved": "2026-04-20T06:31:20.314Z",
+      "lastChecked": "2026-04-20T06:31:20.314Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/dejstvitelna-li-vypiska-iz-egrp-posle-2017-goda/": {
+      "lastImproved": "2026-04-20T06:33:45.284Z",
+      "lastChecked": "2026-04-20T06:33:45.284Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-reestra-nedvizhimosti/": {
+      "lastImproved": "2026-04-20T06:35:35.113Z",
+      "lastChecked": "2026-04-20T06:35:35.113Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-v-gkn-vypisku-po-nedvizhimosti/": {
+      "lastImproved": "2026-04-20T06:37:52.451Z",
+      "lastChecked": "2026-04-20T06:37:52.451Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/mozhno-li-sejchas-zakazat-kadastrovyj-pasport/": {
+      "lastImproved": "2026-04-20T06:40:37.537Z",
+      "lastChecked": "2026-04-20T06:40:37.538Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/elektronnaya-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-20T06:42:54.525Z",
+      "lastChecked": "2026-04-20T06:42:54.525Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-kadastrovye-uslugi/": {
+      "lastImproved": "2026-04-20T06:44:56.681Z",
+      "lastChecked": "2026-04-20T06:44:56.681Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/pri-registratsii-prav-vypiska-iz-egrn-ne-trebuetsya/": {
+      "lastImproved": "2026-04-20T06:46:52.618Z",
+      "lastChecked": "2026-04-20T06:46:52.618Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-cherez-mfts/": {
+      "lastImproved": "2026-04-20T06:49:48.801Z",
+      "lastChecked": "2026-04-20T06:49:48.802Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/dlya-chego-nuzhna-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-20T06:52:03.173Z",
+      "lastChecked": "2026-04-20T06:52:03.173Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/bystryj-i-prostoj-sposob-polucheniya-kadastrovogo-pasporta/": {
+      "lastImproved": "2026-04-20T06:53:51.400Z",
+      "lastChecked": "2026-04-20T06:53:51.400Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/lyubopytnye-fakty-o-kadastrovom-pasporte/": {
+      "lastImproved": "2026-04-20T06:56:04.105Z",
+      "lastChecked": "2026-04-20T06:56:04.105Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/gde-poluchit-kadastrovyj-plan-uchastka/": {
+      "lastImproved": "2026-04-20T07:02:15.366Z",
+      "lastChecked": "2026-04-20T07:02:15.366Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-podtverzhdayushhaya-pravo-sobstvennosti/": {
+      "lastImproved": "2026-04-20T07:04:36.161Z",
+      "lastChecked": "2026-04-20T07:04:36.161Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-vypisku-egrn-po-kadastrovomu-nomeru/": {
+      "lastImproved": "2026-04-20T07:06:31.332Z",
+      "lastChecked": "2026-04-20T07:06:31.332Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-vypisku-po-kadastrovomu-nomeru/": {
+      "lastImproved": "2026-04-20T07:09:33.629Z",
+      "lastChecked": "2026-04-20T07:09:33.630Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-na-pomeshhenie/": {
+      "lastImproved": "2026-04-20T07:11:23.951Z",
+      "lastChecked": "2026-04-20T07:11:23.951Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-o-pravah-na-nedvizhimost/": {
+      "lastImproved": "2026-04-20T07:14:45.873Z",
+      "lastChecked": "2026-04-20T07:14:45.873Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-na-sobstvennost/": {
+      "lastImproved": "2026-04-20T07:18:33.145Z",
+      "lastChecked": "2026-04-20T07:18:33.145Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-na-imushhestvo/": {
+      "lastImproved": "2026-04-20T07:21:37.479Z",
+      "lastChecked": "2026-04-20T07:21:37.479Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-vypisku-o-perehode-prav/": {
+      "lastImproved": "2026-04-20T07:23:51.203Z",
+      "lastChecked": "2026-04-20T07:23:51.203Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-plan-zemelnogo-uchastka-gde-poluchit/": {
+      "lastImproved": "2026-04-20T07:29:02.308Z",
+      "lastChecked": "2026-04-20T07:29:02.309Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-o-kadastrovoj-stoimosti-zemelnogo-uchastka/": {
+      "lastImproved": "2026-04-20T07:30:39.605Z",
+      "lastChecked": "2026-04-20T07:30:39.605Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zachem-nuzhen-kadastrovyj-pasport-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-20T07:33:07.560Z",
+      "lastChecked": "2026-04-20T07:33:07.560Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-sdelat-kadastrovyj-pasport-na-dom-i-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-20T07:34:46.193Z",
+      "lastChecked": "2026-04-20T07:34:46.193Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/srok-dejstviya-kadastrovogo-pasporta-na-kvartiru/": {
+      "lastImproved": "2026-04-20T07:38:23.150Z",
+      "lastChecked": "2026-04-20T07:38:23.150Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-vyglyadit-kadastrovyj-pasport/": {
+      "lastImproved": "2026-04-20T07:41:03.993Z",
+      "lastChecked": "2026-04-20T07:41:03.994Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-zdaniya-obrazets/": {
+      "lastImproved": "2026-04-20T07:43:04.163Z",
+      "lastChecked": "2026-04-20T07:43:04.163Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-vosstanovit-kadastrovyj-pasport-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-20T07:47:31.802Z",
+      "lastChecked": "2026-04-20T07:47:31.803Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-kvartiry-zakazat/": {
+      "lastImproved": "2026-04-20T07:51:30.762Z",
+      "lastChecked": "2026-04-20T07:51:30.763Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-na-dom-v-snt/": {
+      "lastImproved": "2026-04-20T07:53:58.582Z",
+      "lastChecked": "2026-04-20T07:53:58.582Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-na-dom-zakazat/": {
+      "lastImproved": "2026-04-20T07:55:52.874Z",
+      "lastChecked": "2026-04-20T07:55:52.874Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/gde-zakazat-kadastrovyj-pasport-na-dom/": {
+      "lastImproved": "2026-04-20T07:57:39.074Z",
+      "lastChecked": "2026-04-20T07:57:39.074Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/rosreestr-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-20T08:00:36.460Z",
+      "lastChecked": "2026-04-20T08:00:36.460Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-bystro-poluchit-vypisku-iz-egrn/": {
+      "lastImproved": "2026-04-20T08:03:26.627Z",
+      "lastChecked": "2026-04-20T08:03:26.627Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/skolko-stoit-vypiska-iz-egrn/": {
+      "lastImproved": "2026-04-20T08:08:55.883Z",
+      "lastChecked": "2026-04-20T08:08:55.883Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-moskva/": {
+      "lastImproved": "2026-04-20T08:11:59.932Z",
+      "lastChecked": "2026-04-20T08:11:59.932Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-spravki-egrn/": {
+      "lastImproved": "2026-04-20T08:18:48.331Z",
+      "lastChecked": "2026-04-20T08:18:48.332Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/tsena-vypiski-iz-egrn-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-20T08:20:48.789Z",
+      "lastChecked": "2026-04-20T08:20:48.789Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-vypiski-iz-egrn-onlajn-srochno/": {
+      "lastImproved": "2026-04-20T08:22:36.662Z",
+      "lastChecked": "2026-04-20T08:22:36.662Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-vypiski-iz-egrn/": {
+      "lastImproved": "2026-04-20T08:24:16.483Z",
+      "lastChecked": "2026-04-20T08:24:16.483Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-kadastrovogo-pasporta-v-mfts/": {
+      "lastImproved": "2026-04-20T08:25:36.767Z",
+      "lastChecked": "2026-04-20T08:25:36.767Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-vypisku-iz-egrp-onlajn-rosreestr/": {
+      "lastImproved": "2026-04-20T08:27:20.758Z",
+      "lastChecked": "2026-04-20T08:27:20.758Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-kadastrovogo-pasporta-kvartiry/": {
+      "lastImproved": "2026-04-20T08:28:52.682Z",
+      "lastChecked": "2026-04-20T08:28:52.682Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-na-kvartiru-srochno/": {
+      "lastImproved": "2026-04-20T08:31:25.484Z",
+      "lastChecked": "2026-04-20T08:31:25.484Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-oformleniya-kadastrovogo-pasporta/": {
+      "lastImproved": "2026-04-20T08:33:07.247Z",
+      "lastChecked": "2026-04-20T08:33:07.247Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-zakazat-onlajn/": {
+      "lastImproved": "2026-04-20T08:36:43.275Z",
+      "lastChecked": "2026-04-20T08:36:43.275Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-vypisku-iz-egrn-onlajn/": {
+      "lastImproved": "2026-04-20T08:38:02.172Z",
+      "lastChecked": "2026-04-20T08:38:02.172Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-kadastrovuyu-vypisku-onlajn/": {
+      "lastImproved": "2026-04-20T08:39:47.595Z",
+      "lastChecked": "2026-04-20T08:39:47.595Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-kadastrovyj-pasport-onlajn-v-rosreestre/": {
+      "lastImproved": "2026-04-20T08:41:08.359Z",
+      "lastChecked": "2026-04-20T08:41:08.359Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrp-srochno/": {
+      "lastImproved": "2026-04-20T08:42:58.193Z",
+      "lastChecked": "2026-04-20T08:42:58.193Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-vypisku-iz-egrp-onlajn/": {
+      "lastImproved": "2026-04-20T08:45:52.592Z",
+      "lastChecked": "2026-04-20T08:45:52.592Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-vypisku-iz-egrp-onlajn-rosreestr/": {
+      "lastImproved": "2026-04-20T08:47:43.995Z",
+      "lastChecked": "2026-04-20T08:47:43.995Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-vypisku-iz-egrp-onlajn/": {
+      "lastImproved": "2026-04-20T08:49:26.201Z",
+      "lastChecked": "2026-04-20T08:49:26.201Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-srochno/": {
+      "lastImproved": "2026-04-20T08:51:04.405Z",
+      "lastChecked": "2026-04-20T08:51:04.405Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-vypiski-iz-egrp/": {
+      "lastImproved": "2026-04-20T08:52:38.909Z",
+      "lastChecked": "2026-04-20T08:52:38.909Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-na-zemelnyj-uchastok-onlajn-v-rosreestre/": {
+      "lastImproved": "2026-04-20T08:55:00.451Z",
+      "lastChecked": "2026-04-20T08:55:00.451Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-zakaza-kadastrovogo-pasporta/": {
+      "lastImproved": "2026-04-20T08:58:49.094Z",
+      "lastChecked": "2026-04-20T08:58:49.094Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-kadastrovuyu-spravku-o-kadastrovoj-stoimosti/": {
+      "lastImproved": "2026-04-20T09:01:03.199Z",
+      "lastChecked": "2026-04-20T09:01:03.199Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/tsena-kadastrovogo-pasporta-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-20T09:05:17.988Z",
+      "lastChecked": "2026-04-20T09:05:17.989Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/spravka-o-kadastrovoj-stoimosti-kvartiry-gde-poluchit/": {
+      "lastImproved": "2026-04-20T09:06:45.435Z",
+      "lastChecked": "2026-04-20T09:06:45.435Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovuyu-spravku-o-kadastrovoj-stoimosti-kvartiry/": {
+      "lastImproved": "2026-04-20T09:08:21.809Z",
+      "lastChecked": "2026-04-20T09:08:21.809Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-otchet-egrn-onlajn/": {
+      "lastImproved": "2026-04-20T09:10:33.614Z",
+      "lastChecked": "2026-04-20T09:10:33.614Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-kadastrovogo-pasporta-vypiski/": {
+      "lastImproved": "2026-04-20T09:14:33.486Z",
+      "lastChecked": "2026-04-20T09:14:33.486Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-tsena/": {
+      "lastImproved": "2026-04-20T09:18:37.372Z",
+      "lastChecked": "2026-04-20T09:18:37.373Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-spravku-o-kadastrovoj-stoimosti-kvartiry/": {
+      "lastImproved": "2026-04-20T09:20:18.490Z",
+      "lastChecked": "2026-04-20T09:20:18.490Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypisku-o-kadastrovoj-stoimosti-zakazat/": {
+      "lastImproved": "2026-04-20T09:21:16.516Z",
+      "lastChecked": "2026-04-20T09:21:16.516Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/stoimost-kadastrovogo-pasporta/": {
+      "lastImproved": "2026-04-20T09:24:26.521Z",
+      "lastChecked": "2026-04-20T09:24:26.521Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/mozhno-li-srochno-oformit-kadastrovyj-pasport-na-kvartiru/": {
+      "lastImproved": "2026-04-20T09:27:07.563Z",
+      "lastChecked": "2026-04-20T09:27:07.563Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kakova-realnaya-stoimost-kadastrovogo-pasporta/": {
+      "lastImproved": "2026-04-20T09:29:11.450Z",
+      "lastChecked": "2026-04-20T09:29:11.450Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-spravku-o-kadastrovoj-stoimosti-zemelnogo-uchastka/": {
+      "lastImproved": "2026-04-20T10:27:09.328Z",
+      "lastChecked": "2026-04-20T10:27:09.335Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-onlajn-rosreestr/": {
+      "lastImproved": "2026-04-20T11:06:20.432Z",
+      "lastChecked": "2026-04-20T11:06:20.432Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-na-kvartiru-onlajn/": {
+      "lastImproved": "2026-04-20T11:08:46.710Z",
+      "lastChecked": "2026-04-20T11:08:46.710Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-onlajn-v-rosreestre/": {
+      "lastImproved": "2026-04-20T11:11:00.302Z",
+      "lastChecked": "2026-04-20T11:11:00.302Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-srochno-v-moskovskoj-oblasti/": {
+      "lastImproved": "2026-04-20T11:13:37.095Z",
+      "lastChecked": "2026-04-20T11:13:37.095Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-spravku-o-kadastrovoj-stoimosti-zemli/": {
+      "lastImproved": "2026-04-20T11:15:20.096Z",
+      "lastChecked": "2026-04-20T11:15:20.096Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kadastrovyj-pasport-na-zemlyu-poluchit-bystro/": {
+      "lastImproved": "2026-04-20T11:17:45.038Z",
+      "lastChecked": "2026-04-20T11:17:45.038Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-kadastrovyj-pasport-onlajn/": {
+      "lastImproved": "2026-04-20T11:20:14.418Z",
+      "lastChecked": "2026-04-20T11:20:14.418Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchit-kadastrovyj-pasport-onlajn/": {
+      "lastImproved": "2026-04-20T11:23:18.063Z",
+      "lastChecked": "2026-04-20T11:23:18.063Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-onlajn-kadastrovuyu-vypisku/": {
+      "lastImproved": "2026-04-20T11:26:59.387Z",
+      "lastChecked": "2026-04-20T11:26:59.387Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-onlajn-kadastrovyj-pasport/": {
+      "lastImproved": "2026-04-20T11:29:19.431Z",
+      "lastChecked": "2026-04-20T11:29:19.431Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-kupit-zemlyu-po-kadastrovoj-stoimosti/": {
+      "lastImproved": "2026-04-20T11:32:17.438Z",
+      "lastChecked": "2026-04-20T11:32:17.438Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-kupit-kvartiru-bez-obremenenij/": {
+      "lastImproved": "2026-04-20T11:34:46.466Z",
+      "lastChecked": "2026-04-20T11:34:46.466Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-mozhno-samostoyatelno-kupit-kvartiru-ne-tratyas-na-rieltorov/": {
+      "lastImproved": "2026-04-20T11:38:16.487Z",
+      "lastChecked": "2026-04-20T11:38:16.488Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/mozhno-li-kupit-kvartiru-ili-zu-kotoryj-v-zaloge-u-banka/": {
+      "lastImproved": "2026-04-20T11:46:19.724Z",
+      "lastChecked": "2026-04-20T11:46:19.724Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/mozhno-li-vykupit-zemelnyj-uchastok-pod-garazh/": {
+      "lastImproved": "2026-04-20T11:49:01.479Z",
+      "lastChecked": "2026-04-20T11:49:01.479Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-pravilno-kupit-zhile-na-vtorichnom-rynke/": {
+      "lastImproved": "2026-04-20T11:56:13.370Z",
+      "lastChecked": "2026-04-20T11:56:13.370Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/gde-mozhno-poluchit-vypisku-iz-egrn/": {
+      "lastImproved": "2026-04-20T11:57:30.466Z",
+      "lastChecked": "2026-04-20T11:57:30.466Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/poluchenie-kadastrovogo-pasporta/": {
+      "lastImproved": "2026-04-20T11:59:38.266Z",
+      "lastChecked": "2026-04-20T11:59:38.266Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/vypiska-iz-egrn-dlya-yuridicheskih-lits/": {
+      "lastImproved": "2026-04-20T12:01:51.377Z",
+      "lastChecked": "2026-04-20T12:01:51.377Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrp-v-mfts/": {
+      "lastImproved": "2026-04-20T12:04:14.782Z",
+      "lastChecked": "2026-04-20T12:04:14.782Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-kadastrovyj-pasport-na-zemlyu/": {
+      "lastImproved": "2026-04-20T12:07:21.004Z",
+      "lastChecked": "2026-04-20T12:07:21.004Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/rasshirennaya-kadastrovaya-vypiska-na-zemelnyj-uchastok/": {
+      "lastImproved": "2026-04-20T12:09:46.237Z",
+      "lastChecked": "2026-04-20T12:09:46.237Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/zakazat-elektronnuyu-vypisku-iz-egrp/": {
+      "lastImproved": "2026-04-20T12:13:18.042Z",
+      "lastChecked": "2026-04-20T12:13:18.042Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-oformit-kadastrovyj-pasport-na-dachnyj-dom/": {
+      "lastImproved": "2026-04-20T12:15:24.798Z",
+      "lastChecked": "2026-04-20T12:15:24.798Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    },
+    "https://kadastrmap.info/kadastr/kak-zakazat-vypisku-iz-egrp-cherez-mfts/": {
+      "lastImproved": "2026-04-20T12:18:20.864Z",
+      "lastChecked": "2026-04-20T12:18:20.864Z",
+      "googlePos": null,
+      "yandexPos": null,
+      "skipReason": null,
+      "rewriteCount": 1,
+      "inTop3": false
+    }
+  }
+}
