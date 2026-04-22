@@ -5,8 +5,15 @@ import { backlinkPosts, BacklinkPost, InsertBacklinkPost } from "../drizzle/sche
 export async function insertBacklinkPost(data: Omit<InsertBacklinkPost, "id" | "createdAt">): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(backlinkPosts).values(data);
-  return (result as any)[0].insertId as number;
+  try {
+    const result = await db.insert(backlinkPosts).values(data);
+    const id = (result as any)?.[0]?.insertId ?? (result as any)?.insertId;
+    if (typeof id !== "number") throw new Error("Insert did not return insertId");
+    return id;
+  } catch (err) {
+    console.error("[backlinks.db] insertBacklinkPost failed:", err);
+    throw err;
+  }
 }
 
 export async function getAllBacklinkPosts(): Promise<BacklinkPost[]> {
@@ -38,13 +45,23 @@ export async function updateBacklinkPost(
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(backlinkPosts).set(data).where(eq(backlinkPosts.id, id));
+  try {
+    await db.update(backlinkPosts).set(data).where(eq(backlinkPosts.id, id));
+  } catch (err) {
+    console.error("[backlinks.db] updateBacklinkPost failed:", err);
+    throw err;
+  }
 }
 
 export async function deleteBacklinkPost(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(backlinkPosts).where(eq(backlinkPosts.id, id));
+  try {
+    await db.delete(backlinkPosts).where(eq(backlinkPosts.id, id));
+  } catch (err) {
+    console.error("[backlinks.db] deleteBacklinkPost failed:", err);
+    throw err;
+  }
 }
 
 export async function getStatsByPlatform(): Promise<{ dzen: number; spark: number; kw: number; thisWeek: number }> {
@@ -60,7 +77,7 @@ export async function getStatsByPlatform(): Promise<{ dzen: number; spark: numbe
   };
 }
 
-export async function getLastNPublished(platform: "dzen", limit = 20): Promise<BacklinkPost[]> {
+export async function getLastNPublished(platform: "dzen" | "spark" | "kw", limit = 20): Promise<BacklinkPost[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.select().from(backlinkPosts)
