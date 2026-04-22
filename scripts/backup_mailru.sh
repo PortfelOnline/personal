@@ -164,6 +164,7 @@ CHECK_ERRORS=0
     --exclude "actions-runner/**" \
     --exclude "actions-runner-2/**" \
     --max-size 1900M \
+    --one-way \
     --log-file="$LOG_FILE" \
     --log-level ERROR \
     2>&1 | tee -a "$LOG_FILE" || CHECK_ERRORS=$?
