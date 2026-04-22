@@ -1,11 +1,37 @@
-import { getFirstPending, updateBacklinkPost, insertBacklinkPost, getAllBacklinkPosts } from "../backlinks.db";
+import { execFile } from "child_process";
+import { writeFileSync } from "fs";
+import { getFirstPending, updateBacklinkPost, insertBacklinkPost, getAllBacklinkPosts, getLastNPublished } from "../backlinks.db";
 import { generateDzenArticle, generateSparkArticle, generateKwAnswer, PRIORITY_PAGES, pickNextPage } from "./content-generator";
+import { buildRssFeed } from "./rss";
 import { publishToDzen } from "./dzen";
 import { publishToSpark } from "./spark";
 import { publishToKw } from "./kw";
 import type { BacklinkPost } from "../../drizzle/schema";
 
 export type Platform = "dzen" | "spark" | "kw";
+
+async function deployRss(): Promise<void> {
+  try {
+    const posts = await getLastNPublished("dzen", 20);
+    if (!posts.length) return;
+    const xml     = buildRssFeed(posts);
+    const tmpFile = "/tmp/rss-dzen.xml";
+    writeFileSync(tmpFile, xml, "utf-8");
+    await new Promise<void>((resolve, reject) => {
+      execFile("scp", [tmpFile, "root@kad:/application/rss-dzen.xml"], err => {
+        if (err) reject(err); else resolve();
+      });
+    });
+    await new Promise<void>((resolve, reject) => {
+      execFile("ssh", ["root@kad", "chmod 644 /application/rss-dzen.xml"], err => {
+        if (err) reject(err); else resolve();
+      });
+    });
+    console.log(`[Backlinks] RSS deployed (${posts.length} posts) → https://kadastrmap.info/rss-dzen.xml`);
+  } catch (err: any) {
+    console.error("[Backlinks] RSS deploy failed (non-fatal):", err.message);
+  }
+}
 
 export async function generateAndQueue(platform: Platform, targetUrl?: string): Promise<number> {
   const all           = await getAllBacklinkPosts();
@@ -31,7 +57,13 @@ export async function generateAndQueue(platform: Platform, targetUrl?: string): 
     title = r.question; article = r.article;
   }
 
-  return insertBacklinkPost({ platform, targetUrl: page.url, anchorText: page.anchor, title, article, status: "pending" });
+  const id = await insertBacklinkPost({ platform, targetUrl: page.url, anchorText: page.anchor, title, article, status: "pending" });
+
+  if (platform === "dzen") {
+    deployRss(); // fire-and-forget, non-blocking
+  }
+
+  return id;
 }
 
 export async function publishPost(post: BacklinkPost): Promise<void> {
@@ -44,6 +76,7 @@ export async function publishPost(post: BacklinkPost): Promise<void> {
 
     await updateBacklinkPost(post.id, { status: "published", publishedUrl, publishedAt: new Date() });
     console.log(`[Backlinks] Published ${post.platform} id=${post.id} -> ${publishedUrl}`);
+    if (post.platform === "dzen") deployRss();
   } catch (err: any) {
     await updateBacklinkPost(post.id, { status: "failed", errorMsg: err.message ?? String(err) });
     console.error(`[Backlinks] FAILED ${post.platform} id=${post.id}:`, err.message);
