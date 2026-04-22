@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "catalogUrl": "https://kadastrmap.info/kadastr/",
+  "articlesPerNight": 20,
+  "hour": 2,
+  "userId": 1,
+  "skipImprovedDays": 30
+}
