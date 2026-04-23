@@ -45,3 +45,24 @@
 - Исключены ~20 GiB регенерируемых папок: `.ollama`, `.gemini`, `.vscode`, `actions-runner x2`, `.npm-global`, `.websiteauditor`, `.serena`, `.codex`, `jdk17`, `android-sdk-tmp`, `mac_runner_watchdog_logs`
 - `caffeinate -i -w <pid>` — Mac не засыпает во время прогона, после завершения отпускает автоматически
 - Integrity check: Mail.ru не поддерживает хэши (`No common hash found`) — check сравнивает по размеру. FAILED = ложный (живые файлы меняются во время check). Реальной битости нет.
+
+## Исправления (2026-04-23)
+
+### Mac → Mail.ru: 45 ошибок 400 Bad Request → 0
+
+**Причина:** Mail.ru Cloud WebDAV использует Windows-совместимые пути — двоеточие `:` запрещено в именах файлов.
+
+**Три источника ошибок, исправлены:**
+
+| Путь | Проблема | Решение |
+|---|---|---|
+| `.cagent/store/sha256:*.json\|tar` | Двоеточие в имени (Docker image store) | `--exclude ".cagent/**"` |
+| `Pictures/Photos Library.photoslibrary/.../CreateDatabase_...-07:00` | Двоеточие в таймзоне | `--exclude "**/*.photoslibrary/**"` |
+| `Documents/All activation Windows*/**` | Китайские символы + двоеточие | `--exclude "Documents/All activation Windows*/**"` |
+
+**Дополнительно:**
+- Удалены 4 пустых мусорных файла в HOME с `\n` в имени (остатки sed-скриптов)
+- Добавлен `--exclude ".android/avd/**/*.img.qcow2"` — 1.79 GB AVD-диск эмулятора, меняется при каждом запуске
+- `--retries 3` → `--retries 5` для уменьшения transient 408
+
+**Ошибки 408 (остаточные, transient):** большие файлы — `.config/superpowers/conversation-archive/*.jsonl`, бинарник Claude. Mail.ru обрывает WebDAV upload по таймауту. rclone retry-ит 5 раз, в случае провала — exit code 1 (minor errors), не критично.
