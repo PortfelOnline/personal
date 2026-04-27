@@ -290,11 +290,17 @@ EXECUTOR FAILS
 1st failure:
   → Parse executor's diagnostics.probable_cause
   → If transient (network, rate_limit): retry with 2x wait, same approach
-  → If permanent (syntax_error, file_not_found): dispatch to brain for re-plan
+  → If permanent (syntax_error, file_not_found, tool_unavailable, etc.):
+      → Agent(autonomous-dev-brain, "Revise plan for: <task>. Diagnostics: <json>")
+      → Brain input: { mode: "revise", original_task, attempt: 1, diagnostics }
+      → Brain produces REVISED plan with different approach
   → Attach diagnostics + task context to brain prompt
 
 2nd failure (same task):
   → Escalate: if was TRIVIAL/LOW → MEDIUM, if MEDIUM → HIGH
+  → Agent(autonomous-dev-brain, "ESCALATED revise for: <task>. History: <full>. Diagnostics: <json>")
+  → Brain input: { mode: "revise", original_task, attempt: 2, diagnostics, history }
+  → Brain MUST use escalated approach (Read-before-Edit, Glob-before-Grep)
   → Send FULL history (original task + both attempts + both errors) to brain
   → Brain MUST use escalated approach (Read-before-Edit, Glob-before-Grep)
   → Do NOT retry identical step — brain must produce DIFFERENT plan
