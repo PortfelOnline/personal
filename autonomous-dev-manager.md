@@ -245,25 +245,64 @@ IF same file edited 3+ times in one session:
     → Suggest consolidating changes into one edit
 ```
 
-## 7. Smart Retry Strategy
+## 7. Executor → Brain Feedback Loop
 
-When executor reports failure:
+When executor fails, diagnostics MUST feed back to the brain for plan revision.
+
+### Diagnosis → Fix Mapping
+
+| `probable_cause` | Root Cause | Brain Fix |
+|-------------------|-----------|-----------|
+| `syntax_error` | Edit old_string didn't match (whitespace, indentation) | Read exact lines before Edit, use EXACT match |
+| `file_not_found` | File path wrong or renamed | Glob to find the file first |
+| `permission_denied` | Can't write to target | Suggest alternative path or mark requires_review |
+| `network_timeout` | URL unreachable | Add fallback URL or skip HTTP step |
+| `tool_unavailable` | Wrong tool name in tool_map | Use correct tool from available tools |
+| `git_conflict` | Branch/merge conflict | Add git status check before commit |
+| `rate_limit` | API rate limit hit | Add delay between calls or reduce parallelism |
+| `auth_failure` | Credentials missing/expired | Mark requires_review, suggest auth check |
+
+### Revision Rules
+
+1. **Do NOT retry identical step** — CHANGE the approach
+2. **Use diagnostics to determine WHAT changed**:
+   - `syntax_error` + expected/actual differ → file was different than assumed
+   - `file_not_found` → path was wrong
+3. **Escalate approach on 2nd failure**:
+   - Instead of "Edit file X" → "Read file X, extract exact lines, then Edit"
+   - Instead of "Grep for pattern" → "Glob for likely files, then Grep each"
+4. **3rd failure** → admit defeat, mark requires_review: true, suggest manual approach
+
+### Feedback Flow
+
+```
+EXECUTOR FAILS
+  → returns {status: "failure", diagnostics: {probable_cause, stderr_snippet, expected, actual}}
+    → MANAGER receives, checks retry count
+      → 1st: send to BRAIN with diagnostics → brain produces REVISED plan
+      → 2nd: send to BRAIN with full history → brain uses ESCALATED approach
+      → 3rd: STOP. Mark requires_review. Log pattern to learned_patterns.
+```
+
+### Smart Retry Execution
 
 ```
 1st failure:
-  → Check error category (permission, network, syntax, etc.)
-  → If transient (network, rate_limit): retry with 2x wait
-  → If permanent (syntax_error, file_not_found): revise step, don't retry blindly
+  → Parse executor's diagnostics.probable_cause
+  → If transient (network, rate_limit): retry with 2x wait, same approach
+  → If permanent (syntax_error, file_not_found): dispatch to brain for re-plan
+  → Attach diagnostics + task context to brain prompt
 
 2nd failure (same task):
-  → Different approach required
-  → Send back to brain for re-plan (if was LOW, escalate to MEDIUM)
-  → Do NOT retry identical step
+  → Escalate: if was TRIVIAL/LOW → MEDIUM, if MEDIUM → HIGH
+  → Send FULL history (original task + both attempts + both errors) to brain
+  → Brain MUST use escalated approach (Read-before-Edit, Glob-before-Grep)
+  → Do NOT retry identical step — brain must produce DIFFERENT plan
 
 3rd failure:
   → STOP. Mark requires_review = true.
   → Report: "Task failed 3 times: <task>. Last error: <error>"
-  → Log to failed_tasks for session report
+  → Log to failed_tasks + add to learned_patterns in session report
 ```
 
 **Retry budget per session**: max 3 retries total across all tasks.
@@ -395,6 +434,13 @@ At the end of each session, produce:
       "attempts": 3,
       "last_error": "...",
       "recommended_action": "manual_review|retry_later|skip"
+    }
+  ],
+  "learned_patterns": [
+    {
+      "pattern": "syntax_error on Edit of file X — file has different whitespace than expected",
+      "fix": "Always Read exact lines before Edit",
+      "frequency": 1
     }
   ],
   "health_check": {
