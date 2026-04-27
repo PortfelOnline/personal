@@ -132,6 +132,53 @@ These task types are ALWAYS TRIVIAL or LOW. Route to executor without invoking b
 - If the task involves > 2 files OR unknown scope → escalate to MEDIUM
 - If the task matches a known pattern from learning memory → use LOW even if file count is higher
 
+## 4.5. Multi-Model Routing (#33)
+
+Claude Code auto-selects models (sonnet for routine, opus for complex). The manager does the same based on task classification.
+
+### Model Selection Matrix
+
+| Complexity | Model | Agent | Rationale |
+|-----------|-------|-------|-----------|
+| TRIVIAL | sonnet | executor (direct) | 1 file, known fix — no reasoning needed |
+| LOW | sonnet | executor (direct) | 1-2 files, clear approach |
+| MEDIUM | sonnet | brain + executor | Multi-file, needs planning but routine |
+| HIGH | opus | brain + executor | Architecture, refactoring, complex logic |
+| CRITICAL | opus | oracle → brain → executor | Security, DB migration, cross-repo |
+
+### Override Rules
+
+```
+Model override when:
+  □ Task contains "audit", "review architecture", "security" → opus regardless of complexity
+  □ Task involves DB migration → opus (db-migration-agent)
+  □ Task involves type-gymnastics → opus (typescript-type-expert)
+  □ Task is pure research/read-only → haiku (cheapest, sufficient for exploration)
+  □ User explicitly sets model → respect user choice (never override)
+```
+
+### Agent Dispatch with Model
+
+When dispatching via Agent(), set `model` based on routing:
+
+```
+TRIVIAL/LOW → Agent(executor, model: "sonnet")
+MEDIUM      → Agent(brain, model: "sonnet")
+HIGH        → Agent(brain, model: "opus")
+CRITICAL    → Agent(oracle, model: "opus") → Agent(brain, model: "opus")
+```
+
+### Token Cost Awareness
+
+```
+Model cost per 1M tokens (approximate):
+  haiku:  $1    — exploration, search, file listing
+  sonnet: $3    — routine coding, planning, review
+  opus:   $15   — architecture, complex debugging, security audit
+
+Manager target: > 80% of tasks on sonnet, < 15% on opus, < 5% on haiku
+```
+
 ## 5. Dependency Detection & Parallel Dispatch
 
 Before dispatching ANY tasks, build a dependency matrix:
@@ -374,6 +421,67 @@ On session COMPLETE (all tasks done):
 On session ABANDON (user says "stop" or "abort"):
   → Keep checkpoint for potential resume
   → Write partial session report
+```
+
+## 6.5. Auto-Loop Mode (#30)
+
+Mirrors Claude Code's `--loop` flag. Once started, the manager works until all tasks are done or the user interrupts.
+
+### Activation
+
+```
+Auto-loop activates when:
+  □ User says "keep working", "continue until done", "loop", "auto"
+  □ Manager detects backlog AND user has approved ≥ 1 task this session
+  □ Manager receives "<<autonomous-loop>>" sentinel from CronCreate
+
+Auto-loop does NOT activate when:
+  □ 0 tasks approved this session (safety: don't work without user buy-in)
+  □ 3 consecutive failures detected
+  □ Session approaching token limit (< 20% remaining)
+```
+
+### Loop Flow
+
+```
+1. Complete current batch of tasks
+2. Check: any remaining pending tasks?
+   → YES: auto-dispatch next batch (up to 4 parallel)
+   → NO: scan repos for new issues/PRs → update backlog → if new tasks found, dispatch
+3. Check: any failures on last batch?
+   → YES: run feedback loop (fix first, then continue)
+   → NO: continue
+4. Check: token budget remaining?
+   → > 30%: continue loop
+   → 10-30%: warn user, ask to continue
+   → < 10%: stop, request fresh session
+5. If no tasks AND no new issues → "All done. N tasks completed in M minutes."
+6. Use ScheduleWakeup for idle ticks: 1200-1800s delay between backlog scans
+```
+
+### Loop State
+
+Track in checkpoint:
+
+```json
+"loop": {
+  "active": true,
+  "iterations": 5,
+  "tasks_completed_this_loop": 12,
+  "consecutive_failures": 0,
+  "last_scan": "2026-04-27T18:30:00+05:30",
+  "next_scan": "2026-04-27T18:50:00+05:30"
+}
+```
+
+### Safety Gates
+
+```
+□ Max 50 tasks per loop iteration (prevent runaway)
+□ If 3 consecutive failures → exit loop, report to user
+□ If same file edited 5+ times in loop → suspect loop, request user review
+□ If loop runs > 2 hours → checkpoint and ask user to confirm continuation
+□ On Stop hook: save loop state for resume
 ```
 
 ## 7. Interactive Approval Gate (EnterPlanMode)

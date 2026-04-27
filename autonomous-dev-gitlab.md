@@ -144,9 +144,18 @@ curl -s --request POST \
 
 Parse response to get: `iid`, `web_url`, `id`
 
-## Step 6: AI Code Review
+## Step 6: AI Code Review (MANDATORY)
 
-Perform your own review against these criteria:
+**Dispatch `code-review-expert` agent** — same hard gate as GitHub flow:
+
+```
+→ Agent(code-review-expert, "Review MR !<IID>: <MR title>. Focus on architecture, security, correctness, performance, and adherence to project conventions. Report blocking issues and suggestions.")
+→ Receive structured review with severity levels
+```
+
+The code-review-expert covers 6 dimensions: architecture & design, code quality, security & dependencies, performance & scalability, testing coverage, documentation & API design.
+
+**After code-review-expert**, also perform inline review against these criteria:
 
 | Category | Check |
 |----------|-------|
@@ -156,14 +165,16 @@ Perform your own review against these criteria:
 | **Style** | Follows project conventions |
 | **Tests** | Coverage for new/changed paths |
 
-Post review as MR comment:
+**Review synthesis**: merge code-review-expert findings + inline review into one MR comment:
 
 ```bash
 curl -s --request POST \
   --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   "$GITLAB_API_BASE/projects/$PROJECT_ID/merge_requests/$MR_IID/notes" \
-  --data '{"body": "<review findings in markdown>"}'
+  --data '{"body": "<synthesized review findings in markdown>"}'
 ```
+
+**If code-review-expert is unavailable**: fall back to inline-only review. Record `review_method: "fallback_inline"` in output.
 
 ## Step 6.5: CI Gate Verification
 
@@ -239,6 +250,7 @@ If ANY check fails → do NOT auto-merge. Comment on MR with findings.
   "skip_reason": null,
   "risk_level": "low",
   "review_outcome": "clean|issues_found|blocked",
+  "review_method": "code_review_expert+inline|code_review_expert_only|fallback_inline",
   "ci_gate": {
     "passed": true,
     "recommendation": "proceed|warn|block",

@@ -227,6 +227,12 @@ You start BLIND — no repo structure, no symbol locations, no past patterns. Bu
 
 Use ZERO-file-read tools FIRST. They return structured data (50-500 tokens) vs raw files (2000-10000 tokens).
 
+0. **Project Rules** (MANDATORY: Read `CLAUDE.md` at repo root):
+   - Every repo has conventions, stack info, anti-patterns in `CLAUDE.md`
+   - Read it FIRST before any planning — it overrides all defaults
+   - Also check: `AGENTS.md`, `GEMINI.md`, `.cursor/rules/`, `.github/copilot-instructions.md`
+   - **Rule**: project CLAUDE.md is the highest-priority instruction source. If it says "don't use TDD", skills gateway must respect that.
+
 1. **Knowledge Graph** (if available: Graphify `mcp__graphify__*`):
    - Query with task keywords → relevant concepts and their relationships
    - Explain a key symbol → understand what it does without reading the file
@@ -256,6 +262,13 @@ Use ZERO-file-read tools FIRST. They return structured data (50-500 tokens) vs r
    - Notebook → analyze `.ipynb` cells with outputs inline
    - **Rule**: when a task involves visual output (UI bug, "it looks wrong"), plan a screenshot Read step. When external docs are PDF, read them directly.
    - **Constraint**: screenshots must be local files (browser_snapshot saves to disk, then Read). PDF max 20 pages per read.
+
+7. **Web Search** (built-in: `WebSearch` tool — current information, docs, solutions):
+   - Library version migration guides → "upgrade react 18 to 19 breaking changes"
+   - Current API references → "vercel ai sdk v5 streaming example"
+   - Error investigation → "TypeError: Cannot read properties of undefined node 22"
+   - **Rule**: when Context7 doesn't have the library or the error is novel, WebSearch BEFORE guessing.
+   - **Constraint**: domain-filtered (block known spam/malware domains). Results include links — cite them.
 
 **These tools are auto-discovered** — any MCP server you connect to Claude Code is automatically visible. If a tool isn't available, skip that source and use what you have.
 
@@ -502,6 +515,7 @@ You MUST output your plan in this exact JSON format:
     "semantic:browser": "mcp__plugin_playwright__browser_navigate|browser_snapshot|browser_take_screenshot|browser_evaluate|browser_click|browser_type",
     "semantic:docs": "mcp__plugin_context7_context7__query-docs|resolve-library-id",
     "visual:read": "Read(.png)|Read(.jpg)|Read(.pdf)|Read(.ipynb)",
+    "semantic:web": "WebSearch",
     "lint:php": "Bash(php -l *)",
     "lint:ts": "Bash(tsc --noEmit *)",
     "lint:eslint": "Bash(eslint *)",
