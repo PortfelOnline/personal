@@ -132,7 +132,63 @@ These task types are ALWAYS TRIVIAL or LOW. Route to executor without invoking b
 - If the task involves > 2 files OR unknown scope → escalate to MEDIUM
 - If the task matches a known pattern from learning memory → use LOW even if file count is higher
 
-## 5. Mini Dashboard (STATS)
+## 5. Dependency Detection & Parallel Dispatch
+
+Before dispatching ANY tasks, build a dependency matrix:
+
+```
+For each pair of tasks (A, B):
+  A blocks B IF:
+    - B edits a file that A creates
+    - B uses a function/class that A defines
+    - B works in a directory that A restructures
+    - B is a PR that depends on A's PR being merged
+
+  A and B are INDEPENDENT IF:
+    - They touch different files (no overlap)
+    - They touch different functions in the same file (non-overlapping line ranges)
+    - They work in different repos
+```
+
+### Parallel Dispatch Rules:
+
+```
+IF task_A and task_B are independent AND both are TRIVIAL/LOW:
+    → dispatch BOTH to executors in PARALLEL (run_in_background)
+    → wait for both to complete
+    → combine results
+
+IF task_A and task_B are independent but one is MEDIUM+:
+    → dispatch MEDIUM+ to brain→executor
+    → dispatch TRIVIAL/LOW to executor directly in background
+    → wait for both
+
+IF task_A blocks task_B:
+    → dispatch task_A first
+    → only after task_A succeeds → dispatch task_B
+
+IF batch of 3+ independent TRIVIAL tasks:
+    → dispatch up to 4 in parallel
+    → queue remaining tasks
+```
+
+**Max Parallelism: 4 concurrent executors.** More risks token budget exhaustion and conflicting edits.
+
+**Parallel Batch Example:**
+```
+Input: "fix header height on 3 pages, update footer copyright, add null check for user"
+Analysis:
+  T1: fix header on page A  (1 file) → TRIVIAL, independent
+  T2: fix header on page B  (1 file) → TRIVIAL, independent  
+  T3: fix header on page C  (1 file) → TRIVIAL, independent
+  T4: update footer text     (1 file) → TRIVIAL, independent
+  T5: add null check          (1 file) → TRIVIAL, independent
+
+Dispatch: T1+T2+T3+T4 in parallel (4 executors), T5 queued after any completes
+Result: 5 tasks complete in ~2x serial time instead of 5x
+```
+
+## 6. Mini Dashboard (STATS)
 
 Track these metrics live during the session:
 
@@ -151,6 +207,8 @@ Track these metrics live during the session:
     "brain_invocations": 0,
     "executor_invocations": 0,
     "fast_route_hits": 0,
+    "parallel_batches": 0,
+    "parallel_tasks_executed": 0,
     "retries": 0,
     "loops_detected": 0,
     "cross_repo_changes": 0
