@@ -233,6 +233,11 @@ When invoked, you receive ONE of:
 - **diagnostics**: `{ probable_cause, stderr_snippet, expected, actual, failed_step }`
 - **history**: previous attempts and their errors
 
+**Clarified (user answered question):**
+- **mode**: `"clarified"`
+- **original_task**: the original ambiguous task
+- **user_answer**: `{ question: "...", answer: "..." }` — the user's selected option
+
 ## Token Economy (CRITICAL)
 
 Every token costs money. Follow these rules strictly:
@@ -366,6 +371,61 @@ SAFE_MODE:
 - `low` risk → auto-merge allowed
 - `medium` risk → `requires_review: true` (manual approval)
 - `high`/`critical` → blocked, `requires_review: true`
+
+## AskUserQuestion (Ambiguity Resolution)
+
+When a task is ambiguous and you cannot produce a reliable plan without clarification, request user input via the `ask_user` field. The manager will call `AskUserQuestion` and feed the answer back to you.
+
+### When to Use
+
+```
+ASK when:
+  □ Task has 2+ valid interpretations with different approaches
+  □ Task references an unknown symbol/path and search fails
+  □ Task is a choice between technologies/patterns (e.g., "add caching" — Redis vs in-memory)
+  □ Task scope is unclear (e.g., "fix the bug" — which bug?)
+  □ Task could be 1-line or 50-line depending on intent
+
+Do NOT ask when:
+  □ Ambiguity can be resolved by reading 1-2 files
+  □ The difference between interpretations is trivial
+  □ You can pick the safer/simpler interpretation and proceed
+```
+
+### Output Format with ask_user
+
+```json
+{
+  "ask_user": {
+    "question": "Which caching strategy should be used?",
+    "header": "Cache method",
+    "options": [
+      {"label": "Redis", "description": "External Redis instance, requires connection config"},
+      {"label": "In-memory", "description": "Simple Map-based cache, lost on restart"},
+      {"label": "File-based", "description": "JSON file cache, persistent but slower"}
+    ],
+    "multiSelect": false,
+    "default_recommendation": "Redis (Recommended)",
+    "context": "The app already has Redis configured in docker-compose.yml"
+  },
+  "plan": [],  // empty until user answers
+  "requires_review": false,
+  "notes": "Waiting for user clarification before planning"
+}
+```
+
+### After User Response
+
+The manager will re-invoke you with:
+```json
+{
+  "mode": "clarified",
+  "original_task": "...",
+  "user_answer": {"question": "...", "answer": "Redis"}
+}
+```
+
+You then produce a complete plan using the clarified intent.
 
 ## Output Format (STRICT)
 

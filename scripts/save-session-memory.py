@@ -138,26 +138,87 @@ def extract_patterns(events):
 
 
 def classify_error(error_msg):
-    """Classify error into probable_cause category."""
+    """Classify error into probable_cause category.
+
+    Order matters: check specific substrings before broader ones.
+    New categories added from real transcript analysis (2026-04-27):
+    - Cancelled parallel tool calls → tool_unavailable
+    - SSH host key / connection failures → network_timeout
+    - Non-zero exit codes from git/ssh → git_conflict / network_timeout
+    - Process killed/signalled → network_timeout
+    - Disk full / resource exhaustion → permission_denied
+    """
     msg = error_msg.lower()
-    if "does not exist" in msg or "not found" in msg or "no such file" in msg:
-        return "file_not_found"
-    if "no such tool" in msg or "tool_unavailable" in msg or "unknown tool" in msg:
+
+    # Tool availability (check before broader patterns)
+    if any(m in msg for m in [
+        "no such tool", "tool_unavailable", "unknown tool",
+        "command not found", "no such command", "not recognized as a command",
+        "cancelled: parallel tool call", "cancelled:",
+    ]):
         return "tool_unavailable"
-    if "permission denied" in msg or "eacces" in msg:
+
+    # File/path errors
+    if any(m in msg for m in [
+        "does not exist", "not found", "no such file", "cannot find",
+        "enoent", "cannot access",
+    ]):
+        return "file_not_found"
+
+    # Permission / resource errors
+    if any(m in msg for m in [
+        "permission denied", "eacces", "not permitted", "operation not permitted",
+        "no space left", "disk full", "quota exceeded",
+        "read-only", "cannot create",
+    ]):
         return "permission_denied"
-    if "syntax" in msg or "unexpected token" in msg:
+
+    # Syntax / type / build errors
+    if any(m in msg for m in [
+        "syntax error", "unexpected token", "parse error",
+        "typeerror", "referenceerror", "type error",
+        "cannot redeclare", "unexpected t_", "fatal error",
+        "traceback (most recent call last)", "traceback",
+    ]):
         return "syntax_error"
-    if "timeout" in msg or "timed out" in msg:
-        return "network_timeout"
-    if "conflict" in msg or "merge conflict" in msg:
+
+    # Git conflicts
+    if any(m in msg for m in [
+        "conflict", "merge conflict", "would be overwritten",
+        "not a git repository", "not something we can merge",
+        "unmerged paths", "both modified", "already exists",
+        "exit code 1",  # git errors often exit 1
+    ]):
         return "git_conflict"
-    if "rate limit" in msg or "too many requests" in msg:
-        return "rate_limit"
-    if "auth" in msg or "unauthorized" in msg or "401" in msg or "403" in msg:
-        return "auth_failure"
-    if "browser has been closed" in msg or "target page" in msg:
+
+    # Network / SSH / connectivity
+    if any(m in msg for m in [
+        "timeout", "timed out", "connection refused", "connection reset",
+        "network is unreachable", "no route to host", "name resolution",
+        "could not resolve host", "host key verification failed",
+        "permanently added", "connection closed", "broken pipe",
+        "could not connect", "econnrefused", "etimedout",
+        "browser has been closed", "target page", "context has been closed",
+        "exit code 2",  # SSH/common network tool errors
+        "killed", "signal", "terminated", "sigterm", "sigkill",
+    ]):
         return "network_timeout"
+
+    # Rate limiting
+    if any(m in msg for m in [
+        "rate limit", "too many requests", "429", "try again later",
+        "exceeded", "quota", "throttl",
+    ]):
+        return "rate_limit"
+
+    # Auth / access
+    if any(m in msg for m in [
+        "auth", "unauthorized", "forbidden", "access denied",
+        "401", "403", "not authorized", "credentials",
+        "invalid api key", "invalid token", "unauthenticated",
+    ]):
+        return "auth_failure"
+
     return "unknown"
 
 
@@ -179,7 +240,7 @@ def generate_learned_patterns(patterns):
         cause = classify_error(err["error"])
         learned.append({
             "pattern": f"{cause} on {err['tool']}: {err['error'][:100]}",
-            "fix": get_fix_for_cause(cause),
+            "fix": get_fix_for_error(err["error"]),
             "frequency": patterns["error_tools"].get(err["tool"], 1)
         })
 
@@ -216,6 +277,43 @@ def get_fix_for_cause(cause):
         "auth_failure": "Check credentials, suggest manual auth",
     }
     return fixes.get(cause, "Investigate manually, escalate to requires_review")
+
+
+def get_fix_for_error(error_msg):
+    """Context-aware fix suggestion based on error content, not just cause."""
+    msg = error_msg.lower()
+    cause = classify_error(error_msg)
+
+    # Override generic fix with context-specific advice
+    if cause == "tool_unavailable":
+        if "cancelled" in msg:
+            return "Reduce parallel batch size — tool cancelled by system"
+        if "command not found" in msg:
+            return "Install missing binary or use alternative tool"
+        return "Use correct tool from available tools list"
+
+    if cause == "network_timeout":
+        if "ssh" in msg or "host key" in msg:
+            return "Check SSH connectivity and host key acceptance"
+        if "killed" in msg or "signal" in msg:
+            return "Process killed — reduce memory/parallelism or increase timeout"
+        if "exit code 2" in msg:
+            return "SSH/git tool error — check remote connectivity and auth"
+        return "Add fallback URL or retry with longer timeout"
+
+    if cause == "git_conflict":
+        if "exit code 1" in msg:
+            return "Git command failed — check repo state with git status first"
+        return "Add git status check before commit"
+
+    if cause == "permission_denied":
+        if "no space" in msg or "disk full" in msg:
+            return "Free disk space before retrying"
+        if "read-only" in msg:
+            return "Check filesystem mount status or file permissions"
+        return "Check file permissions or suggest alternative path"
+
+    return get_fix_for_cause(cause)
 
 
 def write_learned_memory(learned_patterns, session_id, dry_run=False):

@@ -297,6 +297,85 @@ After every `TaskUpdate`:
 - If completed count = tasks_total → session complete
 - If pending = 0 and in_progress = 0 → idle, check for new backlog
 
+### Session Checkpoint/Resume
+
+Save checkpoint state after every task completion so the session can resume after interruption (context compaction, crash, user restart).
+
+#### Checkpoint Format
+
+Save to `~/.claude/projects/-Users-evgenijgrudev/memory/checkpoint_<session_id>.json`:
+
+```json
+{
+  "session_id": "abc123",
+  "updated_at": "2026-04-27T14:30:00+05:30",
+  "repo": "PortfelOnline/personal",
+  "branch": "main",
+  "completed_tasks": ["1", "2", "5"],
+  "current_task": {"id": "3", "subject": "Fix auth bug", "status": "in_progress"},
+  "stats_snapshot": { "tasks_total": 10, "tasks_completed": 3, "tasks_failed": 0 },
+  "pending_backlog": [
+    {"subject": "Add rate limiting", "priority": 2, "risk": "medium"},
+    {"subject": "Update README", "priority": 4, "risk": "low"}
+  ],
+  "last_brain_plan": { "task": "Fix auth bug", "plan_hash": "abc123" },
+  "session_health": "healthy"
+}
+```
+
+#### Write Checkpoint
+
+```
+After EVERY task completion (success or skip):
+  → Write updated checkpoint file
+  → Write via Write tool to ~/.claude/projects/.../memory/checkpoint_<session_id>.json
+
+After every 5 task completions:
+  → Also sync stats to auto-memory (update existing memory file)
+```
+
+#### Resume from Checkpoint
+
+```
+ON SESSION START (if previous session was interrupted):
+  1. Check for checkpoint file: ls ~/.claude/projects/.../memory/checkpoint_*.json
+  2. If found AND updated_at < 24h ago:
+     → Read checkpoint
+     → Restore STATS from stats_snapshot
+     → Re-create pending tasks via TaskCreate
+     → Resume current_task (re-dispatch to brain→executor)
+     → Skip already completed tasks
+  3. If checkpoint > 24h old:
+     → Warn: "Checkpoint is stale (>24h). Starting fresh."
+     → Delete stale checkpoint
+  4. If no checkpoint:
+     → Fresh start (normal flow)
+```
+
+#### Resume Prompt
+
+When resuming, display to user:
+```
+⏯️  Resuming session abc123 from 14:30 IST
+   Completed: 3/10 tasks (30%)
+   Current: "Fix auth bug" (in progress, will retry)
+   Pending: 6 tasks in backlog
+   
+   [Resume] [Start Fresh]
+```
+
+#### Cleanup
+
+```
+On session COMPLETE (all tasks done):
+  → Delete checkpoint file
+  → Write final session report
+
+On session ABANDON (user says "stop" or "abort"):
+  → Keep checkpoint for potential resume
+  → Write partial session report
+```
+
 ## 7. Interactive Approval Gate (EnterPlanMode)
 
 Before executing MEDIUM+ risk tasks, the manager MUST pause for user approval. This mirrors Claude Code's `EnterPlanMode` → user review → `ExitPlanMode` flow.
