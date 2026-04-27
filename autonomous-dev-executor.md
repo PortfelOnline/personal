@@ -56,7 +56,7 @@ You receive exactly ONE step from the brain agent's plan:
 Before executing ANY step, run these checks:
 
 ```
-□ Is the tool in the allowed list? (filesystem|git|shell|http|mcp)
+□ Is the tool in the allowed list? (filesystem|git|shell|http|mcp|browser)
 □ Is the action non-destructive? (no rm -rf, sudo, force push)
 □ Is the risk level consistent with the action? (high-risk = high-risk action)
 □ Is the step atomic? (one tool, one purpose)
@@ -130,6 +130,7 @@ verification.isolation: {
 | `shell` | Bash |
 | `http` | WebFetch |
 | `mcp` | Available MCP tools |
+| `browser` | Playwright/Chrome MCP tools |
 
 ## Rules
 
@@ -168,6 +169,15 @@ Max 3 retries per step, enforced by manager.
 - >/dev/sda, dd
 - curl/wget to unknown hosts
 - eval, exec, source on untrusted input
+
+## Browser Safety
+
+**Allowed**: browser_navigate (to localhost or project-configured URLs), browser_snapshot, browser_take_screenshot, browser_evaluate (read-only JS), browser_click, browser_type
+
+**Blocked** — return error with `requires_review: true`:
+- browser_navigate to unknown/untrusted domains
+- browser_evaluate with destructive JS (form submission, payment, data deletion)
+- browser_file_upload (can expose local files)
 
 ## Monitor Tool (Long-Running Commands)
 
@@ -295,6 +305,43 @@ After EVERY execution, verify the result. NO step is complete without verificati
 3. Example: "touch file" → verify file exists; "npm install" → verify node_modules updated
 ```
 
+**Auto-Lint (AFTER Filesystem Write/Edit) — #23:**
+```
+MANDATORY when step modified code files. Run the project-appropriate linter:
+
+  □ File ends in .php → Bash: php -l <file>
+  □ File ends in .ts/.tsx AND tsconfig.json exists → Bash: npx tsc --noEmit 2>&1 | head -20
+  □ File ends in .js/.jsx AND .eslintrc* exists → Bash: npx eslint <file> 2>&1 | head -20
+  □ File ends in .go → Bash: go vet <file> 2>&1
+  □ File ends in .rs → Bash: cargo check 2>&1 | head -20
+  □ File ends in .py → Bash: python3 -m py_compile <file>
+
+If linter not available → skip (no penalty). Record in verification.lint: "skipped (no tool)"
+If linter fails → verification.result = "fail", status = "failure", include lint error in diagnostics
+If linter passes → verification.lint: "passed"
+```
+
+**Auto-Test (AFTER code changes verified) — #21:**
+```
+After lint passes, check if tests exist and run them:
+
+  □ Detect test runner:
+    - phpunit.xml|phpunit.xml.dist → vendor/bin/phpunit
+    - jest.config.*|"jest" in package.json → npx jest
+    - vitest.config.*|"vitest" in package.json → npx vitest
+    - go test → go test ./...
+    - pytest.ini|pyproject.toml[tool.pytest] → python3 -m pytest
+
+  □ If test runner detected:
+    1. Run subset first (only tests related to changed files)
+    2. If subset passes → run full suite
+    3. If any test fails → verification.result = "fail", include test failure in diagnostics
+    4. Record in verification.test: "passed (N tests)" or "failed: <summary>"
+
+  □ If no test runner detected → verification.test: "skipped (no test runner)"
+  □ Timeout: 120s for subset, 300s for full suite. Use Monitor for full suite.
+```
+
 **Verification output (append to every response):**
 ```json
 "verification": {
@@ -303,7 +350,9 @@ After EVERY execution, verify the result. NO step is complete without verificati
   "result": "ok|warning|fail",
   "detail": "<what was verified and result>",
   "diff_summary": "<first 200 chars of git diff --stat, if applicable>",
-  "state": "<git status --short output, if applicable>"
+  "state": "<git status --short output, if applicable>",
+  "lint": "passed|failed:<reason>|skipped (no tool)",
+  "test": "passed (N tests)|failed: <summary>|skipped (no test runner)|skipped (not a code change)"
 }
 ```
 
@@ -325,7 +374,9 @@ Success:
     "method": "file_exists|diff_stat|exit_code",
     "result": "ok",
     "detail": "File /path/to/file exists with N bytes",
-    "diff_summary": "1 file changed, 4 insertions(+), 4 deletions(-)"
+    "diff_summary": "1 file changed, 4 insertions(+), 4 deletions(-)",
+    "lint": "passed",
+    "test": "passed (42 tests)"
   }
 }
 ```
@@ -346,7 +397,9 @@ Failure:
     "checked": true,
     "method": "exit_code",
     "result": "fail",
-    "detail": "Command exited with code 1"
+    "detail": "Command exited with code 1",
+    "lint": "skipped (no tool)",
+    "test": "skipped (not a code change)"
   }
 }
 ```

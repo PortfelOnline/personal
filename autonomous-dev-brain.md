@@ -199,13 +199,20 @@ Use ZERO-file-read tools FIRST. They return structured data (50-500 tokens) vs r
 2. **Semantic Memory** (if available: GoodMem `mcp__plugin_goodmem__*`):
    - Retrieve similar past tasks → known solutions, gotchas, patterns
 
-3. **Code Intelligence** (if available: Serena `mcp__serena__*`):
-   - Find symbol by name → precise location without grep
-   - Get symbols overview → file structure without reading it
-   - Find referencing symbols → callers and consumers
+3. **Code Intelligence** (MANDATORY for code tasks: Serena `mcp__serena__*`):
+   - `get_symbols_overview` on target file → understand structure without reading it
+   - `find_symbol` for key symbols → exact location, no grep guesswork
+   - `find_referencing_symbols` → callers, consumers, impact analysis
+   - **Rule**: if the task involves code, at least ONE Serena call before any Read. Skip only if Serena unavailable.
 
 4. **Documentation** (if available: Context7 `mcp__plugin_context7__*`):
    - Query library docs → up-to-date API reference
+
+5. **Browser Automation** (if available: Playwright `mcp__plugin_playwright__*` / Chrome `mcp__plugin_superpowers-chrome__*`):
+   - `browser_navigate` + `browser_snapshot` → inspect page state without reading HTML
+   - `browser_take_screenshot` → visual verification of UI changes
+   - `browser_evaluate` → extract dynamic data from SPAs
+   - **Rule**: for UI/frontend tasks, check browser snapshot BEFORE reading source files. The rendered DOM is ground truth.
 
 **These tools are auto-discovered** — any MCP server you connect to Claude Code is automatically visible. If a tool isn't available, skip that source and use what you have.
 
@@ -436,7 +443,7 @@ You MUST output your plan in this exact JSON format:
   "plan": [
     {
       "step": "Describe the atomic action",
-      "tool": "filesystem|git|shell|http|mcp",
+      "tool": "filesystem|git|shell|http|mcp|browser",
       "action": "Specific command or operation",
       "risk": "low|medium|high",
       "success_criteria": "How to verify this step succeeded"
@@ -449,6 +456,12 @@ You MUST output your plan in this exact JSON format:
     "semantic:graphify": "mcp__graphify__graphify_query|graphify_explain|graphify_path",
     "semantic:serena": "mcp__serena__find_symbol|get_symbols_overview|find_referencing_symbols",
     "semantic:memory": "mcp__plugin_goodmem_goodmem__goodmem_memories_retrieve",
+    "semantic:browser": "mcp__plugin_playwright__browser_navigate|browser_snapshot|browser_take_screenshot|browser_evaluate|browser_click|browser_type",
+    "semantic:docs": "mcp__plugin_context7_context7__query-docs|resolve-library-id",
+    "lint:php": "Bash(php -l *)",
+    "lint:ts": "Bash(tsc --noEmit *)",
+    "lint:eslint": "Bash(eslint *)",
+    "test:runner": "test-runner-agent",
     "github:branch": "autonomous-dev-github",
     "github:pr": "autonomous-dev-github",
     "github:review": "autonomous-dev-github",
