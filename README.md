@@ -54,7 +54,7 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 - **high/critical**: blocked, requires review
 - **CI gate failure**: blocked regardless of risk level
 
-## Claude Code Parity — 20 Improvements (#10–#29)
+## Claude Code Parity — 25 Improvements (#10–#34)
 
 | Tier | # | Feature | Status |
 |------|---|---------|--------|
@@ -78,6 +78,11 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | **6** | #27 | Plugin architecture (auto-discovery, hot-load, contract) | ✅ |
 | | #28 | Progress streaming (milestone timeline → manager spinner) | ✅ |
 | | #29 | Permission mirroring (allow/deny/ask/defaultMode) | ✅ |
+| **7** | #30 | Auto-loop mode (keep working until done, safety gates) | ✅ |
+| | #31 | Project CLAUDE.md context (Phase 0 step 0) | ✅ |
+| | #32 | WebSearch in Phase 0 + tool_map | ✅ |
+| | #33 | Multi-model routing (sonnet/opus by complexity) | ✅ |
+| | #34 | GitLab↔GitHub parity (code-review-expert in both) | ✅ |
 
 ## Key Design Decisions
 
@@ -134,3 +139,4 @@ See `git log --oneline` for full history. Key milestones:
 - `40ce864` — Tier 4: #20-#23 (browser, auto-test, mandatory Serena, auto-lint)
 - `acf1ffb` — Tier 5: #24-#26 (image/PDF, code review auto-trigger, skills gateway)
 - `c3f606b` — Tier 6: #27-#29 (plugin architecture, progress streaming, permission mirroring)
+- `478f66e` — Tier 7: #30-#34 (auto-loop, CLAUDE.md context, WebSearch, model routing, GitLab parity)
