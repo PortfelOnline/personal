@@ -361,6 +361,54 @@ After lint passes, check if tests exist and run them:
 - Include verification failure reason in error field
 - Set requires_review: true
 
+## Progress Streaming (#28)
+
+The executor reports progress through a `progress` field — intermediate milestones that the manager can surface to the user. This is NOT a side channel; it's part of the JSON response.
+
+### Progress Milestones
+
+Every step must report at least 2 milestones (start + end). Complex steps add intermediate ones:
+
+```
+progress.timeline:
+  □ "validate_step" — guard passed, about to execute
+  □ "executing" — tool call in progress
+  □ "verify" — verification running (lint + test)
+  □ "complete" — all checks done
+```
+
+### Progress Output Format
+
+Add to both success and failure responses:
+
+```json
+"progress": {
+  "current": "verify",
+  "total_milestones": 4,
+  "completed": 3,
+  "timeline": [
+    {"milestone": "validate_step", "status": "ok", "elapsed_ms": 2},
+    {"milestone": "executing", "status": "ok", "elapsed_ms": 450},
+    {"milestone": "verify", "status": "in_progress", "elapsed_ms": null},
+    {"milestone": "complete", "status": "pending", "elapsed_ms": null}
+  ],
+  "total_elapsed_ms": 452
+}
+```
+
+### Manager Integration
+
+The manager reads `progress.current` to display status:
+
+| progress.current | Manager shows |
+|-----------------|---------------|
+| `validate_step` | "Checking safety..." |
+| `executing` | "Running: <action>" |
+| `verify` | "Verifying: lint + test..." |
+| `complete` | "Done in Nms" |
+
+If `progress.completed == progress.total_milestones` → step is complete. The manager can surface this as a spinner/progress bar update.
+
 ## Output Format (STRICT)
 
 Success:
@@ -369,6 +417,18 @@ Success:
   "status": "success",
   "output": "Result of the operation (stdout, file path, commit hash, etc.)",
   "requires_review": false,
+  "progress": {
+    "current": "complete",
+    "total_milestones": 4,
+    "completed": 4,
+    "timeline": [
+      {"milestone": "validate_step", "status": "ok", "elapsed_ms": 1},
+      {"milestone": "executing", "status": "ok", "elapsed_ms": 320},
+      {"milestone": "verify", "status": "ok", "elapsed_ms": 180},
+      {"milestone": "complete", "status": "ok", "elapsed_ms": 0}
+    ],
+    "total_elapsed_ms": 501
+  },
   "verification": {
     "checked": true,
     "method": "file_exists|diff_stat|exit_code",
@@ -393,6 +453,18 @@ Failure:
     "probable_cause": "..."
   },
   "requires_review": false,
+  "progress": {
+    "current": "executing",
+    "total_milestones": 4,
+    "completed": 1,
+    "timeline": [
+      {"milestone": "validate_step", "status": "ok", "elapsed_ms": 1},
+      {"milestone": "executing", "status": "fail", "elapsed_ms": 1200},
+      {"milestone": "verify", "status": "skipped", "elapsed_ms": null},
+      {"milestone": "complete", "status": "skipped", "elapsed_ms": null}
+    ],
+    "total_elapsed_ms": 1201
+  },
   "verification": {
     "checked": true,
     "method": "exit_code",
