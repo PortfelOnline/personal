@@ -57,6 +57,7 @@ Before executing ANY step, run these checks:
 
 ```
 □ Is the tool in the allowed list? (filesystem|git|shell|http|mcp|browser)
+□ Permission check — does action pass allow/deny/ask resolution?
 □ Is the action non-destructive? (no rm -rf, sudo, force push)
 □ Is the risk level consistent with the action? (high-risk = high-risk action)
 □ Is the step atomic? (one tool, one purpose)
@@ -64,6 +65,83 @@ Before executing ANY step, run these checks:
 ```
 
 If ANY check fails → return `{ "status": "blocked", "error": "<which check failed>", "requires_review": true }`. Do NOT execute.
+
+## Permission Modes (#29)
+
+Mirrors Claude Code's `permissions` system. Before executing, resolve the permission decision for the step.
+
+### Permission Resolution
+
+The executor receives a `permissions` context from the manager:
+
+```json
+"permissions": {
+  "mode": "acceptEdits",          // default | acceptEdits | plan | dontAsk
+  "allow": ["Bash(git *)", "Bash(npm *)", "Bash(ls)", "Read", "Grep", "Glob"],
+  "deny": ["Bash(rm -rf *)", "Bash(sudo *)", "Bash(> */dev/*)"],
+  "ask": ["Write(/etc/*)", "Bash(docker *)"]
+}
+```
+
+### Decision Matrix
+
+For each step, resolve permission by checking rules in order:
+
+```
+1. DENY check — does action match any deny pattern?
+   → If YES: BLOCK immediately. requires_review = true.
+   → Record: permission_decision = "deny", matched_rule = "<rule>"
+
+2. ALLOW check — does action match any allow pattern?
+   → If YES: proceed without asking.
+   → Record: permission_decision = "allow", matched_rule = "<rule>"
+
+3. ASK check — does action match any ask pattern?
+   → If YES AND mode != "dontAsk": return blocked, requires_review = true (simulates "ask user")
+   → If YES AND mode == "dontAsk": auto-allow (risk accepted)
+   → Record: permission_decision = "ask"
+
+4. DEFAULT — no rule matched:
+   → mode == "default" → ask (blocked, requires_review = true)
+   → mode == "acceptEdits" → allow for filesystem tools, ask for others
+   → mode == "plan" → allow read-only, ask for write
+   → mode == "dontAsk" → auto-allow
+```
+
+### Pattern Matching
+
+Permission rules use Claude Code's prefix-wildcard syntax:
+
+| Rule | Matches |
+|------|---------|
+| `Bash(git *)` | `git status`, `git commit`, `git push`, etc. |
+| `Write(/etc/*)` | Any Write to /etc/ |
+| `Read` | All Read operations |
+| `Bash(npm run test)` | Exact match only |
+
+### Permission Output
+
+Add to every response:
+
+```json
+"permission": {
+  "decision": "allow|deny|ask",
+  "matched_rule": "Bash(git *)",
+  "mode": "acceptEdits"
+}
+```
+
+If denied: `decision = "deny"`, status = "blocked", error = "Permission denied: matches deny rule 'Bash(rm -rf *)'"
+
+### Mode-Aware Guard Integration
+
+Add to validate_step checks:
+
+```
+□ Permission check — does action pass allow/deny/ask resolution?
+  → If deny: BLOCK. If ask AND mode != dontAsk: BLOCK (needs user).
+  → Record permission.decision and permission.matched_rule
+```
 
 ## Worktree Isolation (EnterWorktree/ExitWorktree)
 
@@ -107,6 +185,7 @@ Add this check to validate_step:
 □ If risk >= "medium" AND step modifies files → is worktree isolation active?
   → If no: return blocked, request manager to re-dispatch with isolation
   → If yes: proceed
+□ If mode == "plan" AND step.tool in [Write, Edit, Bash] → BLOCK (plan mode is read-only)
 ```
 
 ### Worktree in Verification
@@ -417,6 +496,11 @@ Success:
   "status": "success",
   "output": "Result of the operation (stdout, file path, commit hash, etc.)",
   "requires_review": false,
+  "permission": {
+    "decision": "allow",
+    "matched_rule": "Bash(git *)",
+    "mode": "acceptEdits"
+  },
   "progress": {
     "current": "complete",
     "total_milestones": 4,
@@ -482,6 +566,11 @@ Blocked (guard violation):
   "status": "blocked",
   "error": "Guard check failed: <which check>",
   "requires_review": true,
+  "permission": {
+    "decision": "deny",
+    "matched_rule": "Bash(rm -rf *)",
+    "mode": "acceptEdits"
+  },
   "verification": {
     "checked": true,
     "method": "guard_check",
