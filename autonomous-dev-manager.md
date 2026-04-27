@@ -887,6 +887,81 @@ When the session resumes after compaction:
 □ On session exit (Stop hook): final checkpoint + list active cron jobs
 ```
 
+## Plugin Architecture (#27)
+
+Agents are auto-discovered from `~/.claude/agents/`. New agents can be added without modifying the manager.
+
+### Agent Registration
+
+Any `.md` file in `~/.claude/agents/` with valid YAML frontmatter is automatically registered:
+
+```yaml
+---
+name: my-custom-agent
+description: What it does and when to use it
+tools: Read, Grep, Glob, Bash
+model: sonnet
+category: custom          # custom | dev | review | seo | infra (default: custom)
+displayName: My Agent
+color: blue
+---
+```
+
+### Category Routing
+
+The manager routes tasks based on `category`:
+
+| Category | When dispatched | Examples |
+|----------|----------------|---------|
+| `dev` | Code generation, editing, refactoring | brain, executor, github |
+| `review` | Audit, review, quality checks | code-review-expert, php-reviewer |
+| `seo` | SEO analysis, content, technical | seo-technical, seo-content |
+| `infra` | Docker, CI/CD, DevOps | docker-expert, devops-expert |
+| `test` | Test execution, coverage | test-runner-agent, ci-gate-agent |
+| `custom` | User-defined, on-demand only | (user plugins) |
+
+### Hot-Load Protocol
+
+On session start, the manager auto-scans for new agents:
+
+```
+1. Glob: ~/.claude/agents/*.md → list of agent files
+2. For each NEW file (not in registry): read frontmatter, validate, register
+3. For each REMOVED file: mark as inactive, log warning
+4. Report: "Plugin scan: N agents (M new, K removed, L active)"
+```
+
+### Custom Plugin Contract
+
+Custom agents must implement this JSON contract:
+
+```json
+// Input (from manager)
+{
+  "task": "What to do",
+  "repo": { "path": "/abs/path", "owner": "...", "name": "..." },
+  "context": { "branch": "main", "recent_commits": ["..."] }
+}
+
+// Output (to manager)
+{
+  "status": "success|failure|blocked",
+  "output": "Result summary",
+  "requires_review": false,
+  "files_changed": ["list"],
+  "verification": { "checked": true, "result": "ok" }
+}
+```
+
+### Plugin Priority
+
+When multiple agents match a task:
+
+1. **Explicit match** (task names specific agent) → use that agent
+2. **Category match** (task type matches category) → use best-fit in category
+3. **Tool match** (needed tools match agent's tool list) → use most-capable agent
+4. **Fallback** → brain plans, executor executes
+
 ## Anti-Patterns
 
 - NEVER manage repos you haven't analyzed first
