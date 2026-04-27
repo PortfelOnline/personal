@@ -224,7 +224,154 @@ Track these metrics live during the session:
 
 Update STATS after every task completion. If any limit is hit → STOP and report.
 
-## 6. Loop Detection (CRITICAL)
+## 6.1 Task Tracking with TaskCreate/TaskUpdate
+
+The manager MUST use the structured task system (`TaskCreate` / `TaskUpdate` / `TaskList`) to track every backlog item. This replaces ad-hoc status tracking and provides dependency management.
+
+### Task Lifecycle
+
+```
+Backlog item identified
+  → TaskCreate({ subject, description, activeForm, metadata: { repo, priority, risk, complexity } })
+  → Status: pending
+
+Dependencies resolved → ready to execute
+  → TaskUpdate({ status: "in_progress", activeForm: "Fixing auth bug" })
+  → Status: in_progress
+
+Execution complete
+  → SUCCESS: TaskUpdate({ status: "completed" })
+  → FAILURE: TaskUpdate({ status: "in_progress" }) — keep open for retry
+  → SKIPPED: TaskUpdate({ status: "completed" }) with metadata.skipped: true
+```
+
+### Dependency Tracking
+
+Before dispatching, check dependencies with `TaskList`:
+
+```
+IF task.blockedBy is non-empty:
+    → do NOT dispatch
+    → wait for blocking tasks to complete
+    → re-check TaskList before dispatching
+
+IF task blocks other tasks:
+    → after completion, those tasks become unblocked automatically
+    → check TaskList for newly unblocked tasks
+```
+
+### Bulk Task Creation (from backlog)
+
+When the backlog generator produces N tasks:
+
+```
+1. Create ALL tasks via TaskCreate (parallel where possible)
+2. After creation, call TaskList to verify all were created
+3. Set up dependencies:
+   - Task A edits file X, Task B edits file X → B blockedBy A
+   - Task A creates function, Task B uses it → B blockedBy A
+   - Security fixes ALWAYS block feature work
+4. Update STATS.tasks_total to match TaskList count
+```
+
+### Task Metadata Schema
+
+```json
+{
+  "metadata": {
+    "repo": "kadmap|audioceh|personal|...",
+    "priority": 1-5,
+    "risk": "low|medium|high",
+    "complexity": "TRIVIAL|LOW|MEDIUM|HIGH|CRITICAL",
+    "estimated_tokens": 500,
+    "skipped": false,
+    "retry_count": 0
+  }
+}
+```
+
+### Sync with Mini Dashboard
+
+After every `TaskUpdate`:
+- `TaskList` → count pending/in_progress/completed → update STATS
+- If completed count = tasks_total → session complete
+- If pending = 0 and in_progress = 0 → idle, check for new backlog
+
+## 7. Interactive Approval Gate (EnterPlanMode)
+
+Before executing MEDIUM+ risk tasks, the manager MUST pause for user approval. This mirrors Claude Code's `EnterPlanMode` → user review → `ExitPlanMode` flow.
+
+### When to Request Approval
+
+```
+ALWAYS pause when:
+  □ risk == "high" or "critical"
+  □ task touches > 5 files across > 2 directories
+  □ task modifies DB schema, auth, or security code
+  □ task is cross-repo (affects multiple services)
+  □ task deletes files or rewrites significant logic
+  □ estimated_tokens > 5000
+
+OPTIONAL pause when:
+  □ risk == "medium" AND complexity == "MEDIUM"
+  □ first task in an unfamiliar repo
+  □ user has not approved any tasks in this session yet
+
+SKIP pause when:
+  □ risk == "low" AND complexity in [TRIVIAL, LOW]
+  □ task matches a known safe pattern (typo, rename, CSS fix)
+  □ user has explicitly said "auto-approve all" or "продолжай без подтверждения"
+```
+
+### Approval Flow
+
+```
+1. MANAGER identifies approval-required task
+2. Display to user:
+   ┌─────────────────────────────────────────┐
+   │ ⏸️  APPROVAL REQUIRED                    │
+   │                                          │
+   │ Task: <subject>                          │
+   │ Repo: <repo>                             │
+   │ Risk: <low|medium|high|critical>         │
+   │ Files: <count> files, <count> dirs       │
+   │ Plan: <brain's plan summary, 1-2 lines>  │
+   │ Est. tokens: <N>                         │
+   │                                          │
+   │ [Approve] [Deny] [Modify]                │
+   └─────────────────────────────────────────┘
+3. User chooses:
+   → Approve: continue execution
+   → Deny: skip task, mark as skipped
+   → Modify: user provides changes, brain revises plan
+4. If no response in 60s → auto-deny (safer than auto-approve)
+5. Track in STATS: approvals_requested, approvals_granted, approvals_denied
+```
+
+### Batch Approval
+
+For multiple MEDIUM tasks in a batch:
+
+```
+If 3+ tasks need approval:
+   → Present as a batch: "3 tasks need approval"
+   → User can approve all, deny all, or pick individually
+   → Approved tasks dispatch in parallel (up to 4)
+   → Denied tasks are skipped
+```
+
+### Manager Integration
+
+```
+Backlog generated
+  → For each task: check risk + complexity
+  → If approval required: present approval gate BEFORE dispatching
+  → Only dispatch AFTER approval granted
+  → Approved tasks: dispatch to brain→executor pipeline
+  → Denied tasks: TaskUpdate(status="completed", metadata.skipped=true)
+```
+
+## 8. Loop Detection (CRITICAL)
 
 ```
 IF last 3 tasks ALL failed:
@@ -245,7 +392,7 @@ IF same file edited 3+ times in one session:
     → Suggest consolidating changes into one edit
 ```
 
-## 7. Executor → Brain Feedback Loop
+## 9. Executor → Brain Feedback Loop
 
 When executor fails, diagnostics MUST feed back to the brain for plan revision.
 
@@ -313,7 +460,7 @@ EXECUTOR FAILS
 
 **Retry budget per session**: max 3 retries total across all tasks.
 
-## 8. Cost Control (TOKEN ECONOMY)
+## 10. Cost Control (TOKEN ECONOMY)
 
 **Rule 1: Route cheap when possible**
 - Simple tasks (under ~100 chars description, single-file change) → executor directly
@@ -328,25 +475,57 @@ EXECUTOR FAILS
 - Multiple small fixes in same repo → one branch, one PR
 - Don't create 5 PRs for 5 one-line fixes
 
-## 9. Quality Gate
+## 11. Quality Gate
 
 Before any merge, check ALL of these:
 
+### Active Checks (dispatch agents)
+
 ```
-□ Review passed (no critical issues)
-□ CI Gate passed (syntax/lint/type checks — php -l, tsc, eslint, go vet)
-□ Tests passing (if CI configured)
-□ No security regressions
-□ No API contract breaks
-□ Cross-repo impact assessed
-□ Diff is minimal (not bloated)
-□ PR quality filter passed (should_create_pr)
-□ No debugging artifacts in diff
+□ CI Gate — Agent(ci-gate-agent, "Verify <repo> at <path>")
+  → Returns: { ci_gate: { passed: bool, stacks_detected: [...], checks: [...], recommendation: "proceed|block|warn" } }
+  → If blocked: mark requires_review, do NOT proceed
+  → Internally dispatches test-runner-agent for test execution
+
+□ Review — Agent(code-review-expert, "Review changes in <repo>")
+  → Returns: issues by severity (critical/high/medium/low)
+  → If critical issues: block merge
+```
+
+### Passive Checks (manager verifies)
+
+```
+□ No security regressions (check diff for secrets, unsafe patterns)
+□ No API contract breaks (check for changed signatures, removed endpoints)
+□ Cross-repo impact assessed (check dependent repos)
+□ Diff is minimal (not bloated — < 200 lines for auto-merge)
+□ PR quality filter passed (should_create_pr check)
+□ No debugging artifacts in diff (console.log, dump(), var_dump, dd())
+```
+
+### CI Gate Integration
+
+The CI gate is a HARD gate — if it fails, even low-risk changes are blocked:
+
+```
+1. github/gitlab agent finishes commit → BEFORE merge decision
+2. Dispatch: Agent(ci-gate-agent, "Verify repo at <path>")
+3. ci-gate-agent internally:
+   → Detects stack (composer.json, tsconfig.json, go.mod, etc.)
+   → Runs syntax/lint (php -l, tsc --noEmit, eslint, go vet, cargo check)
+   → Dispatches Agent(test-runner-agent) for test execution
+   → Returns structured report
+4. Manager checks ci_gate.passed:
+   → true: continue to merge decision
+   → false: block merge, report failures, mark requires_review
+5. If ci-gate-agent itself fails (timeout, tool error):
+   → Treat as CI failure (block, not skip)
+   → Safety: never merge without CI verification
 ```
 
 **FAIL any check → mark `requires_review: true`, do NOT merge**
 
-## 10. Anti-Degradation Protection
+## 12. Anti-Degradation Protection
 
 **Rate limiting:**
 ```
@@ -363,7 +542,7 @@ if PR open > 7 days with no activity:
     → mark for attention
 ```
 
-## 11. Cross-Repo Synchronization
+## 13. Cross-Repo Synchronization
 
 When a change in one repo affects others:
 
@@ -379,7 +558,7 @@ if shared library/dependency changes:
     → coordinate merge order
 ```
 
-## 12. SAFE_MODE (always ON)
+## 14. SAFE_MODE (always ON)
 
 ```
 AUTO-MERGE allowed ONLY when:
@@ -397,7 +576,7 @@ EVERYTHING ELSE:
   → wait for manual approval
 ```
 
-## 13. Health Check
+## 15. Health Check
 
 At any point, you can assess system health:
 
@@ -410,7 +589,7 @@ At any point, you can assess system health:
 □ Session task limit reached → STOP, produce final report
 ```
 
-## 14. Session Report
+## 16. Session Report
 
 At the end of each session, produce:
 

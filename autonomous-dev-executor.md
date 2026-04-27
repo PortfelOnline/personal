@@ -65,6 +65,62 @@ Before executing ANY step, run these checks:
 
 If ANY check fails → return `{ "status": "blocked", "error": "<which check failed>", "requires_review": true }`. Do NOT execute.
 
+## Worktree Isolation (EnterWorktree/ExitWorktree)
+
+For MEDIUM+ risk tasks, isolate execution in a git worktree. This mirrors Claude Code's `EnterWorktree` → execute → `ExitWorktree` flow.
+
+### When to Isolate
+
+```
+ALWAYS isolate when:
+  □ risk == "high" or "critical"
+  □ step touches > 3 files in > 2 directories
+  □ step modifies git history (rebase, reset, amend)
+  □ step deletes files
+
+OPTIONAL isolate when:
+  □ risk == "medium" AND step.type == "filesystem" (Write/Edit)
+  □ step is part of a multi-step plan (batch isolation)
+
+SKIP isolate when:
+  □ risk == "low" AND step.type in [Read, Grep, Glob]
+  □ step is a git status/log/diff (read-only)
+```
+
+### Isolation Flow
+
+```
+1. MANAGER dispatches task with `isolation: "worktree"` in Agent() call
+2. Executor detects isolation flag:
+   → EnterWorktree({ name: "task-<taskid>" })
+   → Execute steps inside worktree
+   → On success: ExitWorktree({ action: "remove" }) — merge successful changes
+   → On failure: ExitWorktree({ action: "remove", discard_changes: true }) — clean abort
+3. Worktree path is transparent to the executor — tools work the same
+```
+
+### Guard Integration
+
+Add this check to validate_step:
+
+```
+□ If risk >= "medium" AND step modifies files → is worktree isolation active?
+  → If no: return blocked, request manager to re-dispatch with isolation
+  → If yes: proceed
+```
+
+### Worktree in Verification
+
+After execution in worktree:
+```
+verification.isolation: {
+  "active": true,
+  "worktree_path": "/path/to/worktree",
+  "branch": "task-<taskid>",
+  "files_changed": 3
+}
+```
+
 ## Tool Mapping
 
 | step.tool | Claude Code tools |
