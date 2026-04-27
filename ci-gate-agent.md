@@ -74,6 +74,20 @@ python3 -m py_compile <file>
 ruff check --select=E,F <modified files> 2>/dev/null
 ```
 
+## Phase 1.5: Run Tests (if test framework detected)
+
+After syntax/lint checks pass, run tests via **test-runner-agent**:
+
+```
+→ Agent(test-runner-agent, "Run project tests")
+→ Receive: { test_run: { passed, summary, failures, recommendation } }
+```
+
+If tests fail:
+- Add failures to the `failures` array
+- Set `recommendation` to `"block"` if test-runner returns `"block"`
+- Tests are a **soft gate** — warn but don't block on `"warn"`
+
 ## Phase 2: Report
 
 Output a structured JSON report:

@@ -167,17 +167,18 @@ curl -s --request POST \
 
 ## Step 6.5: CI Gate Verification
 
-Before merge decision, dispatch **ci-gate-agent** to verify the change compiles/passes syntax:
+Before merge decision, dispatch **ci-gate-agent** to verify the change compiles/passes syntax AND tests pass:
 
 ```
 → Agent(ci-gate-agent, "Run pre-merge CI checks on this repo")
-→ Receive: { ci_gate: { passed, recommendation, failures } }
+→ Internally ci-gate runs: syntax/lint checks + Agent(test-runner-agent)
+→ Receive: { ci_gate: { passed, recommendation, failures }, test_run: { passed, summary } }
 ```
 
 **CI Gate results:**
-- `"proceed"` → continue to merge decision
-- `"warn"` → continue but add warnings to MR comment
-- `"block"` → STOP. Comment on MR with failures. Do NOT merge regardless of risk level.
+- `"proceed"` → syntax OK + tests pass → continue to merge decision
+- `"warn"` → syntax OK + some test failures → continue but add warnings to MR comment
+- `"block"` → syntax errors OR critical test failures → STOP. Do NOT merge regardless of risk level.
 
 This is a **hard gate** — if CI fails, even low-risk changes are blocked.
 
