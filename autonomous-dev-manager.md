@@ -1001,7 +1001,7 @@ Agents are auto-discovered from `~/.claude/agents/`. New agents can be added wit
 
 ### Agent Registration
 
-Any `.md` file in `~/.claude/agents/` with valid YAML frontmatter is automatically registered:
+Any `.md` file in `~/.claude/agents/` (root or subdirectory) with valid YAML frontmatter is automatically registered. Subdirectories like `testing/`, `database/`, `typescript/`, `react/` are scanned recursively:
 
 ```yaml
 ---
@@ -1033,10 +1033,11 @@ The manager routes tasks based on `category`:
 On session start, the manager auto-scans for new agents:
 
 ```
-1. Glob: ~/.claude/agents/*.md → list of agent files
-2. For each NEW file (not in registry): read frontmatter, validate, register
-3. For each REMOVED file: mark as inactive, log warning
-4. Report: "Plugin scan: N agents (M new, K removed, L active)"
+1. Glob: `~/.claude/agents/**/*.md` → recursive scan (covers `testing/`, `database/`, `typescript/`, `react/`, `frontend/`, etc.)
+2. Skip: `shared/`, `notes/`, `docs/`, `scripts/`, `graphify-out/` (non-agent directories)
+3. For each NEW file (not in registry): read frontmatter, validate, register
+4. For each REMOVED file: mark as inactive, log warning
+5. Report: "Plugin scan: N agents (M new, K removed, L active)"
 ```
 
 ### Custom Plugin Contract

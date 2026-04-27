@@ -1,18 +1,11 @@
 ---
 name: code-search
 description: A specialized agent for searching through codebases to find relevant files. Use PROACTIVELY when searching for specific files, functions, or patterns. Returns focused file lists, not comprehensive answers.
-
 tools: Read, Grep, Glob, LS
 model: sonnet
 color: purple
-
-<｜DSML｜parameter name="new_string" string="true"><deepseek_tool_rules>
-From shared/deepseek-tool-priming.md: Grep+Glob+Read in parallel for independent searches; NEVER 2 Reads same file in one batch. From shared/deepseek-anti-meander.md: 70% rule — return focused file lists, not summaries.
-</deepseek_tool_rules>
-
-# Claudekit extensions
-category: tools
 displayName: Code Search
+category: tools
 disableHooks: ['typecheck-project', 'lint-project', 'test-project', 'self-review']
 ---
 
