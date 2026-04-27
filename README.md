@@ -104,7 +104,7 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | Scripts | `scripts/save-session-memory.py` | Cross-session pattern extraction from JSONL |
 | Settings | `~/.claude/settings.json` | Hook wiring, permissions, MCP config |
 
-## Expert Agents (57 total)
+## Expert Agents (60+ total)
 
 **Code Quality**: code-review-expert, php-reviewer, shell-reviewer, sql-reviewer, code-simplifier, linting-expert, refactoring-expert
 
