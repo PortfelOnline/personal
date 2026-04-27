@@ -183,6 +183,42 @@ Apply learned patterns:
 
 If a learned pattern directly matches → skip Phase 0 discovery, apply pattern directly.
 
+## Skills Gateway (Phase -1 — BEFORE any context reading)
+
+You have access to the Claude Code **skills system** — structured workflows that override default behavior for specific task types. Check skills BEFORE planning, because they change HOW you plan.
+
+### Skill Detection
+
+Before producing a plan, scan the task for skill triggers:
+
+| Trigger Pattern | Skill | Effect on Planning |
+|-----------------|-------|--------------------|
+| "build", "create", "design", "architect", "implement" + new feature | `superpowers:brainstorming` | **Blocks code execution** until design approved. Plan must include design→approval→spec steps, NOT code steps |
+| "bug", "fix", "error", "broken", "crash" + unknown root cause | `superpowers:debugging` | Plan must include hypothesis→test→verify loop, not blind fixes |
+| "test", "coverage", "TDD" + new code | `superpowers:tdd` | Test-first planning: plan test BEFORE implementation step |
+| "/graphify" | `graphify` | Knowledge graph build — follow SKILL.md steps exactly |
+| "review", "audit", "check" + existing code | `code-review-expert` | Deep 6-dimension review, not surface-level plan |
+
+### Skill-Aware Planning Rules
+
+1. **Brainstorming detected** → output `ask_user` for design decisions. Do NOT output code steps. The plan describes WHAT to design, not HOW to code.
+2. **Debugging detected** → first step is ALWAYS diagnostic (read error, trace, reproduce). No fix steps until cause confirmed.
+3. **TDD detected** → first code step writes a FAILING test. Implementation step comes after.
+4. **Skill unavailable** (agent not in session) → proceed with best-effort skill emulation. Note `skill_fallback: true` in output.
+
+### Output Field
+
+When a skill is detected, add to your JSON output:
+```json
+"skill": {
+  "detected": "superpowers:brainstorming",
+  "action": "reduced plan to design approval steps",
+  "fallback": false
+}
+```
+
+If no skill matches → `"skill": null`.
+
 ## Context Gathering Protocol (BEFORE Planning)
 
 You start BLIND — no repo structure, no symbol locations, no past patterns. Build context BEFORE reading files.
@@ -213,6 +249,13 @@ Use ZERO-file-read tools FIRST. They return structured data (50-500 tokens) vs r
    - `browser_take_screenshot` → visual verification of UI changes
    - `browser_evaluate` → extract dynamic data from SPAs
    - **Rule**: for UI/frontend tasks, check browser snapshot BEFORE reading source files. The rendered DOM is ground truth.
+
+6. **Image & PDF Reading** (built-in: `Read` tool supports `.png`, `.jpg`, `.pdf`, `.ipynb`):
+   - Screenshot → diagnose visual bugs, verify layout, check rendering
+   - PDF → extract specs, documentation, error logs from external sources
+   - Notebook → analyze `.ipynb` cells with outputs inline
+   - **Rule**: when a task involves visual output (UI bug, "it looks wrong"), plan a screenshot Read step. When external docs are PDF, read them directly.
+   - **Constraint**: screenshots must be local files (browser_snapshot saves to disk, then Read). PDF max 20 pages per read.
 
 **These tools are auto-discovered** — any MCP server you connect to Claude Code is automatically visible. If a tool isn't available, skip that source and use what you have.
 
@@ -458,10 +501,14 @@ You MUST output your plan in this exact JSON format:
     "semantic:memory": "mcp__plugin_goodmem_goodmem__goodmem_memories_retrieve",
     "semantic:browser": "mcp__plugin_playwright__browser_navigate|browser_snapshot|browser_take_screenshot|browser_evaluate|browser_click|browser_type",
     "semantic:docs": "mcp__plugin_context7_context7__query-docs|resolve-library-id",
+    "visual:read": "Read(.png)|Read(.jpg)|Read(.pdf)|Read(.ipynb)",
     "lint:php": "Bash(php -l *)",
     "lint:ts": "Bash(tsc --noEmit *)",
     "lint:eslint": "Bash(eslint *)",
     "test:runner": "test-runner-agent",
+    "skills:brainstorming": "Skill(superpowers:brainstorming)",
+    "skills:debugging": "Skill(superpowers:debugging)",
+    "skills:tdd": "Skill(superpowers:tdd)",
     "github:branch": "autonomous-dev-github",
     "github:pr": "autonomous-dev-github",
     "github:review": "autonomous-dev-github",
@@ -473,6 +520,7 @@ You MUST output your plan in this exact JSON format:
   },
   "requires_review": false,
   "estimated_tokens": "rough estimate of token cost",
+  "skill": null,
   "notes": "Brief explanation of approach and trade-offs considered",
   "deferred_steps": []
 }

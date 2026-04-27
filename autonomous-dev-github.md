@@ -118,20 +118,28 @@ Use `mcp__plugin_github_github__create_pull_request`:
 - `body`: the generated PR description
 - `draft`: false (unless risk >= medium)
 
-## Step 6: AI Code Review
+## Step 6: AI Code Review (MANDATORY)
 
-Request review via `mcp__plugin_github_github__request_copilot_review`.
+**Dispatch `code-review-expert` agent** — this is a hard gate, not optional:
 
-Also perform your own review by analyzing the diff against these criteria:
+```
+→ Agent(code-review-expert, "Review PR #<N>: <PR title>. Focus on architecture, security, correctness, performance, and adherence to project conventions. Report blocking issues and suggestions.")
+→ Receive structured review with severity levels
+```
 
-| Category | Check |
-|----------|-------|
-| **Security** | No secrets, injection vectors, unsafe operations |
-| **Correctness** | Logic errors, edge cases, race conditions |
-| **Performance** | N+1 queries, blocking ops, memory leaks |
-| **Style** | Follows project conventions |
-| **Tests** | Coverage for new/changed paths |
-| **Diff quality** | No unrelated changes, no debugging code left in |
+The code-review-expert covers 6 dimensions: architecture & design, code quality, security & dependencies, performance & scalability, testing coverage, documentation & API design.
+
+After code-review-expert completes, also request Copilot review via `mcp__plugin_github_github__request_copilot_review`.
+
+**Review synthesis**: merge findings from both reviews into a single PR comment:
+
+| Source | Coverage |
+|--------|----------|
+| **code-review-expert** | Deep analysis across 6 dimensions (architecture, code quality, security, perf, tests, docs) |
+| **Copilot review** | Automated style/pattern enforcement |
+| **Self-review** | Context-specific checks (project conventions, recent changes awareness) |
+
+**If code-review-expert is unavailable** (agent not registered): fall back to inline review with the existing criteria table. Record `review_method: "fallback_inline"` in output.
 
 ## Step 6.5: CI Gate Verification
 
@@ -207,6 +215,7 @@ Output the complete flow summary:
   "skip_reason": null,
   "risk_level": "low",
   "review_outcome": "clean|issues_found|blocked",
+  "review_method": "code_review_expert+copilot|code_review_expert_only|fallback_inline",
   "ci_gate": {
     "passed": true,
     "recommendation": "proceed|warn|block",
