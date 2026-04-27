@@ -716,6 +716,177 @@ At the end of each session, produce:
 }
 ```
 
+## 17. Scheduled Maintenance (CronCreate)
+
+The manager can schedule recurring maintenance tasks using `CronCreate`. This mirrors Claude Code's cron scheduling for periodic checks.
+
+### When to Schedule
+
+```
+SCHEDULE when:
+  □ Session completes with known follow-up work
+  □ Repo has dependencies that need weekly audit
+  □ Daily health check requested by user
+  □ Recurring task identified (e.g., "run CI every morning at 9am")
+
+Do NOT schedule when:
+  □ Task is one-shot (use regular dispatch)
+  □ Task requires interactive approval
+  □ Task is high-risk or destructive
+```
+
+### Standard Maintenance Cron Jobs
+
+```
+┌────────────────────┬──────────────────────┬───────────────────────────┐
+│ Job                │ Cron                 │ Action                    │
+├────────────────────┼──────────────────────┼───────────────────────────┤
+│ Daily health check │ "37 9 * * *"         │ Agent(triage-expert,      │
+│                    │                      │   "Health check <repo>")  │
+├────────────────────┼──────────────────────┼───────────────────────────┤
+│ Weekly dep audit   │ "13 9 * * 1"         │ Agent(ci-gate-agent,      │
+│                    │ (Monday 9:13am)       │   "Dependency audit")    │
+├────────────────────┼──────────────────────┼───────────────────────────┤
+│ Stale PR cleanup   │ "7 10 * * 1,4"       │ Manager checks for        │
+│                    │ (Mon/Thu 10:07am)     │   PRs open > 7 days      │
+├────────────────────┼──────────────────────┼───────────────────────────┤
+│ Backlog refresh    │ "23 8 * * 1-5"       │ Manager re-scans repos    │
+│                    │ (Weekdays 8:23am)     │   for new issues          │
+└────────────────────┴──────────────────────┴───────────────────────────┘
+
+All cron times use OFF-PEAK minutes (not :00 or :30) to avoid API fleet congestion.
+```
+
+### CronCreate Integration
+
+```
+1. Manager identifies recurring task during session
+2. CronCreate({
+     cron: "37 9 * * *",
+     prompt: "Agent(triage-expert, 'Daily health check for kadmap repo at ~/kadmap')",
+     recurring: true,
+     durable: false  // session-only, dies on restart unless user says "make permanent"
+   })
+3. Track in STATS: cron_jobs_scheduled
+4. On session end: list active cron jobs, ask user which to keep
+```
+
+### Cron Safety
+
+```
+□ Max 5 active cron jobs per session
+□ All cron jobs are session-only (durable: false) unless user says "make permanent"
+□ Cron jobs auto-expire after 7 days (recurring) or on first fire (one-shot)
+□ Never schedule destructive operations via cron
+□ If a cron job fails 3 consecutive times → auto-delete and notify
+```
+
+## 18. Context Compaction Awareness (PreCompact/PostCompact)
+
+Context windows have finite size. When compaction is triggered, the system truncates the conversation — losing task state, decisions, and in-progress work. The manager MUST be compaction-aware.
+
+### PreCompact: What to Preserve
+
+When a PreCompact hook fires (or the manager detects imminent compaction), save this minimal survival kit:
+
+```
+CRITICAL (must survive):
+  □ Session checkpoint JSON → write to disk (already done by §6.2)
+  □ Current task ID + status → must be in checkpoint
+  □ Backlog snapshot (task IDs + statuses only, not full descriptions)
+  □ Last 3 decisions + rationale (one-liners)
+  □ Active cron job IDs (for re-arming after resume)
+
+NICE-TO-HAVE (regenerate if lost):
+  □ Repo registry (can re-scan)
+  □ Full backlog descriptions (can re-derive)
+  □ Stats counters (cumulative, can rebuild from task history)
+  □ Cross-repo impact graph (can re-analyze)
+```
+
+### PreCompact Hook Configuration
+
+```json
+{
+  "hooks": {
+    "PreCompact": [{
+      "matcher": "",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 ~/.claude/scripts/save-session-memory.py \"$CLAUDE_TRANSCRIPT_PATH\" --dry-run"
+      }]
+    }]
+  }
+}
+```
+
+### Manager PreCompact Checklist
+
+When compaction is imminent, the manager MUST:
+
+```
+1. Flush checkpoint → write to .claude/checkpoints/<session-id>.json
+2. Update STATS snapshot with current counters
+3. Log: "Compaction at <timestamp> — preserved: <checkpoint>, <N> tasks, <M> cron jobs"
+4. If mid-task-execution:
+   - Mark current task as in_progress (not completed)
+   - Save brain's current plan step index
+   - On resume: re-dispatch from saved step, not from scratch
+```
+
+### PostCompact Recovery
+
+When the session resumes after compaction:
+
+```
+1. Read checkpoint file → .claude/checkpoints/<session-id>.json
+2. Verify checkpoint age < 24h (if older → warn, ask user)
+3. Restore state:
+   □ Re-arm cron jobs (re-CronCreate with same schedule)
+   □ Re-build mini dashboard from checkpoint stats
+   □ Resume current task (re-dispatch to brain if mid-execution)
+   □ Log: "Resumed after compaction — <N> tasks done, <M> remaining"
+4. If checkpoint is missing or corrupted:
+   □ Re-scan repos → rebuild registry
+   □ Re-derive backlog from open issues/PRs
+   □ Log: "Checkpoint lost — rebuilt from repo state"
+```
+
+### Compaction-Safe State Format
+
+```json
+{
+  "compaction_safe": true,
+  "compacted_at": "2026-04-27T18:30:00+05:30",
+  "survival_kit": {
+    "current_task": {"id": "12", "status": "in_progress", "brain_step": 3},
+    "completed": ["1","2","3","4","5","6","7","8","9","10","11"],
+    "pending": ["13","14","15"],
+    "cron_jobs": ["job-daily-health", "job-weekly-deps"],
+    "last_decisions": [
+      "Tier 2 complete — all 3 improvements (#14,#15,#16) done",
+      "Tier 3 in progress — #17 Monitor done, #18 CronCreate done",
+      "Next: #19 compaction awareness"
+    ],
+    "stats_snapshot": {
+      "tasks_completed": 11,
+      "tokens_spent_est": 45000,
+      "session_duration_min": 180
+    }
+  }
+}
+```
+
+### Anti-Loss Rules
+
+```
+□ Checkpoint EVERY task completion (not just on compaction)
+□ Checkpoint file is append-only — never truncate, only add
+□ Keep last 3 checkpoints as fallback (session-id.json, session-id.json.1, session-id.json.2)
+□ If checkpoint write fails → log error, retry with /tmp/ fallback path
+□ On session exit (Stop hook): final checkpoint + list active cron jobs
+```
+
 ## Anti-Patterns
 
 - NEVER manage repos you haven't analyzed first

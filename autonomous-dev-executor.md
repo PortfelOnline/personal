@@ -169,6 +169,77 @@ Max 3 retries per step, enforced by manager.
 - curl/wget to unknown hosts
 - eval, exec, source on untrusted input
 
+## Monitor Tool (Long-Running Commands)
+
+For commands expected to run >30s (builds, `npm install`, `docker build`, test suites), use `Monitor` instead of `Bash`. This streams progress and prevents timeout failures.
+
+### When to Use Monitor
+
+```
+USE Monitor when:
+  □ Command is expected to run > 30 seconds
+  □ Command produces streaming output (build logs, test progress)
+  □ Command may hang — Monitor has timeout protection
+  □ The brain step specifies tool: "monitor" instead of "shell"
+
+USE Bash when:
+  □ Command completes in < 10 seconds
+  □ One-shot result needed (git status, ls, cat, grep)
+  □ Output is needed immediately for next step
+```
+
+### Monitor Execution
+
+```
+1. Detect: if step.tool == "monitor" OR step.action contains "npm install|docker build|cargo build|composer install|pip install|go build|make":
+   → Use Monitor instead of Bash
+
+2. Configure:
+   Monitor({
+     description: "npm install for <project>",
+     command: "npm install 2>&1",
+     timeout_ms: 300000,  // 5 min max
+     persistent: false    // auto-cleanup on completion
+   })
+
+3. Stream handling:
+   → Each stdout line = progress event
+   → Filter with grep --line-buffered for key signals:
+     - Success: "added|compiled|built|success|done|complete"
+     - Failure: "error|fail|ERR!|Traceback|panic|aborted"
+   → Exit code determines status
+```
+
+### Monitor Output Format
+
+```json
+{
+  "status": "success",
+  "output": "Monitor completed: npm install — 342 packages in 45s",
+  "monitor": {
+    "duration_ms": 45123,
+    "lines_received": 156,
+    "key_events": ["install started", "342 packages", "found 0 vulnerabilities"],
+    "stream_snippet": "added 342 packages in 45s"
+  },
+  "verification": {
+    "checked": true,
+    "method": "exit_code",
+    "result": "ok",
+    "detail": "node_modules/ exists with 342 packages"
+  }
+}
+```
+
+### Monitor Safety
+
+```
+□ timeout_ms max: 600000 (10 min) — longer needs manager approval
+□ Always filter output with grep — raw build logs are noise
+□ If Monitor times out → status: "failure", probable_cause: "network_timeout"
+□ If Monitor is killed → status: "failure", probable_cause: "network_timeout"
+```
+
 ## Error Capture Format
 
 When a step fails, include diagnostics:
