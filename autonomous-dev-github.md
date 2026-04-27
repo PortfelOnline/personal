@@ -133,14 +133,36 @@ Also perform your own review by analyzing the diff against these criteria:
 | **Tests** | Coverage for new/changed paths |
 | **Diff quality** | No unrelated changes, no debugging code left in |
 
+## Step 6.5: CI Gate Verification
+
+Before merge decision, dispatch **ci-gate-agent** to verify the change compiles/passes syntax:
+
+```
+→ Agent(ci-gate-agent, "Run pre-merge CI checks on this repo")
+→ Receive: { ci_gate: { passed, recommendation, failures } }
+```
+
+**CI Gate results:**
+- `"proceed"` → continue to merge decision
+- `"warn"` → continue but add warnings to PR comment
+- `"block"` → STOP. Comment on PR with failures. Do NOT merge regardless of risk level.
+
+This is a **hard gate** — if CI fails, even low-risk changes are blocked.
+
 ## Step 7: Merge Decision
 
 Apply SAFE_MODE rules:
 
 ```
-if risk == "low" AND review == "clean":
+if CI gate == "block":
+    → STOP. Comment with failures. requires_review = true.
+
+if risk == "low" AND review == "clean" AND CI gate == "proceed":
     → AUTO-MERGE via mcp__plugin_github_github__merge_pull_request
     → merge_method: "squash"
+
+if risk == "low" AND CI gate == "warn":
+    → AUTO-MERGE but add CI warnings to merge commit body
 
 if risk == "medium" OR review has non-critical issues:
     → COMMENT on PR with findings
@@ -184,6 +206,11 @@ Output the complete flow summary:
   "skip_reason": null,
   "risk_level": "low",
   "review_outcome": "clean|issues_found|blocked",
+  "ci_gate": {
+    "passed": true,
+    "recommendation": "proceed|warn|block",
+    "checks_run": ["php: pass", "typescript: warn"]
+  },
   "merge_status": "merged|pending_approval|blocked",
   "requires_review": false,
   "quality_checks": {

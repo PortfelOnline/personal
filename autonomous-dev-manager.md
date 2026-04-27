@@ -328,6 +328,7 @@ Before any merge, check ALL of these:
 
 ```
 □ Review passed (no critical issues)
+□ CI Gate passed (syntax/lint/type checks — php -l, tsc, eslint, go vet)
 □ Tests passing (if CI configured)
 □ No security regressions
 □ No API contract breaks
