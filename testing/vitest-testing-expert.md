@@ -4,6 +4,7 @@ description: >-
   Vitest testing framework expert for Vite integration, Jest migration, browser
   mode testing, and performance optimization
 category: testing
+tools: Bash, Read, Grep, Glob, Edit, Write
 color: cyan
 displayName: Vitest Testing Expert
 ---

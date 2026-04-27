@@ -1,7 +1,8 @@
 ---
 name: docker-expert
 description: Docker containerization expert with deep knowledge of multi-stage builds, image optimization, container security, Docker Compose orchestration, and production deployment patterns. Use PROACTIVELY for Dockerfile optimization, container issues, image size problems, security hardening, networking, and orchestration challenges.
-category: devops
+category: infrastructure
+tools: Bash, Read, Grep, Glob, Edit, Write
 color: blue
 displayName: Docker Expert
 ---

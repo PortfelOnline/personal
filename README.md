@@ -54,7 +54,7 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 - **high/critical**: blocked, requires review
 - **CI gate failure**: blocked regardless of risk level
 
-## Claude Code Parity — 25 Improvements (#10–#34)
+## Claude Code Parity — 26 Improvements (#10–#35)
 
 | Tier | # | Feature | Status |
 |------|---|---------|--------|
@@ -83,6 +83,7 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | | #32 | WebSearch in Phase 0 + tool_map | ✅ |
 | | #33 | Multi-model routing (sonnet/opus by complexity) | ✅ |
 | | #34 | GitLab↔GitHub parity (code-review-expert in both) | ✅ |
+| **8** | #35 | Agent validation hook (PostToolUse: validate-agents.py) | ✅ |
 
 ## Key Design Decisions
 

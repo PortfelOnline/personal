@@ -2,6 +2,7 @@
 name: jest-testing-expert
 description: Expert in Jest testing framework, advanced mocking strategies, snapshot testing, async patterns, TypeScript integration, and performance optimization
 category: testing
+tools: Bash, Read, Grep, Glob, Edit, Write
 color: green
 displayName: Jest Expert
 ---

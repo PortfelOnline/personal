@@ -1,7 +1,8 @@
 ---
 name: linting-expert
 description: Code linting, formatting, static analysis, and coding standards enforcement across multiple languages and tools
-category: linting
+category: code-quality
+tools: Read, Grep, Glob, Bash, Edit
 color: red
 displayName: Linting Expert
 ---
