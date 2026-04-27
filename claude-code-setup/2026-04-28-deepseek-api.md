@@ -72,7 +72,7 @@ stream_chat("Длинный ответ", callback=on_chunk)
 ## Переменные окружения
 
 ```bash
-export DEEPSEEK_API_KEY="sk-a25ff0053b784671b4ca6e283a8f66ab"
+export DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY"
 export PYTHONPATH="$HOME/.local/lib${PYTHONPATH:+:$PYTHONPATH}"
 ```
 
