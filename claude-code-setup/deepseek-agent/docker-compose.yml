@@ -1,0 +1,14 @@
+services:
+  deepseek-agent:
+    build: .
+    container_name: deepseek-agent
+    restart: unless-stopped
+    ports:
+      - "8766:8766"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8766/health')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
