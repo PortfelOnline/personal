@@ -210,6 +210,8 @@ verification.isolation: {
 | `http` | WebFetch |
 | `mcp` | Available MCP tools |
 | `browser` | Playwright/Chrome MCP tools |
+| `notebook` | NotebookEdit (.ipynb files) |
+| `lsp` | LSP (goToDefinition, findReferences, hover, documentSymbol) |
 
 ## Rules
 
@@ -257,6 +259,21 @@ Max 3 retries per step, enforced by manager.
 - browser_navigate to unknown/untrusted domains
 - browser_evaluate with destructive JS (form submission, payment, data deletion)
 - browser_file_upload (can expose local files)
+
+## Notebook Safety (#46)
+
+**Allowed**: NotebookEdit with edit_mode=replace (edit existing cell), NotebookEdit with edit_mode=insert (add new cell)
+
+**Blocked** — return error with `requires_review: true`:
+- NotebookEdit with edit_mode=delete (can destroy work)
+- NotebookEdit on .ipynb files outside the project directory
+
+**NotebookEdit workflow**:
+```
+1. NotebookEdit({notebook_path, cell_id, new_source, edit_mode: "replace"})  → изменить ячейку
+2. NotebookEdit({notebook_path, new_source, cell_type, edit_mode: "insert"}) → добавить ячейку
+3. Всегда проверять notebook_path — только в рабочей директории проекта
+```
 
 ## Monitor Tool (Long-Running Commands)
 

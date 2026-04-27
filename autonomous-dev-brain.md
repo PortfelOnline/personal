@@ -245,7 +245,7 @@ Use ZERO-file-read tools FIRST. They return structured data (50-500 tokens) vs r
    - `get_symbols_overview` on target file → understand structure without reading it
    - `find_symbol` for key symbols → exact location, no grep guesswork
    - `find_referencing_symbols` → callers, consumers, impact analysis
-   - **Rule**: if the task involves code, at least ONE Serena call before any Read. Skip only if Serena unavailable.
+   - **Rule**: if the task involves code, at least ONE Serena call before any Read. If Serena unavailable → fallback to direct `LSP` tool (`LSP(goToDefinition)`, `LSP(findReferences)`, `LSP(hover)`, `LSP(documentSymbol)`).
 
 4. **Documentation** (if available: Context7 `mcp__plugin_context7__*`):
    - Query library docs → up-to-date API reference
@@ -518,6 +518,7 @@ You MUST output your plan in this exact JSON format:
     "shell": "Bash",
     "semantic:graphify": "mcp__graphify__graphify_query|graphify_explain|graphify_path",
     "semantic:serena": "mcp__serena__find_symbol|get_symbols_overview|find_referencing_symbols",
+    "semantic:lsp": "LSP(goToDefinition)|LSP(findReferences)|LSP(hover)|LSP(documentSymbol)|LSP(workspaceSymbol)",
     "semantic:memory": "mcp__plugin_goodmem_goodmem__goodmem_memories_retrieve",
     "semantic:browser": "mcp__plugin_playwright__browser_navigate|browser_snapshot|browser_take_screenshot|browser_evaluate|browser_click|browser_type",
     "semantic:docs": "mcp__plugin_context7_context7__query-docs|resolve-library-id",

@@ -54,7 +54,7 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 - **high/critical**: blocked, requires review
 - **CI gate failure**: blocked regardless of risk level
 
-## Claude Code Parity — 33 Improvements (#10–#42)
+## Claude Code Parity — 41 Improvements (#10–#50)
 
 | Tier | # | Feature | Status |
 |------|---|---------|--------|
@@ -91,24 +91,32 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | | #40 | PushNotification в менеджере (критические события) | ✅ |
 | | #41 | CronList/CronDelete lifecycle (GC, дедупликация) | ✅ |
 | | #42 | Plugin agent discovery (скан ~/.claude/plugins/cache/) | ✅ |
+| **11** | #43 | ScheduleWakeup pacing (cache-aware интервалы) | ✅ |
+| | #44 | Background task lifecycle (TaskOutput/TaskStop) | ✅ |
+| | #45 | RemoteTrigger (внешний запуск через вебхуки) | ✅ |
+| | #46 | NotebookEdit support (executor tool mapping) | ✅ |
+| | #47 | /init agent (авто-генерация CLAUDE.md) | ✅ |
+| | #48 | LSP fallback (прямой LSP tool если Serena недоступна) | ✅ |
+| | #49 | UserPromptSubmit hook (лог промптов) | ✅ |
+| | #50 | Notification hook (обработка уведомлений) | ✅ |
 
 ## Key Design Decisions
 
 - **JSON-enforced brain output**: no markdown fences, no text outside JSON — prevents DeepSeek meandering
 - **`mcp__*` tool auto-discovery**: brain sees all MCP servers (Serena, Graphify, GitHub, GoodMem, Context7, Playwright, Chrome) without hardcoding
 - **Phase -1 Skills Gateway**: brainstorming/debugging/TDD detected BEFORE context reading — changes plan structure
-- **Phase 0 (8 sources)**: CLAUDE.md → Graphify → GoodMem → Serena (mandatory) → Context7 → Browser → Image/PDF → WebSearch → Episodic Memory — all before first file read
+- **Phase 0 (9 sources)**: CLAUDE.md → Graphify → GoodMem → Serena/LSP (mandatory) → Context7 → Browser → Image/PDF → WebSearch → Episodic Memory — all before first file read
 - **Parallel dispatch**: dependency matrix → max 4 concurrent executors for independent tasks
 - **Feedback loop**: executor failures → diagnostics → brain revised plan (never retry identical step)
 - **SAFE_MODE**: low-risk auto-merge if CI passes + diff < 200 lines; medium needs approval; high/critical blocked
 - **Fast Router**: TRIVIAL/LOW tasks skip brain → executor directly (60-80% token savings)
-- **Hook pipeline**: PreToolUse (edit/destructive guards), PostToolUse (lint, graphify, validate-agents), PostToolUseFailure (error logging), PreCompact/PostCompact (checkpoint), SessionStart (context), Stop (memory, session report)
+- **Hook pipeline**: PreToolUse (edit/destructive guards), PostToolUse (lint, graphify, validate-agents), PostToolUseFailure (error logging), PreCompact/PostCompact (checkpoint), SessionStart (context), Stop (memory, session report), UserPromptSubmit (prompt logging), Notification (alert forwarding)
 
 ## Infrastructure
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| Hooks | `hooks/` | Pre/post tool guards, session lifecycle (10 hooks) |
+| Hooks | `hooks/` | Pre/post tool guards, session lifecycle (12 hooks) |
 | Scripts | `scripts/save-session-memory.py` | Cross-session pattern extraction from JSONL |
 | Settings | `~/.claude/settings.json` | Hook wiring, permissions, MCP config |
 
@@ -150,3 +158,4 @@ See `git log --oneline` for full history. Key milestones:
 - `478f66e` — Tier 7: #30-#34 (auto-loop, CLAUDE.md context, WebSearch, model routing, GitLab parity)
 - `c32fd18` — Tier 8: #35 (agent validation hook — 0 errors across 63 agents)
 - `fbf3128` — Tier 9-10: #36-#42 (hooks: PostToolUseFailure + Pre/PostCompact + session report; semantic: episodic memory + PushNotification + Cron GC + plugin agents)
+- `ec5b8e1` — docs: update README — 33 improvements, Tier 9-10, updated Phase 0 + hooks

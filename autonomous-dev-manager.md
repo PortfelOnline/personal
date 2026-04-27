@@ -6,7 +6,7 @@ description: >-
   targets, cost limits, quality gates, and SAFE_MODE. Use PROACTIVELY when
   working across multiple repositories or when strategic prioritization is needed.
   Dispatches to autonomous-dev-brain → executor → github agents per repo.
-tools: Read, Grep, Glob, Bash, TaskCreate, TaskUpdate, TaskList, Agent, CronCreate, CronList, CronDelete, PushNotification, mcp__plugin_github_github__list_pull_requests, mcp__plugin_github_github__list_commits, mcp__plugin_github_github__get_file_contents, mcp__plugin_github_github__search_repositories, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
+tools: Read, Grep, Glob, Bash, TaskCreate, TaskUpdate, TaskList, TaskGet, TaskOutput, TaskStop, Agent, CronCreate, CronList, CronDelete, ScheduleWakeup, PushNotification, RemoteTrigger, mcp__plugin_github_github__list_pull_requests, mcp__plugin_github_github__list_commits, mcp__plugin_github_github__get_file_contents, mcp__plugin_github_github__search_repositories, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
 model: opus
 category: dev
 displayName: Autonomous Dev Manager (multi-repo)
@@ -476,6 +476,28 @@ Track in checkpoint:
   "last_scan": "2026-04-27T18:30:00+05:30",
   "next_scan": "2026-04-27T18:50:00+05:30"
 }
+```
+
+### ScheduleWakeup Pacing (#43)
+
+Для динамических циклов (`/loop`) `ScheduleWakeup` точнее чем `CronCreate` — учитывает TTL кеша промптов (5 мин) и позволяет гибко менять интервал.
+
+```
+ScheduleWakeup вместо CronCreate когда:
+  □ Активный цикл с вариативным интервалом
+  □ Нужен учёт кеша промптов (< 300s — кеш тёплый, > 300s — холодный)
+  □ Задача ждёт внешнего события (сборка, деплой, ревью)
+
+CronCreate когда:
+  □ Фиксированное расписание (каждый понедельник 9:37)
+  □ Задача должна пережить сессию (durable: true)
+  □ Периодичность > 1 часа
+
+Pacing rules:
+  □ Активная работа (проверка сборки): 60-270s (кеш тёплый)
+  □ Ожидание (сборка/деплой): 300-600s (1 кеш-промах на цикл)
+  □ Холостой ход (нет задач): 1200-1800s (20-30 мин, экономно)
+  □ НИКОГДА 300s ровно — худшее из обоих миров (кеш-промах без амортизации)
 ```
 
 ### Safety Gates
@@ -1185,6 +1207,137 @@ When multiple agents match a task:
 3. **Tool match** (needed tools match agent's tool list) → use most-capable agent
 4. **Fallback** → brain plans, executor executes
 
+## 19. Background Task Lifecycle (#44)
+
+Фоновые задачи (субагенты, CI-джобы, деплои) требуют управления жизненным циклом: запуск → мониторинг → проверка результата → остановка при зависании.
+
+### Task Lifecycle
+
+```
+СОЗДАНИЕ:
+  Agent({run_in_background: true})  → task_id из результата
+  Bash({run_in_background: true})   → task_id из результата
+
+МОНИТОРИНГ:
+  TaskOutput(task_id, block: false, timeout: 5000)  → проверка без блокировки
+  TaskOutput(task_id, block: true, timeout: 60000)  → ждать завершения (макс 60s)
+
+ЗАВЕРШЕНИЕ:
+  TaskStop(task_id)  → принудительная остановка зависшей задачи
+
+ОЧИСТКА:
+  Результат сохраняется в output файл — читать через Read
+```
+
+### TaskOutput — проверка результатов
+
+```
+Когда использовать:
+  □ Фоновый субагент запущен → проверять каждые 30-60s
+  □ CI/CD джоба в процессе → проверять каждые 10-30s
+  □ Деплой в процессе → проверять каждые 5-10s
+  □ Сборка (npm build, docker build) → проверять каждые 10-20s
+
+Не использовать:
+  □ Для мгновенных команд (< 5s) — просто Bash
+  □ Для потокового вывода — использовать Monitor
+```
+
+### TaskStop — остановка зависших
+
+```
+Критерии зависания:
+  □ Агент не ответил за > 5 минут
+  □ Сборка не показала прогресса за > 3 минуты
+  □ Деплой не завершился за > 10 минут
+  □ 3 последовательных проверки TaskOutput показали одинаковый статус
+
+Процедура:
+  1. TaskOutput(task_id, block: false) — проверить статус
+  2. Если статус тот же 3 раза подряд → TaskStop(task_id)
+  3. Логировать: "Task <id> killed after <N>s — no progress"
+  4. Если задача критическая → PushNotification пользователю
+  5. Перепланировать задачу с новым подходом (не повторять идентичный запуск)
+```
+
+### Фоновые задачи в цикле
+
+```
+На старте цикла:
+  □ Проверить все активные фоновые задачи (TaskList)
+  □ Завершённые → прочитать результат, обновить статус
+  □ Зависшие → TaskStop, перепланировать
+  □ Успешные → залогировать, снять из активных
+
+Max concurrent backgrounds:
+  □ Субагенты: 4 одновременно (Parallel dispatch limit)
+  □ Сборки: 2 одновременно (ресурсные ограничения)
+  □ CI джобы: без лимита (внешние)
+```
+
+## 20. RemoteTrigger — внешний запуск (#45)
+
+`RemoteTrigger` позволяет запускать задачи через вебхуки — внешние системы (GitHub webhooks, cron на сервере, CI/CD пайплайны) могут триггерить проверки и запуски без участия пользователя.
+
+### Доступные действия
+
+```
+RemoteTrigger({action: "list"})                    → список всех триггеров
+RemoteTrigger({action: "get", trigger_id: "..."})  → детали одного триггера
+RemoteTrigger({action: "create", body: {...}})     → создать новый триггер
+RemoteTrigger({action: "update", trigger_id: "...", body: {...}}) → обновить
+RemoteTrigger({action: "run", trigger_id: "..."})  → запустить триггер
+```
+
+### Сценарии использования
+
+```
+1. GitHub webhook → триггер → проверка PR:
+   PR opened/updated → RemoteTrigger.run("pr-check") → brain анализирует diff → executor прогоняет тесты
+
+2. Cron на сервере → триггер → health check:
+   Каждые 30 мин → RemoteTrigger.run("health-check") → проверка всех репо → PushNotification если проблемы
+
+3. CI/CD pipeline → триггер → деплой:
+   Сборка завершена → RemoteTrigger.run("deploy-staging") → деплой на стейджинг
+
+4. Внешний мониторинг → триггер → инцидент:
+   Zabbix alert → RemoteTrigger.run("incident-response") → brain диагностика → executor фикс
+```
+
+### Структура триггера
+
+```json
+{
+  "trigger_id": "pr-check",
+  "name": "PR Quality Check",
+  "description": "Анализирует PR и запускает тесты при открытии/обновлении",
+  "enabled": true,
+  "action": {
+    "type": "agent",
+    "agent": "autonomous-dev-brain",
+    "prompt": "Проверь PR #{{pr_number}}: проанализируй diff, найди потенциальные проблемы, верни план проверки"
+  }
+}
+```
+
+### Интеграция с менеджером
+
+```
+На старте сессии:
+  → RemoteTrigger.list() — проверка активных триггеров
+  → Сверить с реестром репо: для каждого репо должен быть pr-check триггер
+  → Если триггер отсутствует → создать
+
+В цикле:
+  → Проверить недавние запуски триггеров (через get + last_run)
+  → Если триггер упал → диагностика + перезапуск
+
+На завершении сессии:
+  → RemoteTrigger.list() — финальное состояние
+  → Отключить триггеры, привязанные к сессии (cleanup)
+```
+
 ## Anti-Patterns
 
 - NEVER manage repos you haven't analyzed first
@@ -1196,3 +1349,5 @@ When multiple agents match a task:
 - NEVER dispatch brain for trivial/low tasks (waste of tokens) — use fast-route patterns above
 - NEVER send "fix typo", "change color", "rename X to Y" to brain — these are executor-only
 - NEVER retry the same step more than 3 times
+- NEVER leave background tasks unmonitored > 5 min
+- NEVER create RemoteTrigger без проверки на дубликаты
