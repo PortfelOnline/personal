@@ -997,7 +997,7 @@ When the session resumes after compaction:
 
 ## Plugin Architecture (#27)
 
-Agents are auto-discovered from `~/.claude/agents/`. New agents can be added without modifying the manager.
+Agents are auto-discovered recursively from `~/.claude/agents/` (22 categories, 57+ agents). New agents can be added without modifying the manager — just drop a `.md` file with YAML frontmatter.
 
 ### Agent Registration
 
@@ -1019,14 +1019,31 @@ color: blue
 
 The manager routes tasks based on `category`:
 
-| Category | When dispatched | Examples |
-|----------|----------------|---------|
-| `dev` | Code generation, editing, refactoring | brain, executor, github |
-| `review` | Audit, review, quality checks | code-review-expert, php-reviewer |
-| `seo` | SEO analysis, content, technical | seo-technical, seo-content |
-| `infra` | Docker, CI/CD, DevOps | docker-expert, devops-expert |
-| `test` | Test execution, coverage | test-runner-agent, ci-gate-agent |
-| `custom` | User-defined, on-demand only | (user plugins) |
+| Category | Directory | When dispatched | Examples |
+|----------|-----------|----------------|---------|
+| `dev` | `/` (root) | Code generation, planning, execution, CI/CD | brain, executor, manager, github, gitlab |
+| `review` | `/` (root) | Audit, review, quality checks | code-review-expert, php-reviewer, sql-reviewer |
+| `code-quality` | `code-quality/`, `/` (root) | Linting, refactoring, style | linting-expert, refactoring-expert, performance-profiler |
+| `testing` | `testing/` | Test execution, frameworks, strategies | testing-expert, jest-testing-expert, vitest-testing-expert |
+| `database` | `database/`, `/` (root) | DB optimization, migrations, schema | database-expert, postgres-expert, mongodb-expert, db-migration-agent |
+| `typescript` | `typescript/` | Type system, build, general TS | typescript-expert, typescript-type-expert, typescript-build-expert |
+| `react` | `react/` | React components, performance | react-expert, react-performance-expert |
+| `frontend` | `frontend/` | Accessibility, CSS, styling | accessibility-expert, css-styling-expert |
+| `build-tools` | `build-tools/` | Bundlers, build optimization | vite-expert, webpack-expert |
+| `infrastructure` | `infrastructure/` | Docker, Nginx, CI/CD, IaC | docker-expert, nginx-reviewer, github-actions-expert, iac-reviewer |
+| `devops` | `devops/` | General DevOps, deployment | devops-expert |
+| `framework` | `framework/` | Next.js, NestJS, LoopBack | nextjs-expert, nestjs-expert, loopback-expert |
+| `nodejs` | `nodejs/` | Node.js runtime, async patterns | nodejs-expert |
+| `git` | `git/` | Git workflows, merge conflicts | git-expert |
+| `documentation` | `documentation/` | Docs quality, structure | documentation-expert |
+| `e2e` | `e2e/` | End-to-end testing | playwright-expert |
+| `kafka` | `kafka/` | Kafka streams, consumers | kafka-expert |
+| `api` | `/` (root) | API design, AI SDK | api-contract-reviewer, ai-sdk-expert |
+| `cli` | `/` (root) | CLI tool development | cli-expert |
+| `seo` | `/` (root) | 17 SEO agents (technical, content, schema, etc.) | seo-technical, seo-content, seo-schema, etc. |
+| `research` | `/` (root) | Research, code search, triage | research-expert, code-search, triage-expert, Explore |
+| `general` | `/` (root) | Oracle, general-purpose | oracle, general-purpose |
+| `custom` | Any | User-defined, on-demand only | (user plugins) |
 
 ### Hot-Load Protocol
 
