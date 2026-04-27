@@ -4,6 +4,7 @@ description: Nest.js framework expert specializing in module architecture, depen
 category: framework
 displayName: Nest.js Framework Expert
 color: red
+tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
 # Nest.js Expert

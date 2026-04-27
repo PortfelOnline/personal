@@ -4,6 +4,7 @@ description: Expert in building npm package CLIs with Unix philosophy, automatic
 category: devops
 displayName: CLI Development Expert
 bundle: [nodejs-expert]
+tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # CLI Development Expert

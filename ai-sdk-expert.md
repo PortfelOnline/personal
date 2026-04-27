@@ -4,6 +4,7 @@ description: Expert in Vercel AI SDK v5 handling streaming, model integration, t
 category: framework
 displayName: AI SDK by Vercel (v5)
 color: blue
+tools: Read, Grep, Glob, Bash
 ---
 
 # AI SDK by Vercel Expert (v5 Focused)
