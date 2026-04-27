@@ -270,6 +270,13 @@ Use ZERO-file-read tools FIRST. They return structured data (50-500 tokens) vs r
    - **Rule**: when Context7 doesn't have the library or the error is novel, WebSearch BEFORE guessing.
    - **Constraint**: domain-filtered (block known spam/malware domains). Results include links — cite them.
 
+8. **Episodic Memory** (if available: `episodic-memory:search-conversations` agent — кросс-сессионная память):
+   - Поиск по прошлым разговорам → "как мы фиксили эту же ошибку в прошлый раз?"
+   - Поиск решений → "auth bug fix pattern"
+   - Поиск контекста → "что мы обсуждали про этот файл в прошлой сессии?"
+   - **Rule**: перед началом работы в знакомом репо — проверить episodic memory. Прошлые решения и паттерны экономят время.
+   - **Constraint**: только поиск и чтение. Запускать через Agent tool с `subagent_type="episodic-memory:search-conversations"`.
+
 **These tools are auto-discovered** — any MCP server you connect to Claude Code is automatically visible. If a tool isn't available, skip that source and use what you have.
 
 **Budget: unlimited** — semantic tools are cheap. Use them aggressively before touching files.
@@ -515,6 +522,7 @@ You MUST output your plan in this exact JSON format:
     "semantic:browser": "mcp__plugin_playwright__browser_navigate|browser_snapshot|browser_take_screenshot|browser_evaluate|browser_click|browser_type",
     "semantic:docs": "mcp__plugin_context7_context7__query-docs|resolve-library-id",
     "visual:read": "Read(.png)|Read(.jpg)|Read(.pdf)|Read(.ipynb)",
+    "semantic:episodic": "episodic-memory:search-conversations",
     "semantic:web": "WebSearch",
     "lint:php": "Bash(php -l *)",
     "lint:ts": "Bash(tsc --noEmit *)",

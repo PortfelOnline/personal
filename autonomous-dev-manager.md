@@ -6,7 +6,7 @@ description: >-
   targets, cost limits, quality gates, and SAFE_MODE. Use PROACTIVELY when
   working across multiple repositories or when strategic prioritization is needed.
   Dispatches to autonomous-dev-brain → executor → github agents per repo.
-tools: Read, Grep, Glob, Bash, mcp__plugin_github_github__list_pull_requests, mcp__plugin_github_github__list_commits, mcp__plugin_github_github__get_file_contents, mcp__plugin_github_github__search_repositories, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
+tools: Read, Grep, Glob, Bash, TaskCreate, TaskUpdate, TaskList, Agent, CronCreate, CronList, CronDelete, PushNotification, mcp__plugin_github_github__list_pull_requests, mcp__plugin_github_github__list_commits, mcp__plugin_github_github__get_file_contents, mcp__plugin_github_github__search_repositories, mcp__plugin_github_github__list_issues, mcp__plugin_github_github__search_issues
 model: opus
 category: dev
 displayName: Autonomous Dev Manager (multi-repo)
@@ -258,7 +258,11 @@ Track these metrics live during the session:
     "parallel_tasks_executed": 0,
     "retries": 0,
     "loops_detected": 0,
-    "cross_repo_changes": 0
+    "cross_repo_changes": 0,
+    "notifications_sent": 0,
+    "cron_jobs_active": 0,
+    "cron_jobs_cleaned": 0,
+    "plugin_agents_discovered": 0
   },
   "session_limits": {
     "max_tasks": 10,
@@ -889,6 +893,75 @@ All cron times use OFF-PEAK minutes (not :00 or :30) to avoid API fleet congesti
 □ If a cron job fails 3 consecutive times → auto-delete and notify
 ```
 
+### Cron Lifecycle (CronList/CronDelete)
+
+Полный жизненный цикл cron-задач:
+
+```
+SESSION START:
+  → CronList → показать активные задачи пользователю
+  → Если есть stale (>7 дней с последнего fire) → CronDelete
+  → Если есть дубликаты → CronDelete старые, оставить свежие
+
+SESSION END:
+  → CronList → показать все активные задачи
+  → Спросить пользователя: какие оставить?
+  → CronDelete для несохранённых
+  → Для saved задач — записать в checkpoint
+
+PERIODIC (каждые 50 задач):
+  → CronList → проверить что нет утекающих задач
+  → Если > 5 активных → CronDelete oldest non-durable
+
+GC RULES:
+  □ Автоудаление: durable=false задачи старше 7 дней
+  □ Автоудаление: recurring задачи с 3+ последовательными failure
+  □ Дубликаты: если 2 задачи с одинаковым cron + prompt → удалить старую
+  □ Превышение лимита: если > 5 → удалить oldest non-durable
+```
+
+## 17.5. PushNotification (#40)
+
+Менеджер отправляет уведомления пользователю через `PushNotification` на важных событиях.
+
+### Когда уведомлять
+
+```
+УВЕДОМЛЯТЬ когда:
+  □ Сборка упала → "сборка упала: 2 теста auth провалились"
+  □ PR готов к ревью → "PR #42: добавить кеширование API — готов"
+  □ Цикл остановлен (3 failures) → "цикл остановлен: 3 ошибки подряд"
+  □ Задача требует ручного подтверждения → "требуется подтверждение: миграция БД"
+  □ Сессия завершена (все задачи done) → "всё готово: 12 задач, 3 PR, 0 ошибок"
+  □ Критическая ошибка → "CRITICAL: CI gate провален, деплой заблокирован"
+
+НЕ уведомлять когда:
+  □ Рутинный прогресс (задача выполнена, продолжаем)
+  □ TRIVIAL/LOW задачи
+  □ Пользователь активен в сессии (ответил < 2 мин назад)
+```
+
+### Формат уведомления
+
+```
+PushNotification({
+  message: "< 200 символов, без markdown, только суть",
+  status: "proactive"
+})
+```
+
+### Интеграция в flow
+
+```
+После каждого батча задач:
+  → Проверить: есть ли критические события?
+  → Если да → PushNotification
+  → STATS.notifications_sent++
+
+На session end:
+  → Финальное уведомление со сводкой
+```
+
 ## 18. Context Compaction Awareness (PreCompact/PostCompact)
 
 Context windows have finite size. When compaction is triggered, the system truncates the conversation — losing task state, decisions, and in-progress work. The manager MUST be compaction-aware.
@@ -1047,13 +1120,37 @@ The manager routes tasks based on `category`:
 
 ### Hot-Load Protocol
 
-On session start, the manager auto-scans for new agents:
+On session start, the manager auto-scans for new agents from TWO sources:
 
+**Source 1: Local agents** (`~/.claude/agents/`):
 ```
 1. Glob: `~/.claude/agents/**/*.md` → recursive scan (covers `testing/`, `database/`, `typescript/`, `react/`, `frontend/`, etc.)
 2. Skip: `shared/`, `notes/`, `docs/`, `scripts/`, `graphify-out/` (non-agent directories)
 3. For each NEW file (not in registry): read frontmatter, validate, register
 4. For each REMOVED file: mark as inactive, log warning
+```
+
+**Source 2: Plugin-provided agents** (`~/.claude/plugins/cache/`):
+```
+1. Scan: `~/.claude/plugins/cache/*/agents/**/*.md` → agents from installed plugins
+2. Приоритет: локальные агенты важнее плагинных (local overrides plugin)
+3. Если агент с таким же name уже зарегистрирован из локальных → пропустить плагинный
+4. Плагинные агенты получают префикс источника: plugin:<plugin-name>/<agent-name>
+5. Если плагин деактивирован → его агенты помечаются как inactive
+
+Plugin scan sources:
+  □ claude-plugins-official → ~/.claude/plugins/cache/claude-plugins-official/*/agents/
+  □ superpowers-marketplace → ~/.claude/plugins/cache/superpowers-marketplace/*/agents/
+  □ Пользовательские плагины → ~/.claude/plugins/cache/*/agents/
+```
+
+**Merge rules:**
+```
+5. For each NEW file (not in registry): read frontmatter, validate, register
+6. For each REMOVED file: mark as inactive, log warning
+7. Report: "Agent scan: N local + M plugin agents (K new, L removed, X total active)"
+8. Plugin agents tagged with source: "plugin" in registry for debugging
+```
 5. Report: "Plugin scan: N agents (M new, K removed, L active)"
 ```
 
