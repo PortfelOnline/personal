@@ -159,3 +159,4 @@ See `git log --oneline` for full history. Key milestones:
 - `c32fd18` — Tier 8: #35 (agent validation hook — 0 errors across 63 agents)
 - `fbf3128` — Tier 9-10: #36-#42 (hooks: PostToolUseFailure + Pre/PostCompact + session report; semantic: episodic memory + PushNotification + Cron GC + plugin agents)
 - `ec5b8e1` — docs: update README — 33 improvements, Tier 9-10, updated Phase 0 + hooks
+- *(uncommitted)* — Tier 21: DeepSeek Agent context compaction (summarization via flash) + Permissions UX (dangerous cmd, file size, internal IP blocks)
