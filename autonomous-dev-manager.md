@@ -235,6 +235,18 @@ DeepSeek Agent получил механизм подтверждения пер
 
 **Файлы:** `safe_access.py` (+DANGEROUS_WRITE_PATTERNS, +PERMISSION_POLICIES, +check_dangerous_write()), `agent.py` (+PENDING_DANGEROUS, +CONFIRM_KEYWORDS, +bypass в tool_bash/tool_write_file/tool_edit_file, +confirmation scan в handle_chat, +GET /permissions).
 
+### Git Commit & Push (#35)
+
+Агент может самостоятельно коммитить и пушить изменения — замыкает цикл редактирования.
+
+**`tool_git_commit(params)`:** `git add -A && git commit -m "message"`. Параметры: `repo_path`, `message`. shlex.quote для безопасности. Timeout 30s.
+
+**`tool_git_push(params)`:** `git push [remote] [branch]`. Параметры: `repo_path`, `remote` (default: origin), `branch` (default: current). Timeout 60s. `git push --force` уже в DANGEROUS_CMD_PATTERNS.
+
+**API:** `POST /tools/git-commit`, `POST /tools/git-push`.
+
+**Файлы:** `agent.py` (+tool_git_commit, +tool_git_push, регистрация в TOOL_DISPATCH и TOOL_URL_MAP).
+
 ### Model Selection Matrix
 
 | Complexity | Model | Agent | Rationale |
