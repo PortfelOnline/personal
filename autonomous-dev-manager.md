@@ -208,6 +208,14 @@ DeepSeek Agent получил API для создания/управления c
 
 **Безопасность:** callback `_on_trigger` передаётся в cron_manager при инициализации — нет циклического импорта. Cron триггеры запускаются в daemon threads.
 
+### Multi-Model Routing (#33)
+
+DeepSeek Agent получил авто-выбор модели (pro vs flash) через `route_model()` в `deepseek_api.py`.
+
+**Эвристики (pro при):** `json_mode=True`, `temperature < 0.3`, system prompt, промпт > 500 символов, ключевые слова (архитектур/рефакторинг/аудит/безопасност/etc). Всё остальное → flash.
+
+**API:** `chat()` и `stream_chat()` с `model=None` по умолчанию (авто-роутинг). Явный `model="..."` переопределяет. Функция была локально (Tier 17), теперь и на сервере в `/root/deepseek-agent/deepseek_api.py`.
+
 ### Model Selection Matrix
 
 | Complexity | Model | Agent | Rationale |
