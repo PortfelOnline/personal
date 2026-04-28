@@ -99,6 +99,8 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | | #48 | LSP fallback (прямой LSP tool если Serena недоступна) | ✅ |
 | | #49 | UserPromptSubmit hook (лог промптов) | ✅ |
 | | #50 | Notification hook (обработка уведомлений) | ✅ |
+| **12** | #51 | MCP client env vars (`${VAR}` resolution + subprocess env) | ✅ |
+| | #52 | GitHub MCP (37 MCP tools, 2 servers, 49 total tools) | ✅ |
 
 ## Key Design Decisions
 
