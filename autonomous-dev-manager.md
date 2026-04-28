@@ -136,12 +136,52 @@ These task types are ALWAYS TRIVIAL or LOW. Route to executor without invoking b
 
 Claude Code auto-selects models (sonnet for routine, opus for complex). The manager does the same based on task classification.
 
+### DeepSeek Cheap Executor (#28)
+
+Для TRIVIAL/LOW задач, не требующих локального Mac FS, можно использовать DeepSeek Agent (сервер n) как дешёвый executor вместо Claude Code sonnet ($3/1M → ~бесплатно).
+
+**Когда маршрутизировать на DeepSeek:**
+```
+□ target == "server-n"  (docker, cron, cleanup, health на n)
+□ target == "github"    (через GitHub MCP: issues, PRs, push, branches)
+□ target == "postgres"  (запросы к БД через postgres MCP)
+□ target == "browser"   (скриншоты, навигация через playwright MCP)
+□ target == "analysis"  (read-only анализ, сравнение конфигов)
+□ risk == "low" AND complexity in [TRIVIAL, LOW]
+
+НЕ маршрутизировать на DeepSeek когда:
+□ Требуется локальный Mac FS (редактирование файлов на Mac)
+□ Требуются локальные git операции (commit на Mac)
+□ risk == "medium" или выше
+□ Первый запуск DeepSeek в сессии — проверить health перед отправкой
+```
+
+**Health check перед первой отправкой:**
+```
+Перед первым вызовом DeepSeek executor в сессии:
+  Bash("curl -sf -m 5 http://167.86.116.15:8766/health")
+  → OK (exit 0): DeepSeek доступен, можно отправлять задачи
+  → FAIL (exit non-zero): DeepSeek offline, использовать Claude executor для всех задач
+  → STATS.deepseek_available = true|false
+```
+
+**Fallback при отказе DeepSeek:**
+```
+1. deepseek-executor вернул failure (timeout/offline/nonsense)
+2. Manager проверяет STATS.deepseek_failures
+3. Если failures < 2 в сессии → переотправить задачу на Claude executor
+4. Если failures >= 2 → STATS.deepseek_available = false, все задачи → Claude
+5. Каждые 10 задач → повторная проверка health DeepSeek
+```
+
 ### Model Selection Matrix
 
 | Complexity | Model | Agent | Rationale |
 |-----------|-------|-------|-----------|
-| TRIVIAL | sonnet | executor (direct) | 1 file, known fix — no reasoning needed |
-| LOW | sonnet | executor (direct) | 1-2 files, clear approach |
+| TRIVIAL | deepseek | deepseek-executor | ~бесплатно, 78 tools, для server-n/github задач |
+| TRIVIAL (local FS) | sonnet | executor (direct) | Нужен доступ к Mac FS |
+| LOW | deepseek | deepseek-executor | ~бесплатно, для server-n/github/postgres задач |
+| LOW (local FS) | sonnet | executor (direct) | Нужен доступ к Mac FS |
 | MEDIUM | sonnet | brain + executor | Multi-file, needs planning but routine |
 | HIGH | opus | brain + executor | Architecture, refactoring, complex logic |
 | CRITICAL | opus | oracle → brain → executor | Security, DB migration, cross-repo |
@@ -162,7 +202,15 @@ Model override when:
 When dispatching via Agent(), set `model` based on routing:
 
 ```
-TRIVIAL/LOW → Agent(executor, model: "sonnet")
+# DeepSeek для задач на сервере n / GitHub / БД (дешёвый executor)
+TRIVIAL/LOW (server-n|github|postgres|browser|analysis)
+           → Agent(deepseek-executor, model: "sonnet")
+
+# Claude executor для задач на локальном Mac (нужен FS доступ)
+TRIVIAL/LOW (local FS)
+           → Agent(autonomous-dev-executor, model: "sonnet")
+
+# Средние и сложные задачи — через brain (требуют планирования)
 MEDIUM      → Agent(brain, model: "sonnet")
 HIGH        → Agent(brain, model: "opus")
 CRITICAL    → Agent(oracle, model: "opus") → Agent(brain, model: "opus")
@@ -172,11 +220,12 @@ CRITICAL    → Agent(oracle, model: "opus") → Agent(brain, model: "opus")
 
 ```
 Model cost per 1M tokens (approximate):
-  haiku:  $1    — exploration, search, file listing
-  sonnet: $3    — routine coding, planning, review
-  opus:   $15   — architecture, complex debugging, security audit
+  haiku:   $1    — exploration, search, file listing
+  sonnet:  $3    — routine coding, planning, review
+  opus:    $15   — architecture, complex debugging, security audit
+  deepseek: ~$0  — собственный сервер n, только электричество
 
-Manager target: > 80% of tasks on sonnet, < 15% on opus, < 5% on haiku
+Manager target: > 50% TRIVIAL/LOW на DeepSeek, < 30% на sonnet, < 15% на opus, < 5% на haiku
 ```
 
 ## 5. Dependency Detection & Parallel Dispatch
@@ -254,6 +303,9 @@ Track these metrics live during the session:
     "brain_invocations": 0,
     "executor_invocations": 0,
     "fast_route_hits": 0,
+    "deepseek_invocations": 0,
+    "deepseek_failures": 0,
+    "deepseek_available": false,
     "parallel_batches": 0,
     "parallel_tasks_executed": 0,
     "retries": 0,
