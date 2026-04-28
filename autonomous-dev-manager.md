@@ -216,6 +216,25 @@ DeepSeek Agent получил авто-выбор модели (pro vs flash) ч
 
 **API:** `chat()` и `stream_chat()` с `model=None` по умолчанию (авто-роутинг). Явный `model="..."` переопределяет. Функция была локально (Tier 17), теперь и на сервере в `/root/deepseek-agent/deepseek_api.py`.
 
+### Permission Gates (#34)
+
+DeepSeek Agent получил механизм подтверждения перед опасными операциями — аналог confirmation dialogs в Claude Code.
+
+**Двухфазный flow:**
+1. Агент вызывает опасный инструмент (bash/write/edit) → `permission_required: true` + warning
+2. Пользователь пишет "да"/"подтверждаю"/"yes" → handle_chat сканирует, injects auth сообщение
+3. LLM повторяет вызов — PENDING_DANGEROUS key совпадает → bypass, выполнение
+
+**PENDING_DANGEROUS dict:** `session_id → {type, key(md5), params, warning}`. Ключ — хеш команды/пути, проверяется и удаляется при совпадении.
+
+**Опасные паттерны:** DANGEROUS_CMD_PATTERNS (12 bash: rm -rf, chmod -R, dd, mkfs, fdisk, git push --force, docker rm, curl --user и т.д.) + DANGEROUS_WRITE_PATTERNS (6 write/edit: /etc/, /root/.ssh/, /root/.docker/, id_rsa, credentials.json, /.env).
+
+**CONFIRM_KEYWORDS:** да, подтверждаю, разрешаю, выполняй, делай, давай, ок, ok, yes, confirm, go ahead, согласен, можно, выполнить.
+
+**API:** `GET /permissions` → policies + limits + pending.
+
+**Файлы:** `safe_access.py` (+DANGEROUS_WRITE_PATTERNS, +PERMISSION_POLICIES, +check_dangerous_write()), `agent.py` (+PENDING_DANGEROUS, +CONFIRM_KEYWORDS, +bypass в tool_bash/tool_write_file/tool_edit_file, +confirmation scan в handle_chat, +GET /permissions).
+
 ### Model Selection Matrix
 
 | Complexity | Model | Agent | Rationale |
