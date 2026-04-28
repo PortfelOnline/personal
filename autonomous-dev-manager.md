@@ -174,6 +174,21 @@ Claude Code auto-selects models (sonnet for routine, opus for complex). The mana
 5. Каждые 10 задач → повторная проверка health DeepSeek
 ```
 
+### Hooks System (#31)
+
+DeepSeek Agent поддерживает систему хуков — pre/post обработка вызовов инструментов, как в Claude Code.
+
+**5 событий:** PreToolUse (может блокировать), PostToolUse, PreChat (может блокировать), PostChat, PostInit.
+
+**Встроенные хуки:**
+- `log_tool_usage` (PostToolUse) — логирует каждый tool call: имя, время, session_id, итерацию, превью результата
+- `rate_limit` (PreToolUse) — per-session rate limit: 30 tool calls / 60s sliding window
+
+**Safe by design:** `_safe_run_hooks()` ловит все exceptions — бажный хук не валит агент.
+**Discovery:** `hook_loader.py` сканирует `hooks/*.py`, загружает через importlib.
+**API:** `GET /hooks` → `{"hooks": {"PostToolUse": ["log_tool_usage"], "PreToolUse": ["rate_limit"]}}`.
+**Baked into Docker image:** `COPY hook_loader.py` + `COPY hooks/ ./hooks/` в Dockerfile.
+
 ### Model Selection Matrix
 
 | Complexity | Model | Agent | Rationale |
