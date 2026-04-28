@@ -101,6 +101,8 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | | #50 | Notification hook (обработка уведомлений) | ✅ |
 | **12** | #51 | MCP client env vars (`${VAR}` resolution + subprocess env) | ✅ |
 | | #52 | GitHub MCP (37 MCP tools, 2 servers, 49 total tools) | ✅ |
+| | #53 | PostgreSQL MCP (read-only, 2 БД: getmyagent + n8n) | ✅ |
+| | #54 | Playwright MCP (28 browser tools, 78 total tools) | ✅ |
 
 ## Key Design Decisions
 
