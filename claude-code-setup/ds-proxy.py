@@ -179,6 +179,17 @@ def _normalize_text(text: str) -> str:
     return re.sub(r'\n{3,}', '\n\n', '\n'.join(l.rstrip() for l in text.split('\n'))).strip()
 
 
+_PROGRESS_RE = re.compile(r'(?:\[#?Step\s+\d+/\d+\]\s*)+')
+_ANSI_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
+
+
+def _compress_progress(text: str) -> str:
+    """Strip ANSI codes and compress [Step N/M] progress markers."""
+    text = _ANSI_RE.sub('', text)
+    text = _PROGRESS_RE.sub('', text)
+    return text.strip()
+
+
 def _is_tool_only(msg: dict) -> bool:
     """True if message is exclusively tool_result/tool_use blocks."""
     c = msg.get("content", "")
@@ -234,14 +245,14 @@ def fix_request(body: dict) -> dict:
     for msg in body.get("messages", []):
         c = msg.get("content")
         if isinstance(c, str):
-            msg["content"] = _normalize_text(c)
+            msg["content"] = _compress_progress(_normalize_text(c))
             if not msg["content"]:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
         elif isinstance(c, list):
             # Normalize text blocks first (reduces token count)
             for b in c:
                 if b.get("type") == "text":
-                    b["text"] = _normalize_text(b.get("text", ""))
+                    b["text"] = _compress_progress(_normalize_text(b.get("text", "")))
             msg["content"] = _strip_image_blocks(c)
             if not msg["content"]:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
