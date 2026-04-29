@@ -177,6 +177,11 @@ def fix_request(body: dict) -> dict:
 
 
 class ProxyHandler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_GET(self):
         self._proxy("GET")
 
