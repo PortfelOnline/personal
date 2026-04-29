@@ -20,6 +20,7 @@ Then:
 """
 import json, os, sys, subprocess, tempfile, base64, urllib.request, urllib.error
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import tiktoken
 
 DEEPSEEK_ANTHROPIC_URL = "https://api.deepseek.com/anthropic/v1/messages"
 PORT = int(sys.argv[sys.argv.index("--port") + 1]) if "--port" in sys.argv else 8099
@@ -81,14 +82,21 @@ def _ocr_describe(base64_data: str) -> str | None:
         return None
 
 
-def _rough_tokens(text: str) -> int:
-    """Toka estimate — ~4 chars/token, conservative for CJK/emoji."""
-    return max(1, len(text) // 3)
+_TOKENIZER = None
+
+
+def _count_tokens(text: str) -> int:
+    """Token count via tiktoken cl100k_base (shared by Claude & DeepSeek BPE)."""
+    global _TOKENIZER
+    if _TOKENIZER is None:
+        _TOKENIZER = tiktoken.get_encoding("cl100k_base")
+    return len(_TOKENIZER.encode(text, disallowed_special=()))
 
 
 def _truncate_messages(messages: list, max_tok: int) -> list:
     """Drop oldest non-system messages to fit DeepSeek's 128K window."""
-    total = sum(_rough_tokens(str(m.get("content", ""))) for m in messages)
+    msg_cost = _msg_tokens
+    total = sum(msg_cost(m) for m in messages)
     if total <= max_tok:
         return messages
     # preserve leading system messages
@@ -97,7 +105,7 @@ def _truncate_messages(messages: list, max_tok: int) -> list:
     rest = messages[sys_end:]
     for m in reversed(rest):
         candidate = kept + [m]
-        if sum(_rough_tokens(str(x.get("content", ""))) for x in candidate) <= max_tok:
+        if sum(msg_cost(x) for x in candidate) <= max_tok:
             kept.append(m)
         elif len(kept) == sys_end:
             kept.append(m)  # always keep at least one user message
@@ -105,6 +113,21 @@ def _truncate_messages(messages: list, max_tok: int) -> list:
     if dropped:
         kept.insert(0, {"role": "system", "content": f"[{dropped} messages truncated to fit 128K context] — "})
     return kept
+
+
+def _msg_tokens(m: dict) -> int:
+    """Token count for a message including format overhead (~5 tok/msg)."""
+    c = m.get("content", "")
+    if isinstance(c, list):
+        total = 0
+        for b in c:
+            total += _count_tokens(b.get("text", "") or b.get("name", "") or "")
+            if b.get("type") == "tool_use":
+                total += _count_tokens(json.dumps(b.get("input", {})))
+            if b.get("type") == "tool_result":
+                total += _count_tokens(b.get("content", "") if isinstance(b.get("content"), str) else json.dumps(b.get("content", "")))
+        return total + 5
+    return _count_tokens(str(c)) + 5
 
 
 def _describe_image(base64_data: str, media_type: str) -> str:
