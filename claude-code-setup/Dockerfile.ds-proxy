@@ -1,0 +1,5 @@
+FROM python:3.10-slim
+RUN pip install --no-cache-dir tiktoken
+COPY ds-proxy.py /app/ds-proxy.py
+EXPOSE 8099
+CMD ["python3", "/app/ds-proxy.py"]

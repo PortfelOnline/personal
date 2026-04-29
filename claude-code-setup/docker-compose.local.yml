@@ -1,0 +1,43 @@
+services:
+  ds-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.ds-proxy
+    container_name: local-ds-proxy
+    ports:
+      - "8099:8099"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY in .env or shell}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OCR=${OCR:-}
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - local-test-net
+
+  claude-code:
+    build:
+      context: .
+      dockerfile: Dockerfile.claude
+    container_name: local-claude-code
+    environment:
+      - ANTHROPIC_BASE_URL=http://ds-proxy:8099
+      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-test}
+    volumes:
+      - ${PWD:-.}:/workspace/current:ro
+      - ${HOME:-~}/.claude:/home/claude/.claude:ro
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    depends_on:
+      ds-proxy:
+        condition: service_healthy
+    networks:
+      - local-test-net
+
+networks:
+  local-test-net:
+    driver: bridge
