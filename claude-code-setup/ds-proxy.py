@@ -46,7 +46,7 @@ def _groq_describe(base64_data: str, media_type: str) -> str | None:
     data = json.dumps({
         "model": GROQ_MODEL,
         "messages": [{"role": "user", "content": [
-            {"type": "text", "text": "Describe in 5-10 words"},
+            {"type": "text", "text": "Describe concisely in 10-15 words"},
             {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_data}"}},
         ]}],
         "max_tokens": 256,
@@ -179,8 +179,8 @@ def _strip_image_blocks(blocks: list) -> list:
 
 
 def _normalize_text(text: str) -> str:
-    """Compress 3+ newlines → 2, strip trailing spaces per line, strip edges."""
-    return re.sub(r'\n{3,}', '\n\n', '\n'.join(l.rstrip() for l in text.split('\n'))).strip()
+    """Strip trailing spaces per line + edges. Zero-risk — no content modification beyond whitespace."""
+    return '\n'.join(l.rstrip() for l in text.split('\n')).strip()
 
 
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
@@ -286,14 +286,17 @@ def _tool_result_text(block: dict) -> str:
     return ""
 
 
+DEDUP_MIN_LEN = 100  # only dedup if text is long enough — avoids coincedental short matches
+
+
 def _dedup_consecutive_results(blocks: list) -> list:
-    """Drop consecutive tool_result blocks with identical text. Low risk — identical copies carry no new info."""
+    """Drop consecutive tool_result blocks with identical text. Zero-risk: identical copies carry no new info."""
     deduped = []
     prev_text = None
     for block in blocks:
         if block.get("type") == "tool_result":
             text = _tool_result_text(block)
-            if text and text == prev_text:
+            if text and len(text) > DEDUP_MIN_LEN and text == prev_text:
                 continue  # skip identical consecutive result
             prev_text = text
         else:
@@ -322,9 +325,12 @@ _DESC_BOILERPLATE_RE = re.compile(
 _DESC_PUNCT_RE = re.compile(r'\s{2,}')
 
 
+_MINIFY_MIN_LEN = 40  # skip short descriptions — boilerplate regex would be meaningless on them
+
+
 def _minify_description(desc: str) -> str:
-    """Strip boilerplate/hedging from tool descriptions. Zero risk — preserves all semantic content."""
-    if not desc:
+    """Strip boilerplate/hedging from tool descriptions. Zero-risk: preserves all semantic content."""
+    if not desc or len(desc) < _MINIFY_MIN_LEN:
         return desc
     desc = _DESC_BOILERPLATE_RE.sub('', desc)
     desc = _DESC_PUNCT_RE.sub(' ', desc)
@@ -332,13 +338,18 @@ def _minify_description(desc: str) -> str:
     return desc
 
 
+_FENCE_RE = re.compile(r'^```\w*$')  # ``` or ```json, ```python, etc.
+
+
 def _strip_code_fences(text: str) -> str:
-    """Strip markdown code fences from tool results. Lets _compact_json_text work on fenced JSON."""
+    """Strip markdown code fences from tool results. Zero-risk: only strips standard fenced code blocks."""
     lines = text.split('\n')
-    if lines and lines[0].startswith('```'):
-        lines = lines[1:]
-        if lines and lines[-1].strip() == '```':
-            lines = lines[:-1]
+    if lines and _FENCE_RE.match(lines[0].strip()):
+        # Has opening fence — check for closing fence
+        if lines[-1].strip() == '```':
+            lines = lines[1:-1]
+        else:
+            lines = lines[1:]
         return '\n'.join(lines)
     return text
 
