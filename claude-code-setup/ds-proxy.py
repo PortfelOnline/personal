@@ -34,7 +34,7 @@ USE_OCR = os.environ.get("OCR") == "1"
 # DeepSeek context: 128K total, small safety margin (tiktoken точный)
 MAX_CONTEXT_TOKENS = 128_000
 PROMPT_SAFETY_MARGIN = 1024
-TOOL_RESULT_MAX_TOKENS = 2000
+TOOL_RESULT_MAX_TOKENS = 6000  # higher limit, truncation is adaptive (only when over budget)
 
 
 def _groq_describe(base64_data: str, media_type: str) -> str | None:
@@ -94,15 +94,19 @@ def _count_tokens(text: str) -> int:
 
 
 def _truncate_messages(messages: list, max_tok: int) -> list:
-    """Two-phase truncation: drop tool-only messages first, then oldest (safety)."""
+    """Two-phase truncation: protect first 2 messages (system + 1st user), then oldest."""
     costs = [_msg_tokens(m) for m in messages]
     if sum(costs) <= max_tok:
         return messages
+    # Protect first 2 messages (system prompt + first user instructions)
+    protected = 2
     sys_end = next((i for i, m in enumerate(messages) if m.get("role") != "system"), 0)
-    kept = list(messages[:sys_end])
-    kept_cost = sum(costs[:sys_end])
+    # Ensure at least protected messages are kept (or however many exist before sys_end+protected)
+    min_keep = max(sys_end, min(protected, len(messages)))
+    kept = list(messages[:min_keep])
+    kept_cost = sum(costs[:min_keep])
     # Phase 1: drop tool-only messages (preserve user text & assistant reasoning)
-    for i, m in enumerate(messages[sys_end:], start=sys_end):
+    for i, m in enumerate(messages[min_keep:], start=min_keep):
         c = costs[i]
         if _is_tool_only(m) and kept_cost + c > max_tok:
             continue  # skip this tool-only message
@@ -110,11 +114,11 @@ def _truncate_messages(messages: list, max_tok: int) -> list:
         kept_cost += c
     # Phase 2: if still over budget, fall back to oldest-first (keep newest)
     if kept_cost > max_tok:
-        kept = list(messages[:sys_end])
-        kept_cost = sum(costs[:sys_end])
-        for i in range(len(messages) - 1, sys_end - 1, -1):
+        kept = list(messages[:min_keep])
+        kept_cost = sum(costs[:min_keep])
+        for i in range(len(messages) - 1, min_keep - 1, -1):
             c = costs[i]
-            if kept_cost + c <= max_tok or len(kept) == sys_end:
+            if kept_cost + c <= max_tok or len(kept) == min_keep:
                 kept.append(messages[i])
                 kept_cost += c
     dropped = len(messages) - len(kept)
@@ -179,15 +183,12 @@ def _normalize_text(text: str) -> str:
     return re.sub(r'\n{3,}', '\n\n', '\n'.join(l.rstrip() for l in text.split('\n'))).strip()
 
 
-_PROGRESS_RE = re.compile(r'(?:\[#?Step\s+\d+/\d+\]\s*)+')
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 
 
 def _compress_progress(text: str) -> str:
-    """Strip ANSI codes and compress [Step N/M] progress markers."""
-    text = _ANSI_RE.sub('', text)
-    text = _PROGRESS_RE.sub('', text)
-    return text.strip()
+    """Strip ANSI codes only — no [Step N/M] removal (risk: model references step numbers)."""
+    return _ANSI_RE.sub('', text).strip()
 
 
 def _is_tool_only(msg: dict) -> bool:
@@ -196,11 +197,14 @@ def _is_tool_only(msg: dict) -> bool:
     return isinstance(c, list) and all(b.get("type") in ("tool_result", "tool_use") for b in c)
 
 
-def _truncate_tool_results(messages: list) -> None:
-    """Truncate tool_result content to TOOL_RESULT_MAX_TOKENS (mutates in-place)."""
+def _truncate_tool_results(messages: list, total_budget: int) -> None:
+    """Adaptive truncation: only when total budget exceeded, never below TOOL_RESULT_MAX_TOKENS."""
     global _TOKENIZER
     if _TOKENIZER is None:
         _TOKENIZER = tiktoken.get_encoding("cl100k_base")
+    actual = sum(_msg_tokens(m) for m in messages)
+    if actual <= total_budget:
+        return  # no truncation needed — zero risk
     for msg in messages:
         c = msg.get("content")
         if not isinstance(c, list):
@@ -214,7 +218,7 @@ def _truncate_tool_results(messages: list) -> None:
                 if tok > TOOL_RESULT_MAX_TOKENS:
                     encoded = _TOKENIZER.encode(tc, disallowed_special=())
                     block["content"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
-                                        + "\n[...truncated to 2000 tokens]")
+                                        + f"\n[...truncated to {TOOL_RESULT_MAX_TOKENS} tokens]")
             elif isinstance(tc, list):
                 for tb in tc:
                     if tb.get("type") == "text":
@@ -223,7 +227,7 @@ def _truncate_tool_results(messages: list) -> None:
                         if tok > TOOL_RESULT_MAX_TOKENS:
                             encoded = _TOKENIZER.encode(text, disallowed_special=())
                             tb["text"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
-                                          + "\n[...truncated to 2000 tokens]")
+                                          + f"\n[...truncated to {TOOL_RESULT_MAX_TOKENS} tokens]")
 
 
 def _strip_cache_control(messages: list) -> None:
@@ -274,7 +278,8 @@ def fix_request(body: dict) -> dict:
     # Strip cache_control blocks — DeepSeek has no prompt caching
     if "messages" in body:
         _strip_cache_control(body["messages"])
-        _truncate_tool_results(body["messages"])
+        prompt_budget_tmp = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - body.get("max_tokens", 8192)
+        _truncate_tool_results(body["messages"], prompt_budget_tmp)
         max_tok = body.get("max_tokens", 8192)
         prompt_budget = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok
         body["messages"] = _truncate_messages(body["messages"], prompt_budget)
