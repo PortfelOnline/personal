@@ -18,7 +18,7 @@ Then:
   export ANTHROPIC_BASE_URL=http://localhost:8099
   # run Claude Code
 """
-import json, os, sys, subprocess, tempfile, base64, urllib.request, urllib.error
+import json, os, sys, subprocess, tempfile, base64, re, urllib.request, urllib.error
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import tiktoken
 
@@ -93,25 +93,29 @@ def _count_tokens(text: str) -> int:
 
 
 def _truncate_messages(messages: list, max_tok: int) -> list:
-    """Drop oldest non-system messages to fit DeepSeek's 128K window."""
+    """Two-phase truncation: drop tool-only messages first, then oldest (safety)."""
     costs = [_msg_tokens(m) for m in messages]
-    total = sum(costs)
-    if total <= max_tok:
+    if sum(costs) <= max_tok:
         return messages
-    # preserve leading system messages
     sys_end = next((i for i, m in enumerate(messages) if m.get("role") != "system"), 0)
     kept = list(messages[:sys_end])
     kept_cost = sum(costs[:sys_end])
-    rest = messages[sys_end:]
-    for i, m in enumerate(reversed(rest)):
-        idx = len(rest) - 1 - i
-        c = costs[sys_end + idx]
-        if kept_cost + c <= max_tok:
-            kept.append(m)
-            kept_cost += c
-        elif len(kept) == sys_end:
-            kept.append(m)
-            kept_cost += c  # always keep at least one user message
+    # Phase 1: drop tool-only messages (preserve user text & assistant reasoning)
+    for i, m in enumerate(messages[sys_end:], start=sys_end):
+        c = costs[i]
+        if _is_tool_only(m) and kept_cost + c > max_tok:
+            continue  # skip this tool-only message
+        kept.append(m)
+        kept_cost += c
+    # Phase 2: if still over budget, fall back to oldest-first (keep newest)
+    if kept_cost > max_tok:
+        kept = list(messages[:sys_end])
+        kept_cost = sum(costs[:sys_end])
+        for i in range(len(messages) - 1, sys_end - 1, -1):
+            c = costs[i]
+            if kept_cost + c <= max_tok or len(kept) == sys_end:
+                kept.append(messages[i])
+                kept_cost += c
     dropped = len(messages) - len(kept)
     if dropped:
         kept.insert(0, {"role": "system", "content": f"[{dropped} messages truncated to fit 128K context] — "})
@@ -169,24 +173,48 @@ def _strip_image_blocks(blocks: list) -> list:
     return fixed
 
 
+def _normalize_text(text: str) -> str:
+    """Compress 3+ newlines → 2, strip trailing spaces per line, strip edges."""
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(l.rstrip() for l in text.split('\n'))).strip()
+
+
+def _is_tool_only(msg: dict) -> bool:
+    """True if message is exclusively tool_result/tool_use blocks."""
+    c = msg.get("content", "")
+    return isinstance(c, list) and all(b.get("type") in ("tool_result", "tool_use") for b in c)
+
+
 def fix_request(body: dict) -> dict:
-    """Fix images (vision/OCR), strip thinking, truncate context for DeepSeek."""
+    """Normalize whitespace, fix images, strip thinking, smart-truncate context."""
     for msg in body.get("messages", []):
         c = msg.get("content")
-        if not isinstance(c, list):
-            continue
-        msg["content"] = _strip_image_blocks(c)
-        if not msg["content"]:
-            msg["content"] = [{"type": "text", "text": "[Empty message]"}]
+        if isinstance(c, str):
+            msg["content"] = _normalize_text(c)
+            if not msg["content"]:
+                msg["content"] = [{"type": "text", "text": "[Empty message]"}]
+        elif isinstance(c, list):
+            # Normalize text blocks first (reduces token count)
+            for b in c:
+                if b.get("type") == "text":
+                    b["text"] = _normalize_text(b.get("text", ""))
+            msg["content"] = _strip_image_blocks(c)
+            if not msg["content"]:
+                msg["content"] = [{"type": "text", "text": "[Empty message]"}]
 
     # DeepSeek doesn't support extended thinking — strip entirely
     body.pop("thinking", None)
 
-    # Truncate oldest messages if context overflows DeepSeek's 128K limit
     if "messages" in body:
         max_tok = body.get("max_tokens", 8192)
         prompt_budget = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok
         body["messages"] = _truncate_messages(body["messages"], prompt_budget)
+        # Conditional max_tokens cap — only when still over budget, never < 4096
+        actual = sum(_msg_tokens(m) for m in body["messages"])
+        if actual > prompt_budget and max_tok > 4096:
+            max_tok = max(max_tok - 2048, 4096)
+            body["max_tokens"] = max_tok
+            body["messages"] = _truncate_messages(body["messages"],
+                                                  MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok)
 
     return body
 
