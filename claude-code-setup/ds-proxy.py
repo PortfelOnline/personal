@@ -304,6 +304,17 @@ def fix_request(body: dict) -> dict:
     return body
 
 
+def _log_token_usage(body: dict, max_tok: int):
+    """Log token consumption to stderr (observability, not optimisation)."""
+    prompt_tok = sum(_msg_tokens(m) for m in body.get("messages", []))
+    sys_tok = _count_tokens(body.get("system", ""))
+    total = prompt_tok + sys_tok
+    budget = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok
+    pct = round(total / budget * 100, 1) if budget else 0
+    print(f"  [tok] prompt={total} budget={budget} max_tok={max_tok} "
+          f"usage={pct}% (sys={sys_tok} msgs={prompt_tok})", file=sys.stderr)
+
+
 class ProxyHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self.send_response(200)
@@ -329,6 +340,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             try:
                 req = json.loads(body_bytes)
                 body_bytes = json.dumps(fix_request(req), separators=(',', ':')).encode()
+                _log_token_usage(req, req.get("max_tokens", 8192))
             except json.JSONDecodeError:
                 pass
 
@@ -367,6 +379,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     js = json.loads(body)
                     if "content" in js and isinstance(js["content"], list):
                         js["content"] = [b for b in js["content"] if b.get("type") != "thinking"]
+                    usage = js.get("usage", {})
+                    if usage:
+                        print(f"  [resp] input_tokens={usage.get('input_tokens', '?')} "
+                              f"output_tokens={usage.get('output_tokens', '?')}", file=sys.stderr)
                     body = json.dumps(js).encode()
                 except (json.JSONDecodeError, TypeError):
                     pass
