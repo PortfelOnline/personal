@@ -104,6 +104,30 @@ DeepSeek reasoning + Claude Code MCP execution stack. 60+ specialized agents orc
 | | #53 | PostgreSQL MCP (read-only, 2 БД: getmyagent + n8n) | ✅ |
 | | #54 | Playwright MCP (28 browser tools, 78 total tools) | ✅ |
 
+## Delivered Project: strategy-dashboard
+
+**AI Content Generation Dashboard** for get-my-agent.com — Instagram/Facebook social media content for the Indian market, built and delivered end-to-end with the autonomous pipeline.
+
+**Stack:** React + Vite (client, shadcn/ui), Express + tRPC v11 (server), Drizzle ORM + MySQL, TypeScript, Vitest
+
+**Branch:** [`strategy-dashboard`](https://github.com/PortfelOnline/personal/tree/strategy-dashboard)
+
+| Metric | Value |
+|--------|-------|
+| Tests | 83 passing across 15 files |
+| TypeScript | 0 errors (`tsc --noEmit`) |
+| CI | GitHub Actions (typecheck + tests on push/PR via pnpm) |
+| Coverage | server routers + db layer + storage + meta API + deepseek |
+| Languages | Hinglish, Hindi, English, Tamil, Telugu, Bengali |
+
+**Key deliveries:**
+- Meta OAuth 2.0 + Instagram/Facebook posting with image upload pipeline (local → server n → CDN)
+- AI article rewriting with search engine ranking data context + queue system
+- Multi-platform scheduling (Instagram media containers + Facebook page photos/feed)
+- CI workflow from scratch (pnpm + frozen-lockfile, typecheck + test gates)
+- Dockerfile + hook scripts for dev/prod lifecycle
+- Full test coverage for DB, storage, and AI modules (Vitest chainable mocks, EventEmitter patterns)
+
 ## Key Design Decisions
 
 - **JSON-enforced brain output**: no markdown fences, no text outside JSON — prevents DeepSeek meandering
