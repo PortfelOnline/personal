@@ -131,7 +131,7 @@ def _msg_tokens(m: dict) -> int:
         for b in c:
             total += _count_tokens(b.get("text", "") or b.get("name", "") or "")
             if b.get("type") == "tool_use":
-                total += _count_tokens(json.dumps(b.get("input", {})))
+                total += _count_tokens(json.dumps(b.get("input", {}), separators=(',', ':')))
             if b.get("type") == "tool_result":
                 tc = b.get("content", "")
                 if isinstance(tc, list):
@@ -247,7 +247,6 @@ def fix_request(body: dict) -> dict:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
 
     # DeepSeek doesn't support extended thinking — strip entirely
-    # DeepSeek doesn't support extended thinking — strip entirely
     body.pop("thinking", None)
 
     # Strip cache_control blocks — DeepSeek has no prompt caching
@@ -292,7 +291,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if body_bytes:
             try:
                 req = json.loads(body_bytes)
-                body_bytes = json.dumps(fix_request(req)).encode()
+                body_bytes = json.dumps(fix_request(req), separators=(',', ':')).encode()
             except json.JSONDecodeError:
                 pass
 
