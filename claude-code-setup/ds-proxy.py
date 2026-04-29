@@ -128,7 +128,12 @@ def _msg_tokens(m: dict) -> int:
             if b.get("type") == "tool_use":
                 total += _count_tokens(json.dumps(b.get("input", {})))
             if b.get("type") == "tool_result":
-                total += _count_tokens(b.get("content", "") if isinstance(b.get("content"), str) else json.dumps(b.get("content", "")))
+                tc = b.get("content", "")
+                if isinstance(tc, list):
+                    for tb in tc:
+                        total += _count_tokens(tb.get("text", "") or "")
+                else:
+                    total += _count_tokens(str(tc))
         return total + 5
     return _count_tokens(str(c)) + 5
 
@@ -144,23 +149,33 @@ def _describe_image(base64_data: str, media_type: str) -> str:
     return "[Image]"
 
 
+def _strip_image_blocks(blocks: list) -> list:
+    """Recursively replace image blocks with text descriptions (в т.ч. внутри tool_result)."""
+    fixed = []
+    for block in blocks:
+        t = block.get("type")
+        if t == "image":
+            src = block.get("source", {})
+            desc = _describe_image(src.get("data", ""), src.get("media_type", "image/png"))
+            fixed.append({"type": "text", "text": desc})
+        elif t == "tool_result":
+            tc = block.get("content")
+            if isinstance(tc, list):
+                block = dict(block)
+                block["content"] = _strip_image_blocks(tc)
+            fixed.append(block)
+        else:
+            fixed.append(block)
+    return fixed
+
+
 def fix_request(body: dict) -> dict:
     """Fix images (vision/OCR), strip thinking, truncate context for DeepSeek."""
     for msg in body.get("messages", []):
         c = msg.get("content")
         if not isinstance(c, list):
             continue
-        fixed = []
-        for block in c:
-            if block.get("type") == "image":
-                src = block.get("source", {})
-                b64 = src.get("data", "")
-                mime = src.get("media_type", "image/png")
-                desc = _describe_image(b64, mime)
-                fixed.append({"type": "text", "text": desc})
-            else:
-                fixed.append(block)
-        msg["content"] = fixed
+        msg["content"] = _strip_image_blocks(c)
         if not msg["content"]:
             msg["content"] = [{"type": "text", "text": "[Empty message]"}]
 
