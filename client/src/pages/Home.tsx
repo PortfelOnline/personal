@@ -118,6 +118,12 @@ export default function Home() {
                 >
                   LocalAI
                 </Button>
+                <Button
+                  onClick={() => navigate('/deepseek')}
+                  className="bg-white text-blue-600 hover:bg-blue-50 font-semibold"
+                >
+                  DeepSeek
+                </Button>
               </div>
             )}
           </div>

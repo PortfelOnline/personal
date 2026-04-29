@@ -11,6 +11,7 @@ import { botsRouter } from "./routers/bots";
 import { wordpressRouter } from "./routers/wordpress";
 import { articlesRouter } from "./routers/articles";
 import { backlinksRouter } from "./routers/backlinks";
+import { deepseekRouter } from "./routers/deepseek";
 import { aitradingRouter } from "./routers/aitrading";
 import { generateGeminiImage, generateVeoVideo, buildVisualPrompt, generateVisualPromptWithLLM } from "./_core/gemini";
 import { buildArticleToSocialPrompt, parseArticleToSocialResponse } from "./articleToSocial";
@@ -451,6 +452,7 @@ export const appRouter = router({
   wordpress: wordpressRouter,
   articles: articlesRouter,
   backlinks: backlinksRouter,
+  deepseek: deepseekRouter,
   aitrading: aitradingRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
