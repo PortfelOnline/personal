@@ -46,9 +46,7 @@ def _groq_describe(base64_data: str, media_type: str) -> str | None:
     data = json.dumps({
         "model": GROQ_MODEL,
         "messages": [{"role": "user", "content": [
-            {"type": "text", "text": "Describe this image concisely in 1-2 sentences. "
-             "Focus on visible text, UI elements, layout, and notable content. "
-             "Ignore watermarks, logos, and UI chrome."},
+            {"type": "text", "text": "Describe in 5-10 words"},
             {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{base64_data}"}},
         ]}],
         "max_tokens": 256,
