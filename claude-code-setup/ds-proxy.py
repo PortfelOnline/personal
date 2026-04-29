@@ -31,10 +31,9 @@ GROQ_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_MODEL = "llama-4-scout-17b-16e-instruct"
 USE_OCR = os.environ.get("OCR") == "1"
 
-# DeepSeek context: 128K total, reserve 8K for response, use 80% of prompt budget
+# DeepSeek context: 128K total, small safety margin (tiktoken точный)
 MAX_CONTEXT_TOKENS = 128_000
-RESPONSE_MARGIN = 8_192
-MAX_PROMPT_TOKENS = int((MAX_CONTEXT_TOKENS - RESPONSE_MARGIN) * 0.8)  # ~96K
+PROMPT_SAFETY_MARGIN = 1024
 
 
 def _groq_describe(base64_data: str, media_type: str) -> str | None:
@@ -95,20 +94,24 @@ def _count_tokens(text: str) -> int:
 
 def _truncate_messages(messages: list, max_tok: int) -> list:
     """Drop oldest non-system messages to fit DeepSeek's 128K window."""
-    msg_cost = _msg_tokens
-    total = sum(msg_cost(m) for m in messages)
+    costs = [_msg_tokens(m) for m in messages]
+    total = sum(costs)
     if total <= max_tok:
         return messages
     # preserve leading system messages
     sys_end = next((i for i, m in enumerate(messages) if m.get("role") != "system"), 0)
     kept = list(messages[:sys_end])
+    kept_cost = sum(costs[:sys_end])
     rest = messages[sys_end:]
-    for m in reversed(rest):
-        candidate = kept + [m]
-        if sum(msg_cost(x) for x in candidate) <= max_tok:
+    for i, m in enumerate(reversed(rest)):
+        idx = len(rest) - 1 - i
+        c = costs[sys_end + idx]
+        if kept_cost + c <= max_tok:
             kept.append(m)
+            kept_cost += c
         elif len(kept) == sys_end:
-            kept.append(m)  # always keep at least one user message
+            kept.append(m)
+            kept_cost += c  # always keep at least one user message
     dropped = len(messages) - len(kept)
     if dropped:
         kept.insert(0, {"role": "system", "content": f"[{dropped} messages truncated to fit 128K context] — "})
@@ -167,7 +170,7 @@ def fix_request(body: dict) -> dict:
     # Truncate oldest messages if context overflows DeepSeek's 128K limit
     if "messages" in body:
         max_tok = body.get("max_tokens", 8192)
-        prompt_budget = min(MAX_PROMPT_TOKENS, MAX_CONTEXT_TOKENS - RESPONSE_MARGIN - max_tok)
+        prompt_budget = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok
         body["messages"] = _truncate_messages(body["messages"], prompt_budget)
 
     return body
@@ -258,6 +261,6 @@ if __name__ == "__main__":
     server = HTTPServer(("", PORT), ProxyHandler)
     print(f"DeepSeek proxy :{PORT} → {DEEPSEEK_ANTHROPIC_URL}")
     print(f"  Features: {', '.join(features)}")
-    print(f"  Context: ~96K prompt budget (128K total - 8K response)")
+    print(f"  Context: ~{(MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - 8192) // 1000}K prompt budget (128K total - {PROMPT_SAFETY_MARGIN}b safety)")
     print(f"  Set: ANTHROPIC_BASE_URL=http://localhost:{PORT}")
     server.serve_forever()
