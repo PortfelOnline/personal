@@ -240,8 +240,17 @@ def _strip_cache_control(messages: list) -> None:
                             tb.pop("cache_control", None)
 
 
+def _strip_metadata(messages: list) -> None:
+    """Remove id/type from messages — DeepSeek ignores them (zero-risk)."""
+    for msg in messages:
+        msg.pop("id", None)
+        msg.pop("type", None)
+
+
 def fix_request(body: dict) -> dict:
     """Normalize whitespace, fix images, strip thinking, smart-truncate context."""
+    if "messages" in body:
+        _strip_metadata(body["messages"])
     for msg in body.get("messages", []):
         c = msg.get("content")
         if isinstance(c, str):
@@ -259,6 +268,8 @@ def fix_request(body: dict) -> dict:
 
     # DeepSeek doesn't support extended thinking — strip entirely
     body.pop("thinking", None)
+    # DeepSeek ignores metadata field (user_id etc.) — zero-risk
+    body.pop("metadata", None)
 
     # Strip cache_control blocks — DeepSeek has no prompt caching
     if "messages" in body:
