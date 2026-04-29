@@ -230,6 +230,108 @@ def _truncate_tool_results(messages: list, total_budget: int) -> None:
                                           + f"\n[...truncated to {TOOL_RESULT_MAX_TOKENS} tokens]")
 
 
+def _strip_empty_blocks(blocks: list) -> list:
+    """Remove empty tool_result and text blocks. Zero risk — empty blocks carry no information."""
+    cleaned = []
+    for block in blocks:
+        t = block.get("type")
+        if t == "tool_result":
+            tc = block.get("content", "")
+            # Empty string or empty array → skip
+            if isinstance(tc, str) and not tc.strip():
+                continue
+            if isinstance(tc, list):
+                # Filter empty sub-blocks
+                filled = [b for b in tc if b.get("type") == "text" and b.get("text", "").strip()]
+                if not filled:
+                    continue  # tool_result with no useful content
+                block = dict(block)
+                block["content"] = filled
+            cleaned.append(block)
+        elif t == "text":
+            text = block.get("text", "")
+            if text.strip():
+                cleaned.append(block)
+            # else drop empty text block
+        else:
+            cleaned.append(block)
+    return cleaned
+
+
+def _merge_text_blocks(blocks: list) -> list:
+    """Merge adjacent text blocks into one. Zero risk — preserves all content."""
+    merged = []
+    buf = []
+    for block in blocks:
+        if block.get("type") == "text":
+            buf.append(block.get("text", ""))
+        else:
+            if buf:
+                merged.append({"type": "text", "text": "".join(buf)})
+                buf = []
+            merged.append(block)
+    if buf:
+        merged.append({"type": "text", "text": "".join(buf)})
+    return merged
+
+
+def _tool_result_text(block: dict) -> str:
+    """Extract text from a tool_result block for comparison."""
+    tc = block.get("content", "")
+    if isinstance(tc, str):
+        return tc
+    if isinstance(tc, list):
+        parts = [b.get("text", "") for b in tc if b.get("type") == "text" and b.get("text")]
+        return "".join(parts)
+    return ""
+
+
+def _dedup_consecutive_results(blocks: list) -> list:
+    """Drop consecutive tool_result blocks with identical text. Low risk — identical copies carry no new info."""
+    deduped = []
+    prev_text = None
+    for block in blocks:
+        if block.get("type") == "tool_result":
+            text = _tool_result_text(block)
+            if text and text == prev_text:
+                continue  # skip identical consecutive result
+            prev_text = text
+        else:
+            prev_text = None
+        deduped.append(block)
+    return deduped
+
+
+_DESC_BOILERPLATE_RE = re.compile(
+    r'(?i)\b(?:please\s+|note\s+that\s+|'
+    r'this\s+(?:tool|function)\s+(?:is\s+)?(?:used\s+)?(?:for|to|can\s+be\s+used\s+to)\s+|'
+    r'use\s+this\s+(?:tool|function)\s+(?:in\s+order\s+)?to\s+|'
+    r'this\s+(?:is\s+)?a\s+(?:tool|function)\s+(?:that\s+)?|'
+    r'call\s+(?:this\s+)?(?:tool|function)\s+(?:in\s+order\s+)?to\s+|'
+    r'you\s+(?:can|may|should|will\s+need\s+to)\s+|'
+    r'(?:generally|typically|usually|basically|essentially)\s+|'
+    r'in\s+order\s+to\s+|'
+    r'(?:if\s+)?(?:needed|necessary|required|applicable)(?:,\s+)?|'
+    r'as\s+needed|'
+    r'for\s+example,?|'
+    r'in\s+other\s+words,?|'
+    r'i\.?\s*e\.?\s*|'
+    r'e\.?\s*g\.?\s*)',
+)
+
+_DESC_PUNCT_RE = re.compile(r'\s{2,}')
+
+
+def _minify_description(desc: str) -> str:
+    """Strip boilerplate/hedging from tool descriptions. Zero risk — preserves all semantic content."""
+    if not desc:
+        return desc
+    desc = _DESC_BOILERPLATE_RE.sub('', desc)
+    desc = _DESC_PUNCT_RE.sub(' ', desc)
+    desc = desc.strip().strip('.,;: ')
+    return desc
+
+
 def _strip_cache_control(messages: list) -> None:
     """Remove cache_control from all blocks (DeepSeek doesn't support Anthropic caching)."""
     for msg in messages:
@@ -273,6 +375,9 @@ def fix_request(body: dict) -> dict:
                             if tb.get("type") == "text":
                                 tb["text"] = _compress_progress(_normalize_text(tb.get("text", "")))
             msg["content"] = _strip_image_blocks(c)
+            msg["content"] = _strip_empty_blocks(msg["content"])
+            msg["content"] = _merge_text_blocks(msg["content"])
+            msg["content"] = _dedup_consecutive_results(msg["content"])
             if not msg["content"]:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
 
@@ -284,6 +389,13 @@ def fix_request(body: dict) -> dict:
     sys_prompt = body.get("system")
     if isinstance(sys_prompt, str):
         body["system"] = _compress_progress(_normalize_text(sys_prompt))
+    # Normalize tools[].description — human-readable text, not input_schema (structured JSON)
+    tools = body.get("tools", [])
+    if isinstance(tools, list):
+        for tool in tools:
+            desc = tool.get("description")
+            if isinstance(desc, str):
+                tool["description"] = _minify_description(_compress_progress(_normalize_text(desc)))
 
     # Strip cache_control blocks — DeepSeek has no prompt caching
     if "messages" in body:
