@@ -514,8 +514,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if status < 400:
                 try:
                     js = json.loads(body)
-                    if "content" in js and isinstance(js["content"], list):
-                        js["content"] = [b for b in js["content"] if b.get("type") != "thinking"]
                     usage = js.get("usage", {})
                     if usage:
                         print(f"  [resp] input_tokens={usage.get('input_tokens', '?')} "
