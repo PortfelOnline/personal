@@ -94,33 +94,88 @@ def _count_tokens(text: str) -> int:
 
 
 def _truncate_messages(messages: list, max_tok: int) -> list:
-    """Two-phase truncation: protect first 2 messages (system + 1st user), then oldest."""
+    """Role-weighted truncation: compress content first, then drop tool-only, then newest-first."""
     costs = [_msg_tokens(m) for m in messages]
     if sum(costs) <= max_tok:
         return messages
-    # Protect first 2 messages (system prompt + first user instructions)
-    protected = 2
+
+    # Phase 0: compress tool_result content inline before dropping anything
+    total = sum(costs)
+    if total > max_tok * 1.1:
+        for msg in messages:
+            c = msg.get("content")
+            if not isinstance(c, list):
+                if isinstance(c, str) and msg.get("role") in ("user", "assistant"):
+                    compressed = _compress_content(c)
+                    if len(compressed) < len(c):
+                        msg["content"] = compressed
+                continue
+            for block in c:
+                if block.get("type") != "tool_result":
+                    continue
+                tc = block.get("content")
+                if isinstance(tc, list):
+                    for tb in tc:
+                        if tb.get("type") == "text":
+                            compressed = _compress_content(tb.get("text", ""))
+                            tb["text"] = compressed
+                elif isinstance(tc, str):
+                    block["content"] = _compress_content(tc)
+        costs = [_msg_tokens(m) for m in messages]
+        if sum(costs) <= max_tok:
+            return messages
+
+    # Protect system prompts + first user message
     sys_end = next((i for i, m in enumerate(messages) if m.get("role") != "system"), 0)
-    # Ensure at least protected messages are kept (or however many exist before sys_end+protected)
-    min_keep = max(sys_end, min(protected, len(messages)))
+    min_keep = max(sys_end, min(2, len(messages)))
     kept = list(messages[:min_keep])
     kept_cost = sum(costs[:min_keep])
-    # Phase 1: drop tool-only messages (preserve user text & assistant reasoning)
-    for i, m in enumerate(messages[min_keep:], start=min_keep):
+
+    # Phase 1: keep messages by role priority (user > assistant > tool)
+    remaining = list(enumerate(messages[min_keep:], start=min_keep))
+    role_order = {"user": 0, "assistant": 1, "tool": 2}
+    remaining.sort(key=lambda x: (role_order.get(x[1].get("role"), 3), x[0]))
+
+    for i, m in remaining:
         c = costs[i]
-        if _is_tool_only(m) and kept_cost + c > max_tok:
-            continue  # skip this tool-only message
-        kept.append(m)
-        kept_cost += c
-    # Phase 2: if still over budget, fall back to oldest-first (keep newest)
+        if kept_cost + c <= max_tok:
+            kept.append(m)
+            kept_cost += c
+        elif m.get("role") == "user":
+            # User messages get priority — drop tool-only first if we can
+            tool_cut = [k for k in kept[min_keep:] if k.get("role") in ("tool",) or _is_tool_only(k)]
+            for tc in tool_cut:
+                idx = kept.index(tc)
+                kept.pop(idx)
+                kept_cost -= costs[messages.index(tc)]
+                if kept_cost + c <= max_tok:
+                    break
+            if kept_cost + c <= max_tok:
+                kept.append(m)
+                kept_cost += c
+
+    # Phase 2: if still over budget, keep newest with user+assistant pairs preferred
     if kept_cost > max_tok:
         kept = list(messages[:min_keep])
         kept_cost = sum(costs[:min_keep])
         for i in range(len(messages) - 1, min_keep - 1, -1):
+            m = messages[i]
             c = costs[i]
-            if kept_cost + c <= max_tok or len(kept) == min_keep:
-                kept.append(messages[i])
+            if kept_cost + c <= max_tok:
+                kept.append(m)
                 kept_cost += c
+            elif m.get("role") == "user":
+                # Try harder to fit user messages — bump oldest tool-only
+                tool_idx = next((j for j in range(min_keep, len(kept))
+                                if kept[j].get("role") in ("tool",) or _is_tool_only(kept[j])), None)
+                if tool_idx is not None:
+                    tool_cost = costs[messages.index(kept[tool_idx])]
+                    kept.pop(tool_idx)
+                    kept_cost -= tool_cost
+                    if kept_cost + c <= max_tok:
+                        kept.append(m)
+                        kept_cost += c
+
     dropped = len(messages) - len(kept)
     if dropped:
         kept.insert(0, {"role": "system", "content": f"[{dropped} truncated] — "})
@@ -185,10 +240,48 @@ def _normalize_text(text: str) -> str:
 
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
 
+# Patterns for content-type compression
+_STACK_TRACE_RE = re.compile(r'^\s*(?:File\s+".*?"|Traceback|  File |  .*Error|at\s+|Caused by|→\s*)')
+_LONG_LINE_THRESHOLD = 500  # chars — likely pretty-printed data
 
-def _compress_progress(text: str) -> str:
-    """Strip ANSI codes only — no [Step N/M] removal (risk: model references step numbers)."""
-    return _ANSI_RE.sub('', text).strip()
+
+def _compress_content(text: str) -> str:
+    """Content-type aware compression. Handles: file listings, stack traces, long JSON, repetitive logs."""
+    text = _ANSI_RE.sub('', text).strip()
+    if not text:
+        return text
+
+    lines = text.split('\n')
+    n = len(lines)
+
+    # File listing or log with many repetitive lines → keep head+tail
+    if n > 40:
+        stack_lines = sum(1 for l in lines if _STACK_TRACE_RE.match(l))
+        json_lines = sum(1 for l in lines[:5] if l.strip().startswith(('{', '[')))
+        long_lines = sum(1 for l in lines if len(l) > _LONG_LINE_THRESHOLD / 2)
+
+        # Stack trace → keep first 8 + last 4
+        if stack_lines > 5:
+            keep = lines[:8] + ['[...stack trace compressed...]'] + lines[-4:]
+            return '\n'.join(keep)
+
+        # Long JSON pretty-print → try compact
+        if json_lines > 3 or long_lines > 10:
+            joined = '\n'.join(lines)
+            compacted = _compact_json_text(joined)
+            if compacted != joined:
+                return compacted
+
+        # Generic many-line output → keep first 20 + last 10
+        keep = lines[:20] + [f'\n[...{n - 30} lines compressed...]\n'] + lines[-10:]
+        return '\n'.join(keep)
+
+    # Short enough — just strip ANSI + normalize
+    return text
+
+
+# Backward compat alias
+_compress_progress = _compress_content
 
 
 def _is_tool_only(msg: dict) -> bool:
