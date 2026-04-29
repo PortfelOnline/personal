@@ -34,6 +34,7 @@ USE_OCR = os.environ.get("OCR") == "1"
 # DeepSeek context: 128K total, small safety margin (tiktoken точный)
 MAX_CONTEXT_TOKENS = 128_000
 PROMPT_SAFETY_MARGIN = 1024
+TOOL_RESULT_MAX_TOKENS = 2000
 
 
 def _groq_describe(base64_data: str, media_type: str) -> str | None:
@@ -184,6 +185,50 @@ def _is_tool_only(msg: dict) -> bool:
     return isinstance(c, list) and all(b.get("type") in ("tool_result", "tool_use") for b in c)
 
 
+def _truncate_tool_results(messages: list) -> None:
+    """Truncate tool_result content to TOOL_RESULT_MAX_TOKENS (mutates in-place)."""
+    global _TOKENIZER
+    if _TOKENIZER is None:
+        _TOKENIZER = tiktoken.get_encoding("cl100k_base")
+    for msg in messages:
+        c = msg.get("content")
+        if not isinstance(c, list):
+            continue
+        for block in c:
+            if block.get("type") != "tool_result":
+                continue
+            tc = block.get("content", "")
+            if isinstance(tc, str):
+                tok = _count_tokens(tc)
+                if tok > TOOL_RESULT_MAX_TOKENS:
+                    encoded = _TOKENIZER.encode(tc, disallowed_special=())
+                    block["content"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
+                                        + "\n[...truncated to 2000 tokens]")
+            elif isinstance(tc, list):
+                for tb in tc:
+                    if tb.get("type") == "text":
+                        text = tb.get("text", "")
+                        tok = _count_tokens(text)
+                        if tok > TOOL_RESULT_MAX_TOKENS:
+                            encoded = _TOKENIZER.encode(text, disallowed_special=())
+                            tb["text"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
+                                          + "\n[...truncated to 2000 tokens]")
+
+
+def _strip_cache_control(messages: list) -> None:
+    """Remove cache_control from all blocks (DeepSeek doesn't support Anthropic caching)."""
+    for msg in messages:
+        c = msg.get("content")
+        if isinstance(c, list):
+            for b in c:
+                b.pop("cache_control", None)
+                if b.get("type") == "tool_result":
+                    tc = b.get("content")
+                    if isinstance(tc, list):
+                        for tb in tc:
+                            tb.pop("cache_control", None)
+
+
 def fix_request(body: dict) -> dict:
     """Normalize whitespace, fix images, strip thinking, smart-truncate context."""
     for msg in body.get("messages", []):
@@ -202,9 +247,13 @@ def fix_request(body: dict) -> dict:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
 
     # DeepSeek doesn't support extended thinking — strip entirely
+    # DeepSeek doesn't support extended thinking — strip entirely
     body.pop("thinking", None)
 
+    # Strip cache_control blocks — DeepSeek has no prompt caching
     if "messages" in body:
+        _strip_cache_control(body["messages"])
+        _truncate_tool_results(body["messages"])
         max_tok = body.get("max_tokens", 8192)
         prompt_budget = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok
         body["messages"] = _truncate_messages(body["messages"], prompt_budget)
