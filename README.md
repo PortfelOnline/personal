@@ -188,3 +188,5 @@ See `git log --oneline` for full history. Key milestones:
 - `fbf3128` — Tier 9-10: #36-#42 (hooks: PostToolUseFailure + Pre/PostCompact + session report; semantic: episodic memory + PushNotification + Cron GC + plugin agents)
 - `ec5b8e1` — docs: update README — 33 improvements, Tier 9-10, updated Phase 0 + hooks
 - `a382330` — Tier 21: DeepSeek Agent context compaction (summarization via flash) + Permissions UX (dangerous cmd, file size, internal IP blocks) + Tier 22: web tools (web_fetch + web_search with DDG Lite, rate limiter, security chain)
+- `5dd3abc` — Tier 13 (delivered project): strategy-dashboard — AI Content Generation Dashboard (tested, 83 tests, 0 TS errors, CI pnpm)
+- (this session) — Tier 52: claude command shell fix (.zshrc function was missing, only in Claude internal snapshot)
