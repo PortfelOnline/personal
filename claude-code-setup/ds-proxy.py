@@ -30,6 +30,8 @@ API_KEY = os.environ.get("DEEPSEEK_API_KEY") or next(
 GROQ_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_MODEL = "llama-4-scout-17b-16e-instruct"
 USE_OCR = os.environ.get("OCR") == "1"
+CLAUDE_KEY = os.environ.get("CLAUDE_API_KEY")
+ANTHROPIC_DIRECT_URL = "https://api.anthropic.com/v1/messages"
 
 # DeepSeek context: 128K total, small safety margin (tiktoken точный)
 MAX_CONTEXT_TOKENS = 128_000
@@ -394,8 +396,7 @@ def fix_request(body: dict) -> dict:
             if not msg["content"]:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
 
-    # DeepSeek doesn't support extended thinking — strip entirely
-    body.pop("thinking", None)
+    # Don't strip thinking — pass through to DeepSeek (ignored if unsupported)
     # DeepSeek ignores metadata field (user_id etc.) — zero-risk
     body.pop("metadata", None)
     # Normalize system prompt (zero-risk whitespace compression)
@@ -406,6 +407,7 @@ def fix_request(body: dict) -> dict:
     tools = body.get("tools", [])
     if isinstance(tools, list):
         for tool in tools:
+            tool.pop("display_name", None)  # DeepSeek ignores this — zero-risk
             desc = tool.get("description")
             if isinstance(desc, str):
                 tool["description"] = _minify_description(_compress_progress(_normalize_text(desc)))
@@ -457,20 +459,30 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def _proxy(self, method):
         qs = ("?" + self.path.split("?", 1)[1]) if "?" in self.path else ""
-        target = DEEPSEEK_ANTHROPIC_URL + qs
         clen = int(self.headers.get("Content-Length", 0))
         body_bytes = self.rfile.read(clen) if method in ("POST", "PATCH") and clen else None
+        req_obj = json.loads(body_bytes) if body_bytes else {}
+
+        # Route to native Claude if model name contains "claude" and API key is set
+        use_native = bool(CLAUDE_KEY and "claude" in (req_obj.get("model", "") or "").lower())
+
+        if use_native:
+            target = ANTHROPIC_DIRECT_URL + qs
+        else:
+            target = DEEPSEEK_ANTHROPIC_URL + qs
 
         if body_bytes:
             try:
-                req = json.loads(body_bytes)
-                body_bytes = json.dumps(fix_request(req), separators=(',', ':')).encode()
-                _log_token_usage(req, req.get("max_tokens", 8192))
+                if use_native:
+                    body_bytes = json.dumps(req_obj, separators=(',', ':')).encode()
+                else:
+                    body_bytes = json.dumps(fix_request(req_obj), separators=(',', ':')).encode()
+                    _log_token_usage(req_obj, req_obj.get("max_tokens", 8192))
             except json.JSONDecodeError:
                 pass
 
         hdrs = {
-            "x-api-key": API_KEY or self.headers.get("x-api-key", ""),
+            "x-api-key": CLAUDE_KEY if use_native else (API_KEY or self.headers.get("x-api-key", "")),
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
         }
@@ -532,9 +544,11 @@ if __name__ == "__main__":
         features.append("OCR fallback")
     if not features:
         features.append("image placeholder")
+    native = "native Claude" if CLAUDE_KEY else "native Claude (set CLAUDE_API_KEY to enable)"
     server = HTTPServer(("", PORT), ProxyHandler)
     print(f"DeepSeek proxy :{PORT} → {DEEPSEEK_ANTHROPIC_URL}")
     print(f"  Features: {', '.join(features)}")
+    print(f"  Fallback: {native} (model name containing 'claude')")
     print(f"  Context: ~{(MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - 8192) // 1000}K prompt budget (128K total - {PROMPT_SAFETY_MARGIN}b safety)")
     print(f"  Set: ANTHROPIC_BASE_URL=http://localhost:{PORT}")
     server.serve_forever()
