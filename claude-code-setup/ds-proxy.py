@@ -123,7 +123,7 @@ def _truncate_messages(messages: list, max_tok: int) -> list:
                 kept_cost += c
     dropped = len(messages) - len(kept)
     if dropped:
-        kept.insert(0, {"role": "system", "content": f"[{dropped} messages truncated to fit 128K context] — "})
+        kept.insert(0, {"role": "system", "content": f"[{dropped} truncated] — "})
     return kept
 
 
@@ -332,6 +332,17 @@ def _minify_description(desc: str) -> str:
     return desc
 
 
+def _strip_code_fences(text: str) -> str:
+    """Strip markdown code fences from tool results. Lets _compact_json_text work on fenced JSON."""
+    lines = text.split('\n')
+    if lines and lines[0].startswith('```'):
+        lines = lines[1:]
+        if lines and lines[-1].strip() == '```':
+            lines = lines[:-1]
+        return '\n'.join(lines)
+    return text
+
+
 def _compact_json_text(text: str) -> str:
     """Compact pretty-printed JSON. Zero risk — identical data, fewer tokens."""
     stripped = text.strip()
@@ -386,7 +397,7 @@ def fix_request(body: dict) -> dict:
                     if isinstance(tc, list):
                         for tb in tc:
                             if tb.get("type") == "text":
-                                tb["text"] = _compact_json_text(_compress_progress(_normalize_text(tb.get("text", ""))))
+                                tb["text"] = _compact_json_text(_strip_code_fences(_compress_progress(_normalize_text(tb.get("text", "")))))
             msg["content"] = _strip_image_blocks(c)
             msg["content"] = _strip_empty_blocks(msg["content"])
             msg["content"] = _merge_text_blocks(msg["content"])
