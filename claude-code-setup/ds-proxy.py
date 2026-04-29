@@ -332,6 +332,19 @@ def _minify_description(desc: str) -> str:
     return desc
 
 
+def _compact_json_text(text: str) -> str:
+    """Compact pretty-printed JSON. Zero risk — identical data, fewer tokens."""
+    stripped = text.strip()
+    if not (stripped.startswith("{") or stripped.startswith("[")):
+        return text
+    try:
+        obj = json.loads(stripped)
+        compact = json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
+        return compact
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return text
+
+
 def _strip_cache_control(messages: list) -> None:
     """Remove cache_control from all blocks (DeepSeek doesn't support Anthropic caching)."""
     for msg in messages:
@@ -373,7 +386,7 @@ def fix_request(body: dict) -> dict:
                     if isinstance(tc, list):
                         for tb in tc:
                             if tb.get("type") == "text":
-                                tb["text"] = _compress_progress(_normalize_text(tb.get("text", "")))
+                                tb["text"] = _compact_json_text(_compress_progress(_normalize_text(tb.get("text", ""))))
             msg["content"] = _strip_image_blocks(c)
             msg["content"] = _strip_empty_blocks(msg["content"])
             msg["content"] = _merge_text_blocks(msg["content"])
