@@ -159,11 +159,11 @@ def _describe_image(base64_data: str, media_type: str) -> str:
 
 
 def _strip_image_blocks(blocks: list) -> list:
-    """Recursively replace image blocks with text descriptions (в т.ч. внутри tool_result)."""
+    """Recursively replace image/document blocks with text (в т.ч. внутри tool_result)."""
     fixed = []
     for block in blocks:
         t = block.get("type")
-        if t == "image":
+        if t in ("image", "document"):
             src = block.get("source", {})
             desc = _describe_image(src.get("data", ""), src.get("media_type", "image/png"))
             fixed.append({"type": "text", "text": desc})
@@ -266,6 +266,12 @@ def fix_request(body: dict) -> dict:
             for b in c:
                 if b.get("type") == "text":
                     b["text"] = _compress_progress(_normalize_text(b.get("text", "")))
+                elif b.get("type") == "tool_result":
+                    tc = b.get("content")
+                    if isinstance(tc, list):
+                        for tb in tc:
+                            if tb.get("type") == "text":
+                                tb["text"] = _compress_progress(_normalize_text(tb.get("text", "")))
             msg["content"] = _strip_image_blocks(c)
             if not msg["content"]:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
@@ -274,6 +280,10 @@ def fix_request(body: dict) -> dict:
     body.pop("thinking", None)
     # DeepSeek ignores metadata field (user_id etc.) — zero-risk
     body.pop("metadata", None)
+    # Normalize system prompt (zero-risk whitespace compression)
+    sys_prompt = body.get("system")
+    if isinstance(sys_prompt, str):
+        body["system"] = _compress_progress(_normalize_text(sys_prompt))
 
     # Strip cache_control blocks — DeepSeek has no prompt caching
     if "messages" in body:
