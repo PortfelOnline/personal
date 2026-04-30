@@ -1,4 +1,4 @@
-# Token Economy Config — 2026-04-30 (v3 — финал)
+# Token Economy Config — 2026-04-30 (v4 — финал+)
 
 ## Проблема
 - 127M токенов/день, 0% cache hit, Input >> Output (270x)
@@ -15,20 +15,20 @@ User Prompt
   │   └─ < 200 символов → сразу ответ. Иначе pre-check.
   │
   ├─ PreToolUse hooks:
-  │   ├─ 1. response-cache.sh — кэш (hash → exit 1 + ссылка на результат)
+  │   ├─ 1. response-cache.sh — hash → exit 1 + **контент в stderr** (модель видит без вызова)
   │   ├─ 2. pre-edit-guard.sh / destructive-guard.sh
-  │   ├─ 3. anti-loop-guard.sh — 6 проверок, HARD STOP exit 1
+  │   ├─ 3. anti-loop-guard.sh — 8 проверок, HARD STOP exit 1
   │   └─ 4. check-secrets.sh
   │
   ├─ Tool execution
   │
   └─ PostToolUse hooks:
-      └─ 1. response-cache-save.sh — сохраняет результат в /tmp/claude_cache/results/
+      └─ 1. response-cache-save.sh — сохраняет результат для будущих cache hit
 ```
 
 ## Хуки
 
-### anti-loop-guard.sh — 6 проверок, exit 1
+### anti-loop-guard.sh — 8 проверок, exit 1
 
 | # | Правило | Порог | Действие |
 |---|---|---|---|
@@ -38,6 +38,8 @@ User Prompt
 | 4 | MAX_TOTAL_CALLS | > 5 tool calls | exit 1 |
 | 5 | Tool chaining | тот же tool 2+ раза подряд | exit 1 |
 | 6 | Tool priority | HIGH_COST после шага 2, MEDIUM_COST после шага 3 | exit 1 |
+| 7 | Hard ban browser | playwright/browser без сигнала (login, dynamic, screenshot) | exit 1 |
+| 8 | Cumulative budget | SOFT_LIMIT=30k, HARD_LIMIT=50k, LOW_COST only после 30k | exit 1 |
 
 **Tool priority:**
 - LOW_COST (всегда): Read, Write, Edit, Bash(ls|git|find|cat|echo)
@@ -46,9 +48,9 @@ User Prompt
 
 ### response-cache.sh + response-cache-save.sh
 - PreToolUse: sha1(tool + input) → поиск в saved_results
-- Если найден → exit 1 + ссылка на `$RESULTS_DIR/$HASH.txt`
-- PostToolUse: сохраняет результат туда же
-- Итог: повтор identical вызова → ссылка на закэшированный ответ
+- Если найден → exit 1 + **контент в stderr** (модель видит контент без вызова тула)
+- PostToolUse: сохраняет результат в `$RESULTS_DIR/$HASH.txt`
+- Повтор identical вызова → контент из stderr, тул не вызывается
 
 ### session-reset-antiloop.sh
 - Сброс `/tmp/claude_antiloop/` + `/tmp/claude_cache/`
@@ -69,7 +71,8 @@ User Prompt
 | graphify | 500-1500 |
 | playwright/browser | 3000-10000 |
 
-**Context Threshold:** если инструмент вернул < 50 токенов → STOP, не ретраить
+**Context Threshold:** <50 токенов → 1 retry allowed, второй раз → STOP
+**Confidence STOP:** если уверенность >85% → STOP, не улучшать ответ
 
 ## Итог
 
@@ -77,8 +80,11 @@ User Prompt
 |---|---|---|
 | settings.local.json | 41KB, 655 строк | ~1KB, 20 wildcards |
 | Guard'ы | мягкие warning | HARD STOP (exit 1) |
-| Response cache | нет | sha1 + reference to cached result |
-| Tool chaining | нет | 6 проверок + priority |
+| Response cache | нет | sha1 + контент в stderr (model sees without tool call) |
+| Tool chaining | нет | 8 проверок + priority + budget |
+| Browser hard ban | нет | playwright без сигнала → exit 1 |
+| Cumulative budget | нет | SOFT=30k, HARD=50k estimated tokens |
 | Cost awareness | нет | прайс-лист в CLAUDE.md |
-| Context threshold | нет | <50 токенов → STOP |
-| Ожидаемый эффект | 127M токенов/день | **2-5M токенов/день** |
+| Context threshold | нет | <50 токенов → 1 retry, потом STOP |
+| Confidence STOP | нет | >85% → не улучшать |
+| Ожидаемый эффект | 127M токенов/день | **1.5-4M токенов/день** |
