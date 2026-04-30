@@ -1,6 +1,13 @@
-# Claude Ultra-Efficient Runtime
+# Reduce LLM Costs by 5–10x
 
-Оптимизированная конфигурация Claude Code, снижающая потребление токенов в **5–10× без потери качества**.
+Production-ready Claude Code runtime optimization.
+
+## Quick Start
+
+```bash
+cp -r claude-config ~/.claude
+# restart Claude Code
+```
 
 ## Benchmarks
 
@@ -27,9 +34,12 @@
 ## Installation
 
 ```bash
-git clone git@github.com:PortfelOnline/personal.git ~/personal
-cp -r ~/personal/claude-config/* ~/.claude/
-# Перезапустить Claude Code
+# From existing checkout
+cp -r claude-config ~/.claude
+
+# Fresh install
+git clone git@github.com:PortfelOnline/personal.git
+cp -r personal/claude-config ~/.claude/
 ```
 
 ## Architecture
