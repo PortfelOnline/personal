@@ -85,11 +85,37 @@ def _ocr_describe(base64_data: str) -> str | None:
 _TOKENIZER = None
 
 
-def _count_tokens(text: str) -> int:
+def _normalize_to_text(x) -> str:
+    if isinstance(x, str):
+        return x
+    if isinstance(x, list):
+        parts = []
+        for item in x:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                if item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+                elif "content" in item:
+                    parts.append(_normalize_to_text(item.get("content")))
+        return "\n".join(p for p in parts if p)
+    if isinstance(x, dict):
+        if x.get("type") == "text":
+            return x.get("text", "")
+        return str(x)
+    if x is None:
+        return ""
+    return str(x)
+
+
+def _count_tokens(text) -> int:
     """Token count via tiktoken cl100k_base (shared by Claude & DeepSeek BPE)."""
     global _TOKENIZER
     if _TOKENIZER is None:
         _TOKENIZER = tiktoken.get_encoding("cl100k_base")
+    text = _normalize_to_text(text)
+    if len(text) > 200_000:
+        text = text[:100_000] + "\n...[truncated]...\n" + text[-50_000:]
     return len(_TOKENIZER.encode(text, disallowed_special=()))
 
 
@@ -182,24 +208,10 @@ def _truncate_messages(messages: list, max_tok: int) -> list:
     return kept
 
 
-def _msg_tokens(m: dict) -> int:
-    """Token count for a message including format overhead (~5 tok/msg)."""
-    c = m.get("content", "")
-    if isinstance(c, list):
-        total = 0
-        for b in c:
-            total += _count_tokens(b.get("text", "") or b.get("name", "") or "")
-            if b.get("type") == "tool_use":
-                total += _count_tokens(json.dumps(b.get("input", {}), separators=(',', ':')))
-            if b.get("type") == "tool_result":
-                tc = b.get("content", "")
-                if isinstance(tc, list):
-                    for tb in tc:
-                        total += _count_tokens(tb.get("text", "") or "")
-                else:
-                    total += _count_tokens(str(tc))
-        return total + 5
-    return _count_tokens(str(c)) + 5
+def _msg_tokens(msg: dict) -> int:
+    content = msg.get("content", "")
+    content = _normalize_to_text(content)
+    return _count_tokens(content)
 
 
 def _describe_image(base64_data: str, media_type: str) -> str:
@@ -233,8 +245,9 @@ def _strip_image_blocks(blocks: list) -> list:
     return fixed
 
 
-def _normalize_text(text: str) -> str:
+def _normalize_text(text) -> str:
     """Strip trailing spaces per line + edges. Zero-risk — no content modification beyond whitespace."""
+    text = _normalize_to_text(text)
     return '\n'.join(l.rstrip() for l in text.split('\n')).strip()
 
 
@@ -245,8 +258,9 @@ _STACK_TRACE_RE = re.compile(r'^\s*(?:File\s+".*?"|Traceback|  File |  .*Error|a
 _LONG_LINE_THRESHOLD = 500  # chars — likely pretty-printed data
 
 
-def _compress_content(text: str) -> str:
+def _compress_content(text) -> str:
     """Content-type aware compression. Handles: file listings, stack traces, long JSON, repetitive logs."""
+    text = _normalize_to_text(text)
     text = _ANSI_RE.sub('', text).strip()
     if not text:
         return text
@@ -309,7 +323,7 @@ def _truncate_tool_results(messages: list, total_budget: int) -> None:
             if isinstance(tc, str):
                 tok = _count_tokens(tc)
                 if tok > TOOL_RESULT_MAX_TOKENS:
-                    encoded = _TOKENIZER.encode(tc, disallowed_special=())
+                    encoded = _TOKENIZER.encode(_normalize_to_text(tc), disallowed_special=())
                     block["content"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
                                         + f"\n[...truncated to {TOOL_RESULT_MAX_TOKENS} tokens]")
             elif isinstance(tc, list):
@@ -371,12 +385,7 @@ def _merge_text_blocks(blocks: list) -> list:
 def _tool_result_text(block: dict) -> str:
     """Extract text from a tool_result block for comparison."""
     tc = block.get("content", "")
-    if isinstance(tc, str):
-        return tc
-    if isinstance(tc, list):
-        parts = [b.get("text", "") for b in tc if b.get("type") == "text" and b.get("text")]
-        return "".join(parts)
-    return ""
+    return _normalize_to_text(tc)
 
 
 DEDUP_MIN_LEN = 100  # only dedup if text is long enough — avoids coincedental short matches
@@ -491,6 +500,8 @@ def fix_request(body: dict) -> dict:
             msg["content"] = _compress_progress(_normalize_text(c))
             if not msg["content"]:
                 msg["content"] = [{"type": "text", "text": "[Empty message]"}]
+        elif isinstance(c, dict):
+            msg["content"] = [{"type": "text", "text": _compress_progress(_normalize_text(c)) or "[Empty message]"}]
         elif isinstance(c, list):
             # Normalize text blocks first (reduces token count)
             for b in c:
@@ -514,7 +525,7 @@ def fix_request(body: dict) -> dict:
     body.pop("metadata", None)
     # Normalize system prompt (zero-risk whitespace compression)
     sys_prompt = body.get("system")
-    if isinstance(sys_prompt, str):
+    if sys_prompt is not None:
         body["system"] = _compress_progress(_normalize_text(sys_prompt))
     # Normalize tools[].description — human-readable text, not input_schema (structured JSON)
     tools = body.get("tools", [])
@@ -547,7 +558,7 @@ def fix_request(body: dict) -> dict:
 def _log_token_usage(body: dict, max_tok: int):
     """Log token consumption to stderr (observability, not optimisation)."""
     prompt_tok = sum(_msg_tokens(m) for m in body.get("messages", []))
-    sys_tok = _count_tokens(body.get("system", ""))
+    sys_tok = _count_tokens(_normalize_to_text(body.get("system", "")))
     total = prompt_tok + sys_tok
     budget = MAX_CONTEXT_TOKENS - PROMPT_SAFETY_MARGIN - max_tok
     pct = round(total / budget * 100, 1) if budget else 0
