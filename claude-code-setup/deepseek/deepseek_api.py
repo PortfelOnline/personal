@@ -531,6 +531,191 @@ def get_usage_summary(path: str = DEFAULT_LOG_PATH) -> dict:
     return UsageLogger(path).summary()
 
 
+# ── Usage Audit ────────────────────────────────────────────────
+
+_PRO_SCORE_THRESHOLD = -1  # score >= этого → Pro, иначе Flash
+
+
+def _reroute_score(entry: dict) -> int:
+    """Оценка: какой бы скор дала _select_model для этого запроса.
+    Используется для аудита: если Pro-запрос имеет скор <= -2 → зря на Pro."""
+    # У нас нет полного prompt, system, temperature в логе.
+    # Используем то, что есть: prompt_tokens, completion_tokens, model
+    prompt_len = entry.get("prompt_tokens", 0)
+    if prompt_len < 200:
+        return -1  # скорее flash
+    elif prompt_len < 2000:
+        return 0   # нейтрально
+    return 1       # скорее pro
+
+
+def _model_key(entry: dict) -> str:
+    """normalize 'auto' → resolved model, otherwise as-is."""
+    m = entry.get("model", "unknown")
+    if m == "auto":
+        # В старых записях могло быть auto — определяем по стоимости
+        cost_in = entry.get("input_cost", 0)
+        # Input cost per token: Pro = 2e-6, Flash = 0.3e-6
+        input_tok = entry.get("prompt_tokens", 1)
+        if input_tok > 0 and cost_in > 0:
+            rate = cost_in / (input_tok / 1_000_000)
+            if rate > 1.0:
+                return "deepseek-v4-pro"
+            return "deepseek-v4-flash"
+        return "unknown"
+    return m
+
+
+def audit_usage(path: str = DEFAULT_LOG_PATH) -> dict:
+    """Анализ лога: поиск misrouting, waste, рекомендации.
+
+    Returns:
+        dict с разделами: summary, misrouted, waste, recommendations
+    """
+    if not os.path.exists(path):
+        return {"error": f"Лог не найден: {path}"}
+
+    with open(path) as f:
+        entries = [json.loads(line) for line in f if line.strip()]
+
+    if not entries:
+        return {"error": "Лог пуст"}
+
+    result = {
+        "total_calls": len(entries),
+        "total_cost": 0.0,
+        "pro_calls": 0,
+        "flash_calls": 0,
+        "pro_cost": 0.0,
+        "flash_cost": 0.0,
+        "misrouted": [],        # Pro-запросы, которые могли быть Flash
+        "waste": [],            # max_tokens waste
+        "recommendations": [],
+    }
+
+    for entry in entries:
+        m = _model_key(entry)
+        cost = entry.get("total_cost", 0)
+        result["total_cost"] += cost
+
+        is_pro = "pro" in m
+        is_flash = "flash" in m
+
+        if is_pro:
+            result["pro_calls"] += 1
+            result["pro_cost"] += cost
+
+            # Проверка misrouting
+            score = _reroute_score(entry)
+            if score <= -2:
+                # Этот запрос мог быть Flash
+                result["misrouted"].append({
+                    "timestamp": entry.get("timestamp", ""),
+                    "prompt_tokens": entry.get("prompt_tokens", 0),
+                    "completion_tokens": entry.get("completion_tokens", 0),
+                    "cost": cost,
+                    "potential_saving": cost - (
+                        cost * 0.15  # ~85% экономии на Flash
+                    ),
+                })
+
+        elif is_flash:
+            result["flash_calls"] += 1
+            result["flash_cost"] += cost
+
+        # Waste: если completion_tokens << max_tokens
+        # (max_tokens нет в логе, оцениваем по completion_tokens)
+        comp = entry.get("completion_tokens", 0)
+        if comp < 50 and is_pro and comp > 0:
+            # Маленький ответ на Pro — переплата
+            result["waste"].append({
+                "timestamp": entry.get("timestamp", ""),
+                "model": m,
+                "completion_tokens": comp,
+                "cost": cost,
+            })
+
+    # ── Рекомендации ──
+    if result["misrouted"]:
+        total_waste = sum(r["potential_saving"] for r in result["misrouted"])
+        n = len(result["misrouted"])
+        result["recommendations"].append(
+            f"{n} Pro-запросов могли быть Flash (экономия ~${total_waste:.6f}). "
+            f"Auto-routing решит это автоматически."
+        )
+
+    if result["waste"]:
+        n = len(result["waste"])
+        result["recommendations"].append(
+            f"{n} Pro-запросов с очень короткими ответами (<50 токенов). "
+            f"Возможно стоило использовать Flash."
+        )
+
+    # Оптимизация порога
+    pro_share = result["pro_cost"] / result["total_cost"] * 100 if result["total_cost"] else 0
+    flash_share = result["flash_cost"] / result["total_cost"] * 100 if result["total_cost"] else 0
+
+    if pro_share > 90 and result["pro_calls"] > 5:
+        result["recommendations"].append(
+            f"Pro: {pro_share:.0f}% расходов ({result['pro_calls']} вызовов). "
+            f"Рассмотрите снижение порога для Flash (score <= -1 вместо -2)."
+        )
+
+    result["pro_share_pct"] = round(pro_share, 1)
+    result["flash_share_pct"] = round(flash_share, 1)
+    return result
+
+
+def run_audit(path: str = DEFAULT_LOG_PATH):
+    """Pretty-print audit report."""
+    report = audit_usage(path)
+
+    if "error" in report:
+        print(f"Ошибка: {report['error']}")
+        return
+
+    print("=" * 50)
+    print("  АУДИТ ПОТРЕБЛЕНИЯ DEEPSEEK")
+    print("=" * 50)
+    print()
+    print(f"  Всего запросов:     {report['total_calls']}")
+    print(f"  Pro:                {report['pro_calls']} (${report['pro_cost']:.6f}, {report['pro_share_pct']}%)")
+    print(f"  Flash:              {report['flash_calls']} (${report['flash_cost']:.6f}, {report['flash_share_pct']}%)")
+    print(f"  Общая стоимость:    ${report['total_cost']:.6f}")
+    print()
+
+    if report["misrouted"]:
+        print("─" * 50)
+        print("  ⚠️  MISROUTING (Pro → мог быть Flash)")
+        print("─" * 50)
+        total_saving = sum(r["potential_saving"] for r in report["misrouted"])
+        for r in report["misrouted"]:
+            print(f"  {r['timestamp']}")
+            print(f"    prompt={r['prompt_tokens']} resp={r['completion_tokens']} "
+                  f"cost=${r['cost']:.6f} → могло быть ${r['cost']-r['potential_saving']:.6f}")
+        print(f"  Потенциальная экономия: ${total_saving:.6f}")
+        print()
+
+    if report["waste"]:
+        print("─" * 50)
+        print("  ⚠️  WASTE (маленький ответ на Pro)")
+        print("─" * 50)
+        for w in report["waste"]:
+            print(f"  {w['timestamp']} | {w['model']} | "
+                  f"{w['completion_tokens']} токенов | ${w['cost']:.6f}")
+        print()
+
+    if report["recommendations"]:
+        print("─" * 50)
+        print("  РЕКОМЕНДАЦИИ")
+        print("─" * 50)
+        for i, rec in enumerate(report["recommendations"], 1):
+            print(f"  {i}. {rec}")
+        print()
+
+    print("=" * 50)
+
+
 # ── list_models() ─────────────────────────────────────────────
 
 def list_models():

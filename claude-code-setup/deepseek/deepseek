@@ -30,6 +30,7 @@ from deepseek_api import (
     stream_chat,
     list_models,
     get_usage_summary,
+    run_audit,
     DEFAULT_MODEL,
     FAST_MODEL,
     AUTO_MODEL,
@@ -51,6 +52,8 @@ def main():
                         help="Показать доступные модели")
     parser.add_argument("--usage-summary", action="store_true",
                         help="Показать сводку расхода из лога")
+    parser.add_argument("--audit", action="store_true",
+                        help="Аудит потребления: misrouting, waste, рекомендации")
     parser.add_argument("-t", "--temperature", type=float, default=0.7,
                         help="Temperature (0.0-2.0, default: 0.7)")
 
@@ -84,6 +87,15 @@ def main():
                 print(f"    input:   {format_tokens(data['input'])}")
                 print(f"    output:  {format_tokens(data['output'])}")
                 print(f"    cost:    ${data['cost']:.6f}")
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # ── Audit mode ──
+    if args.audit:
+        try:
+            run_audit()
         except Exception as e:
             print(f"Ошибка: {e}", file=sys.stderr)
             sys.exit(1)
