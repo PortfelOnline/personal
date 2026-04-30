@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""DeepSeek API CLI — прямой доступ без Claude Code.
+
+Оптимизация токенов:
+  --show-usage       показать usage после ответа
+  --usage-log PATH   путь к JSONL-логу (default: ~/.local/var/deepseek-usage.jsonl)
+  --no-usage-log     отключить логирование
+  --usage-summary    показать сводку расхода из лога
+
+Использование:
+  echo "промпт" | deepseek                     # streaming из stdin
+  deepseek -p "вопрос"                         # не-streaming
+  deepseek -p "..." -s "ты ассистент"          # с системным промптом
+  deepseek -m deepseek-v4-flash -p "..."       # быстрая модель
+  deepseek -j -p '{"key": "value"}'            # JSON mode
+  deepseek --list-models                       # список моделей
+  deepseek --usage-summary                     # сводка расхода
+"""
+
+import sys
+import os
+import argparse
+
+_lib = os.path.expanduser("~/.local/lib")
+if _lib not in sys.path:
+    sys.path.insert(0, _lib)
+
+from deepseek_api import (
+    chat,
+    stream_chat,
+    list_models,
+    get_usage_summary,
+    DEFAULT_MODEL,
+    FAST_MODEL,
+    format_tokens,
+)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="DeepSeek API CLI", add_help=True)
+    parser.add_argument("-p", "--prompt", help="Промпт (если не указан — читает stdin)")
+    parser.add_argument("-s", "--system", default="", help="Системный промпт")
+    parser.add_argument("-m", "--model", default=DEFAULT_MODEL,
+                        help=f"Модель (default: {DEFAULT_MODEL}, fast: {FAST_MODEL})")
+    parser.add_argument("-j", "--json-mode", action="store_true",
+                        help="JSON mode (response_format=json_object)")
+    parser.add_argument("--no-stream", dest="no_stream", action="store_true",
+                        help="Без streaming")
+    parser.add_argument("--list-models", action="store_true",
+                        help="Показать доступные модели")
+    parser.add_argument("--usage-summary", action="store_true",
+                        help="Показать сводку расхода из лога")
+    parser.add_argument("-t", "--temperature", type=float, default=0.7,
+                        help="Temperature (0.0-2.0, default: 0.7)")
+
+    # Token optimization flags
+    parser.add_argument("--show-usage", action="store_true",
+                        help="Показать usage после ответа")
+    parser.add_argument("--usage-log", default=None,
+                        help="Путь к JSONL-логу (default: ~/.local/var/deepseek-usage.jsonl)")
+    parser.add_argument("--no-usage-log", action="store_true",
+                        help="Отключить логирование")
+
+    args = parser.parse_args()
+
+    # ── Usage summary mode ──
+    if args.usage_summary:
+        try:
+            s = get_usage_summary()
+            if s["total_tokens"] == 0:
+                print("Лог пуст или не существует.")
+                return
+            total_calls = sum(m["calls"] for m in s["by_model"].values())
+            print(f"Всего запросов: {total_calls}")
+            print(f"Всего токенов:  {format_tokens(s['total_tokens'])}")
+            print(f"  input:         {format_tokens(s['total_input_tokens'])}")
+            print(f"  output:        {format_tokens(s['total_output_tokens'])}")
+            print(f"Общая стоимость: ${s['total_cost']:.6f}")
+            print()
+            for model, data in s["by_model"].items():
+                print(f"  {model}:")
+                print(f"    вызовов: {data['calls']}")
+                print(f"    input:   {format_tokens(data['input'])}")
+                print(f"    output:  {format_tokens(data['output'])}")
+                print(f"    cost:    ${data['cost']:.6f}")
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # ── List models mode ──
+    if args.list_models:
+        try:
+            models = list_models()
+            for m in models:
+                marker = " (default)" if m == DEFAULT_MODEL else " (fast)" if m == FAST_MODEL else ""
+                print(f"  {m}{marker}")
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # ── Prompt ──
+    prompt = args.prompt
+    if not prompt:
+        if not sys.stdin.isatty():
+            prompt = sys.stdin.read().strip()
+        else:
+            parser.print_help()
+            print("\nОшибка: нужен -p/--prompt или stdin", file=sys.stderr)
+            sys.exit(1)
+
+    kwargs = {
+        "system": args.system,
+        "model": args.model,
+        "temperature": args.temperature,
+    }
+    if args.json_mode:
+        kwargs["json_mode"] = True
+
+    # Usage log settings
+    if args.no_usage_log:
+        kwargs["usage_log"] = False
+    if args.usage_log:
+        from deepseek_api import DEFAULT_LOG_PATH
+        os.environ["DEEPSEEK_LOG_PATH"] = args.usage_log
+
+    try:
+        if args.no_stream:
+            if args.show_usage:
+                content, usage = chat(prompt, return_usage=True, **kwargs)
+                print(content)
+                if usage:
+                    _print_usage(args.model, usage)
+            else:
+                print(chat(prompt, **kwargs))
+        else:
+            full_text, usage = stream_chat(prompt, **kwargs)
+            if args.show_usage and usage:
+                _print_usage(args.model, usage)
+    except Exception as e:
+        print(f"Ошибка: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+# ── Helpers ───────────────────────────────────────────────────
+
+def _print_usage(model: str, usage: dict):
+    """Статистика токенов в stderr (не в stdout — не мешает pipe)."""
+    from deepseek_api import calculate_cost
+
+    prompt = usage.get("prompt_tokens", 0)
+    completion = usage.get("completion_tokens", 0)
+    total = usage.get("total_tokens", prompt + completion)
+    cost = calculate_cost(model, prompt, completion)
+
+    print(file=sys.stderr)
+    print("─" * 30, file=sys.stderr)
+    print(f"  Модель:   {model}", file=sys.stderr)
+    print(f"  Prompt:   {format_tokens(prompt)}", file=sys.stderr)
+    print(f"  Ответ:    {format_tokens(completion)}", file=sys.stderr)
+    print(f"  Всего:    {format_tokens(total)}", file=sys.stderr)
+    print(f"  Стоимость: ${cost['total_cost']:.6f}", file=sys.stderr)
+    print("─" * 30, file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

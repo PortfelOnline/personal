@@ -88,6 +88,49 @@ API-ключ также читается из `ANTHROPIC_AUTH_TOKEN` (fallback).
 | `~/.bashrc` | DEEPSEEK_API_KEY + PYTHONPATH |
 | `~/.zshrc` | DEEPSEEK_API_KEY + PYTHONPATH |
 
+## Оптимизация токенов (2026-04-30)
+
+Добавлен pre-call и post-call токен-каунтинг с tiktoken (cl100k_base).
+
+### TokenCounter
+- `count_tokens(text)` — оценка через tiktoken (fallback `len//2` без tiktoken)
+- `count_messages(messages)` — сумма по всем сообщениям
+- Без tiktoken не падает, использует char-based fallback
+
+### Dynamic max_tokens
+- DeepSeek V4 context window = 64K токенов
+- `max_tokens = min(requested, 64K - estimated_prompt - 1K headroom)`
+- Нижняя граница: 256 токенов
+- Предотвращает запрос большего числа токенов, чем влезает в контекст
+
+### Usage из API
+- `_api_call()` возвращает `(content, usage_dict)` где `usage = {prompt_tokens, completion_tokens, total_tokens}`
+- `chat(return_usage=True)` — возвращает кортеж вместо строки (backward compat)
+- `stream_chat()` — ловит usage из финального chunk перед `[DONE]`
+
+### Cost calculator
+- Pro: $2/$8 за 1M input/output
+- Flash: $0.30/$1.20 за 1M input/output
+- `calculate_cost(model, input_tokens, output_tokens) -> dict`
+
+### UsageLogger (JSONL)
+- Файл: `~/.local/var/deepseek-usage.jsonl`
+- Поля: timestamp, model, prompt/completion/total tokens, стоимость, system_prompt_len, tags
+- Автосоздание директории, silent fail при ошибках записи
+- `get_usage_summary()` — сводка за всё время
+
+### CLI флаги
+- `--show-usage` — показать usage после ответа (в stderr, не мешает pipe)
+- `--usage-summary` — сводка расхода из лога
+
+### Anti-meander
+- Предупреждения в stderr если system prompt > 4000 токенов или общий промпт > 80% контекста
+
+### Файлы под git
+Исходники скопированы в `personal/claude-code-setup/deepseek/`:
+- `deepseek_api.py` — библиотека
+- `deepseek` — CLI
+
 ## Примечания
 
 - API-ключ один и тот же для обеих конечных точек (v1 и anthropic)
