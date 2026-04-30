@@ -1,47 +1,85 @@
-# Token Economy Config — 2026-04-30
+# Token Economy Config — 2026-04-30 (v2)
 
 ## Проблема
 - 127M токенов/день, 0% cache hit
 - Input >> Output (270x)
 - settings.local.json: 41KB, 655 строк permission entries
 - 11 плагинов загружаются в каждый контекст
-- Нет guard'ов от зацикливания (мягкие warning вместо STOP)
+- Мягкие warning вместо HARD STOP
+- Нет response cache (повторные одинаковые запросы)
+- Нет tool chaining limit (цепочки инструментов в 1 шаге)
+
+## Архитектура
+
+```
+User Prompt
+  │
+  ├─ Early Answer Mode (CLAUDE.md rule)
+  │   └─ если >200 символов и не уверен → идём дальше
+  │
+  ├─ PreToolUse hooks:
+  │   ├─ 1. response-cache.sh — одинаковый tool+input → exit 1
+  │   ├─ 2. pre-edit-guard.sh
+  │   ├─ 3. destructive-guard.sh
+  │   ├─ 4. anti-loop-guard.sh — steps/files/tools limits → exit 1
+  │   └─ 5. check-secrets.sh (git commit only)
+  │
+  ├─ Tool execution
+  │
+  └─ PostToolUse hooks
+```
 
 ## Что сделано
 
 ### 1. settings.local.json — 655 строк → 20
 **Файл:** `~/.claude/settings.local.json`
-- Конкретные permission entries заменены на широкие паттерны
-  - `Bash(curl *)` вместо 100+ отдельных curl команд
-  - `Bash(ssh *)`, `Bash(git *)`, `Bash(docker *)` и т.д.
+- Конкретные permission entries заменены на широкие паттерны:
+  - `Bash(curl *)`, `Bash(ssh *)`, `Bash(git *)`, `Bash(docker *)` ...
   - `mcp__*` wildcard для всех MCP тулов
 - Размер: 41KB → ~1KB
 
-### 2. Anti-loop guard hook — HARD STOP
+### 2. Anti-loop guard — HARD STOP (exit 1)
 **Файл:** `~/.claude/hooks/anti-loop-guard.sh`
 
-Три жёстких правила с `exit 1` (не warning, не ask — блокировка):
-- **MAX_STEPS = 5** — на 6-м шаге HARD STOP
-- **Same file re-read** — если файл прочитан 2+ раза за 6 шагов → STOP
-- **>3 файлов за 5 шагов** — превышение лимита → STOP
+Пять жёстких проверок:
+| # | Правило | Порог | Действие |
+|---|---|---|---|
+| 1 | MAX_STEPS | > 5 | exit 1 |
+| 2 | Same file re-read | 2+ раза за 6 шагов | exit 1 |
+| 3 | >3 files | >3 разных за 5 шагов | exit 1 |
+| 4 | MAX_TOTAL_CALLS | > 5 tool calls | exit 1 |
+| 5 | Tool chaining | тот же tool 2+ раза подряд | exit 1 |
 
-Сброс состояния: `session-reset-antiloop.sh` (SessionStart + PreCompact)
+### 3. Response cache
+**Файл:** `~/.claude/hooks/response-cache.sh`
+- Хэширует (tool_name + tool_input) через shasum
+- При повторе → exit 1
+- Кэш: rotation на 20 записей
+- Сброс: session-reset-antiloop.sh (SessionStart + PreCompact)
 
-### 3. Hard rules в CLAUDE.md
+### 4. Hard rules в CLAUDE.md
 **Файл:** `~/.claude/CLAUDE.md` (секция TOKEN ECONOMY)
 
-Основные правила:
-- **Early Answer Mode**: если >70% уверенности — отвечай без инструментов
-- MAX_STEPS = 5, MAX_FILES_PER_STEP = 3
-- Анти-Partial-Read loop: прочитал часть файла — не читай другую часть
-- graphify_query: budget ≤ 500 (simple=300, code=800, default=500)
-- Context Reuse: не пересылай одинаковые куски контекста
-- curl/tool discipline: не делать цепочек проверок
+**Early Answer Mode (pre-check):**
+- Запрос < 200 символов → без инструментов
+- Прежде чем использовать инструмент → оцени, можешь ли ответить сразу
+- После 1 инструмента → ответить, не делать второй
 
-### 4. Оптимизация settings.json
+**Tool chaining — запрещено:**
+- ❌ graphify → Read → curl → playwright
+- ❌ curl site1 → curl site2 → curl site3
+- ✅ 1 инструмент → ответить → ещё 1 если нужно
+
+**Лимиты:**
+- MAX_STEPS=5, MAX_FILES_PER_STEP=3, MAX_CALLS_PER_STEP=2, MAX_TOTAL_CALLS=5
+- Response cache: не пытаться обойти
+- Context fingerprinting: не дублировать контекст
+
+### 5. Оптимизация settings.json
 **Файл:** `~/.claude/settings.json`
-- Anti-loop guard добавлен в PreToolUse (на все тулы, без matcher)
-- Session-reset-antiloop добавлен в SessionStart + PreCompact
+- Response-cache.sh — первый PreToolUse хук (перед всеми)
+- Anti-loop guard — на все тулы
+- Session-reset-antiloop — SessionStart + PreCompact (сброс обоих кэшей)
 
 ## Итог
 
@@ -50,5 +88,7 @@
 | settings.local.json | 41KB, 655 строк | ~1KB, 20 wildcards |
 | Guard'ы | мягкие warning | HARD STOP (exit 1) |
 | MAX_STEPS | нет / 10 | 5 |
-| Early Exit | нет | >70% → без тулов |
-| Ожидаемый эффект | 127M токенов/день | 3-8M токенов/день |
+| Response cache | нет | да (sha1 хэш, rotation 20) |
+| Tool chaining | нет | max 2 повторения → exit 1 |
+| Early Exit | нет | pre-check, <200 символов без тулов |
+| Ожидаемый эффект | 127M токенов/день | **3-6M токенов/день** |
