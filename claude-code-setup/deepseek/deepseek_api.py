@@ -16,6 +16,7 @@ import os
 import json
 import time
 import sys
+import re
 import urllib.request
 import urllib.error
 
@@ -24,6 +25,7 @@ import urllib.error
 BASE_URL = "https://api.deepseek.com/v1"
 DEFAULT_MODEL = "deepseek-v4-pro"
 FAST_MODEL = "deepseek-v4-flash"
+AUTO_MODEL = "auto"  # автоматический выбор flash/pro
 
 CONTEXT_WINDOW = 64_000          # 64K токенов DeepSeek V4
 MAX_TOKENS_DEFAULT = 8192
@@ -188,6 +190,90 @@ def _resolve_max_tokens(estimated_prompt: int, requested: int = MAX_TOKENS_DEFAU
     return max(resolved, MAX_TOKENS_MIN)
 
 
+# ── Auto model selection (flash vs pro) ─────────────────────────
+
+# Ключевые слова-маркеры: простые задачи → flash
+_SIMPLE_MARKERS = {
+    "translate", "summary", "summarize", "format", "spell", "grammar",
+    "convert", "short", "hello", "hi", "test", "echo", "ping",
+    "capitalize", "lowercase", "uppercase", "trim", "strip",
+    "plural", "singular", "synonym", "antonym",
+}
+
+# Сложные задачи → pro
+_COMPLEX_MARKERS = {
+    "code", "implement", "debug", "refactor", "analyze", "architect",
+    "design", "review", "optimize", "algorithm", "architecture",
+    "complex", "async", "concurrency", "parallel", "distributed",
+    "database", "query", "migration", "schema", "api", "endpoint",
+    "authentication", "authorization", "encrypt", "decrypt",
+    "performance", "benchmark", "profiling",
+}
+
+
+def _select_model(prompt: str, system: str = "", temperature: float | None = None,
+                  json_mode: bool = False, model: str = DEFAULT_MODEL) -> str:
+    """Автоматический выбор модели на основе эвристик.
+
+    Правила:
+    - Длина: < 200 токенов → склоняет к flash
+    - Ключевые слова (word-boundary): translate/summarize → flash; code/implement → pro
+    - Temperature: < 0.3 → flash (фактуальный); > 0.7 → pro (творческий)
+    - JSON mode: → flash (структурные данные)
+    - System prompt > 500 токенов → pro (серьёзная задача)
+
+    Возвращает: "deepseek-v4-flash" или "deepseek-v4-pro"
+    """
+    if model != AUTO_MODEL:
+        return model
+
+    score = 0  # положительный → pro, отрицательный → flash
+
+    # ── Длина промпта ──
+    prompt_tok = count_tokens(prompt) + count_tokens(system)
+    if prompt_tok < 200:
+        score -= 1  # короткий → скорее простой
+    elif prompt_tok > 2000:
+        score += 1  # длинный → скорее сложный
+
+    # ── Ключевые слова (word-boundary, регистронезависимо) ──
+    # Используем \b чтобы "api" не совпало внутри "capital"
+    lower = (prompt + " " + system).lower()
+
+    simple_hits = 0
+    complex_hits = 0
+    for m in _SIMPLE_MARKERS:
+        if re.search(rf"\b{re.escape(m)}\b", lower):
+            simple_hits += 1
+    for m in _COMPLEX_MARKERS:
+        if re.search(rf"\b{re.escape(m)}\b", lower):
+            complex_hits += 1
+
+    # Первое совпадение решает (чтобы "test code" не пошло на flash)
+    if complex_hits > 0:
+        score += 1
+    elif simple_hits > 0:
+        score -= 1
+    elif prompt_tok < 100 and "?" in prompt:
+        score -= 1  # короткий вопрос без сложных маркеров → flash
+
+    # ── Temperature (только если явно не дефолтная 0.7) ──
+    if temperature is not None and temperature != 0.7:
+        if temperature <= 0.3:
+            score -= 1  # низкая → фактуальный → flash
+        elif temperature >= 0.7:
+            score += 1  # высокая → творческий → pro
+
+    # ── JSON mode ──
+    if json_mode:
+        score -= 1  # структурные данные → flash
+
+    # ── Итог ──
+    if score <= -2:
+        return FAST_MODEL
+    return DEFAULT_MODEL  # pro (консервативно: при равных шансах — pro)
+
+
 # ── API key ────────────────────────────────────────────────────
 
 def _api_key():
@@ -280,14 +366,15 @@ def _api_call(messages, model=DEFAULT_MODEL, stream=False, json_mode=False,
 
 # ── chat() ─────────────────────────────────────────────────────
 
-def chat(prompt, system="", model=DEFAULT_MODEL, return_usage=False,
+def chat(prompt, system="", model=AUTO_MODEL, return_usage=False,
          usage_log=True, tags=None, **kwargs):
     """Вызов DeepSeek (не streaming).
 
     Args:
         prompt: текст запроса
         system: системный промпт
-        model: модель
+        model: "auto" (default) → выбирает flash/pro автоматически,
+               или конкретная модель ("deepseek-v4-pro", "deepseek-v4-flash")
         return_usage: True → возвращает (content, usage_dict)
         usage_log: записывать в JSONL-лог
         tags: метки для лога
@@ -295,6 +382,11 @@ def chat(prompt, system="", model=DEFAULT_MODEL, return_usage=False,
     Возвращает:
         str или (str, dict | None)
     """
+    # Авто-выбор модели
+    temperature = kwargs.get("temperature", 0.7)
+    json_mode = kwargs.get("json_mode", False)
+    resolved_model = _select_model(prompt, system, temperature, json_mode, model)
+
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -305,11 +397,14 @@ def chat(prompt, system="", model=DEFAULT_MODEL, return_usage=False,
     for w in warnings:
         print(w, file=sys.stderr)
 
-    content, usage = _api_call(messages, model=model, stream=False, **kwargs)
+    if model == AUTO_MODEL:
+        print(f"  → {resolved_model}", file=sys.stderr)
+
+    content, usage = _api_call(messages, model=resolved_model, stream=False, **kwargs)
 
     if usage_log and usage:
         _usage_logger.log(
-            model=model,
+            model=resolved_model,
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
             system_prompt_len=count_tokens(system) if system else 0,
@@ -323,7 +418,7 @@ def chat(prompt, system="", model=DEFAULT_MODEL, return_usage=False,
 
 # ── stream_chat() ─────────────────────────────────────────────
 
-def stream_chat(prompt, system="", model=DEFAULT_MODEL, callback=None,
+def stream_chat(prompt, system="", model=AUTO_MODEL, callback=None,
                 usage_log=True, tags=None, **kwargs):
     """Streaming вызов DeepSeek.
 
@@ -333,7 +428,8 @@ def stream_chat(prompt, system="", model=DEFAULT_MODEL, callback=None,
     Args:
         prompt: текст запроса
         system: системный промпт
-        model: модель
+        model: "auto" (default) → выбирает flash/pro автоматически,
+               или конкретная модель
         callback: вызывается для каждого фрагмента
         usage_log: записывать в JSONL-лог
         tags: метки для лога
@@ -341,6 +437,11 @@ def stream_chat(prompt, system="", model=DEFAULT_MODEL, callback=None,
     Возвращает:
         (full_text: str, usage: dict | None)
     """
+    # Авто-выбор модели
+    temperature = kwargs.get("temperature", 0.7)
+    json_mode = kwargs.get("json_mode", False)
+    resolved_model = _select_model(prompt, system, temperature, json_mode, model)
+
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -351,11 +452,14 @@ def stream_chat(prompt, system="", model=DEFAULT_MODEL, callback=None,
     for w in warnings:
         print(w, file=sys.stderr)
 
+    if model == AUTO_MODEL:
+        print(f"  → {resolved_model}", file=sys.stderr)
+
     estimated = count_messages(messages)
     resolved_max = _resolve_max_tokens(estimated, kwargs.pop("max_tokens", MAX_TOKENS_DEFAULT))
 
     body = {
-        "model": model,
+        "model": resolved_model,
         "messages": messages,
         "stream": True,
         "temperature": kwargs.pop("temperature", 0.7),
@@ -410,7 +514,7 @@ def stream_chat(prompt, system="", model=DEFAULT_MODEL, callback=None,
 
     if usage_log:
         _usage_logger.log(
-            model=model,
+            model=resolved_model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             system_prompt_len=count_tokens(system) if system else 0,

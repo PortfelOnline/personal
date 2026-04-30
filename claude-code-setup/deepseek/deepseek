@@ -32,6 +32,7 @@ from deepseek_api import (
     get_usage_summary,
     DEFAULT_MODEL,
     FAST_MODEL,
+    AUTO_MODEL,
     format_tokens,
 )
 
@@ -40,8 +41,8 @@ def main():
     parser = argparse.ArgumentParser(description="DeepSeek API CLI", add_help=True)
     parser.add_argument("-p", "--prompt", help="Промпт (если не указан — читает stdin)")
     parser.add_argument("-s", "--system", default="", help="Системный промпт")
-    parser.add_argument("-m", "--model", default=DEFAULT_MODEL,
-                        help=f"Модель (default: {DEFAULT_MODEL}, fast: {FAST_MODEL})")
+    parser.add_argument("-m", "--model", default=AUTO_MODEL,
+                        help=f"Модель (default: auto — flash для простых, pro для сложных; 'pro'/'flash' для принудительно)")
     parser.add_argument("-j", "--json-mode", action="store_true",
                         help="JSON mode (response_format=json_object)")
     parser.add_argument("--no-stream", dest="no_stream", action="store_true",
