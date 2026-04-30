@@ -716,7 +716,170 @@ def run_audit(path: str = DEFAULT_LOG_PATH):
     print("=" * 50)
 
 
-# ── list_models() ─────────────────────────────────────────────
+# ── MCP / Plugin Optimization ─────────────────────────────────
+
+_PLUGINS_DIR = os.path.expanduser("~/.claude/plugins")
+_PLUGINS_CACHE = os.path.join(_PLUGINS_DIR, "cache")
+_INSTALLED_JSON = os.path.join(_PLUGINS_DIR, "installed_plugins.json")
+
+
+def _walk_plugin_versions() -> list[dict]:
+    """Scan plugin cache: версия + размер + установленные копии."""
+    results = []
+    cache = _PLUGINS_CACHE
+    if not os.path.isdir(cache):
+        return results
+
+    for namespace in os.listdir(cache):
+        ns_path = os.path.join(cache, namespace)
+        if not os.path.isdir(ns_path):
+            continue
+        for plugin in os.listdir(ns_path):
+            plugin_path = os.path.join(ns_path, plugin)
+            if not os.path.isdir(plugin_path):
+                continue
+            for version in os.listdir(plugin_path):
+                ver_path = os.path.join(plugin_path, version)
+                if not os.path.isdir(ver_path):
+                    continue
+                total_size = 0
+                file_count = 0
+                for root, _, files in os.walk(ver_path):
+                    for f in files:
+                        try:
+                            total_size += os.path.getsize(os.path.join(root, f))
+                            file_count += 1
+                        except OSError:
+                            pass
+                results.append({
+                    "namespace": namespace,
+                    "plugin": plugin,
+                    "version": version,
+                    "path": ver_path,
+                    "size": total_size,
+                    "files": file_count,
+                })
+    return results
+
+
+def audit_plugins() -> dict:
+    """Анализ плагинов: дубликаты, размеры, оценка MCP токенов.
+
+    Returns:
+        {
+            total_plugins, total_size, duplicate_versions: [],
+            mcp_tool_estimate: токенов, recommendations: []
+        }
+    """
+    versions = _walk_plugin_versions()
+
+    # Группировка по имени плагина
+    by_plugin: dict[str, list] = {}
+    for v in versions:
+        key = f"{v['namespace']}/{v['plugin']}"
+        by_plugin.setdefault(key, []).append(v)
+
+    total_size = sum(v["size"] for v in versions)
+    duplicates = []
+    for name, vers in by_plugin.items():
+        if len(vers) > 1:
+            # Сортируем по размеру — большая версия скорее актуальная
+            vers.sort(key=lambda x: -x["size"])
+            duplicates.append({
+                "plugin": name,
+                "versions": [
+                    {"version": v["version"][:10],
+                     "size_mb": round(v["size"] / 1024 / 1024, 1),
+                     "is_largest": i == 0}
+                    for i, v in enumerate(vers)
+                ],
+                "duplicates": len(vers) - 1,
+                "waste_mb": round(sum(v["size"] for v in vers[1:]) / 1024 / 1024, 1),
+            })
+
+    # Оценка MCP tool token footprint
+    # ~20-40 средних MCP tools, по ~40 токенов каждый
+    mcp_tool_estimate = len(versions) * 2 * 44  # ~2 tools на плагин × ~44 токена
+    mcp_tool_estimate = min(mcp_tool_estimate, 2500)  # потолок
+
+    recommendations = []
+
+    total_dup_waste = sum(d["waste_mb"] for d in duplicates)
+    if total_dup_waste > 10:
+        recommendations.append(
+            f"Дубликаты плагинов: ~{total_dup_waste}MB можно освободить. "
+            "Удалите user-scope установки (оставьте project-scope)."
+        )
+
+    if mcp_tool_estimate > 1200:
+        recommendations.append(
+            f"MCP tool описания: ~{mcp_tool_estimate} токенов в system prompt. "
+            "Рассмотрите блокировку неиспользуемых плагинов."
+        )
+
+    # Тяжёлые плагины
+    heavy = sorted(versions, key=lambda x: -x["size"])[:5]
+    heavy_report = [
+        f"{h['namespace']}/{h['plugin']} ({round(h['size']/1024/1024, 1)}MB)"
+        for h in heavy
+    ]
+    recommendations.append(
+        f"Самые тяжёлые: {', '.join(heavy_report)}. "
+        "Если не используются → добавьте в blocklist."
+    )
+
+    return {
+        "total_plugins": len(by_plugin),
+        "total_versions": len(versions),
+        "total_size_mb": round(total_size / 1024 / 1024, 1),
+        "mcp_tool_estimate": mcp_tool_estimate,
+        "duplicates": duplicates,
+        "total_dup_waste_mb": total_dup_waste,
+        "recommendations": recommendations,
+    }
+
+
+def run_audit_plugins():
+    """Pretty-print plugin audit."""
+    report = audit_plugins()
+
+    print("=" * 50)
+    print("  АУДИТ ПЛАГИНОВ / MCP")
+    print("=" * 50)
+    print()
+    print(f"  Плагинов в кеше:   {report['total_plugins']}")
+    print(f"  Версий (с копиями): {report['total_versions']}")
+    print(f"  Размер кеша:       {report['total_size_mb']}MB")
+    print(f"  MCP tools в prompt: ~{report['mcp_tool_estimate']} токенов")
+    print()
+
+    if report["duplicates"]:
+        print("─" * 50)
+        print("  ⚠️  ДУБЛИКАТЫ (project + user scope)")
+        print("─" * 50)
+        for d in report["duplicates"][:10]:
+            print(f"  {d['plugin']}:")
+            for v in d["versions"]:
+                marker = " ← latest" if v["is_largest"] else ""
+                print(f"    {v['version']}  {v['size_mb']}MB{marker}")
+            print(f"    waste: {d['waste_mb']}MB ({d['duplicates']} копий)")
+            print()
+
+    print("─" * 50)
+    print("  РЕКОМЕНДАЦИИ")
+    print("─" * 50)
+    for i, rec in enumerate(report["recommendations"], 1):
+        print(f"  {i}. {rec}")
+    print()
+    print("=" * 50)
+
+
+def run_optimize():
+    """Полная оптимизация: DeepSeek audit + Plugin audit."""
+    print()
+    run_audit()
+    print()
+    run_audit_plugins()
 
 def list_models():
     """Список доступных моделей."""

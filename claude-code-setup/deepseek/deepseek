@@ -31,6 +31,8 @@ from deepseek_api import (
     list_models,
     get_usage_summary,
     run_audit,
+    run_audit_plugins,
+    run_optimize,
     DEFAULT_MODEL,
     FAST_MODEL,
     AUTO_MODEL,
@@ -53,7 +55,11 @@ def main():
     parser.add_argument("--usage-summary", action="store_true",
                         help="Показать сводку расхода из лога")
     parser.add_argument("--audit", action="store_true",
-                        help="Аудит потребления: misrouting, waste, рекомендации")
+                        help="Аудит DeepSeek: misrouting, waste, рекомендации")
+    parser.add_argument("--audit-plugins", action="store_true",
+                        help="Аудит плагинов/MCP: дубликаты, токены в prompt")
+    parser.add_argument("--optimize", action="store_true",
+                        help="Полный аудит + рекомендации (DeepSeek + MCP/плагины)")
     parser.add_argument("-t", "--temperature", type=float, default=0.7,
                         help="Temperature (0.0-2.0, default: 0.7)")
 
@@ -92,10 +98,28 @@ def main():
             sys.exit(1)
         return
 
+    # ── Optimize mode (full audit) ──
+    if args.optimize:
+        try:
+            run_optimize()
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
     # ── Audit mode ──
     if args.audit:
         try:
             run_audit()
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # ── Plugins audit mode ──
+    if args.audit_plugins:
+        try:
+            run_audit_plugins()
         except Exception as e:
             print(f"Ошибка: {e}", file=sys.stderr)
             sys.exit(1)
