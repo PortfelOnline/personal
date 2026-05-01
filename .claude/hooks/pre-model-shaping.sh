@@ -38,6 +38,14 @@ if [ "$TOOL" = "Read" ]; then
     EFFECTIVE_LINES=$LIMIT
   fi
 
+  # === SEARCH ROUTING GUARD: Read запрещён для поисковых задач ===
+  PROMPT=$(cat /tmp/claude_antiloop/current_prompt 2>/dev/null || echo "")
+  if echo "$PROMPT" | grep -qiE "(find|search|where is|locate|найди|где |поиск)"; then
+    echo "[SEARCH_ROUTING: Read запрещён для поиска. Используй grep.]" >&2
+    echo "[HINT: grep -rn 'keyword' <file> или grep -n 'keyword' <file>]" >&2
+    exit 1
+  fi
+
   [ "$EFFECTIVE_LINES" -le "$MAX_LINES" ] && exit 0
 
   # === Live shaping: читаем сами и отдаём сжатую версию ===
