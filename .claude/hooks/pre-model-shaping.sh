@@ -38,12 +38,21 @@ if [ "$TOOL" = "Read" ]; then
     EFFECTIVE_LINES=$LIMIT
   fi
 
-  # === SEARCH ROUTING GUARD: Read запрещён для поисковых задач ===
+  # === SEARCH ROUTING: grep first для поисковых задач ===
+  # Не запрещаем Read, а требуем grep как первый шаг перед Read
   PROMPT=$(cat /tmp/claude_antiloop/current_prompt 2>/dev/null || echo "")
-  if echo "$PROMPT" | grep -qiE "(find|search|where is|locate|найди|где |поиск)"; then
-    echo "[SEARCH_ROUTING: Read запрещён для поиска. Используй grep.]" >&2
-    echo "[HINT: grep -rn 'keyword' <file> или grep -n 'keyword' <file>]" >&2
-    exit 1
+  SEARCH_KEYWORDS="find|search|where is|locate|найди|где |поиск|ищи"
+  if echo "$PROMPT" | grep -qiE "$SEARCH_KEYWORDS"; then
+    STEP=$(cat /tmp/claude_antiloop/step_count 2>/dev/null || echo 0)
+    # Первый шаг + Read + ещё не было grep → блок
+    if [ "$STEP" -le 1 ]; then
+      GREP_DONE=$(tail -5 /tmp/claude_antiloop/tools_log 2>/dev/null | grep -c -i "grep")
+      if [ "$GREP_DONE" -eq 0 ]; then
+        echo "[SEARCH_ROUTING: первый шаг — используй grep, потом Read]" >&2
+        echo "[HINT: Bash(grep -rn 'keyword' .) прицельно, потом Read с offset/limit]" >&2
+        exit 1
+      fi
+    fi
   fi
 
   [ "$EFFECTIVE_LINES" -le "$MAX_LINES" ] && exit 0

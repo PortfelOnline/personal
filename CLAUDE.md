@@ -151,13 +151,16 @@ When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` 
 
 Цель: минимальное расширение контекста.
 
-## 🔒 SEARCH ROUTING (HARD RULE)
-Если задача содержит "find", "search", "where is", "locate", "найди", "где", "поиск":
-- Read ЗАПРЕЩЁН для поисковых задач
-- MUST использовать: grep, search, indexed query
+## 🔍 SEARCH ROUTING (CONTROLLED)
+Если задача похожа на поиск (find/search/locate/найди/поиск):
+1. **Первый шаг MUST быть grep**, не Read
+2. **После grep** → Read разрешён, но только targeted (offset/limit)
 
-Read → только если нужно прочитать найденное (с offset/limit).
-Исключение: файл уже прочитан — используй контекст, не читай повторно.
+Хук блокирует Read на первом шаге если grep ещё не был вызван.
+После grep хук не блокирует — модель может прочитать найденное.
+
+Запрещено: полный Read файла до grep.
+Разрешено: grep → Read(конкретные строки).
 
 ## 🧠 SELF-REFLECTION — только при ошибках + cooldown
 Рефлексия разрешена ТОЛЬКО если:
