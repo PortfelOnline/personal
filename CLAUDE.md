@@ -108,6 +108,29 @@ When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` 
 **Guard:** если тул вернул успешный результат и уверенность ≥ 0.6 — не вызывай второй.
 Правило: 1 тул = 1 ответ. Исключения только если данных явно не хватает.
 
+## ⚠️ PTA OVERRIDE — partial data confidence correction
+Если вывод инструмента содержит:
+```
+[LIVE_SUMMARIZED]
+[PARTIAL_FILE_DO_NOT_ASSUME_COMPLETE]
+```
+То partial_data = true. Confidence threshold повышается на 0.2:
+- **fact**: 0.65 → **0.85**
+- **code**: 0.7 → **0.9**
+- **default**: 0.6 → **0.8**
+
+Правило: partial_data → не отвечай по догадке. Предпочти таргетное чтение.
+
+## 🧠 PARTIAL READ STRATEGY — intent-aware
+Если данные неполные (partial), поведение зависит от задачи:
+- **"find / search / grep"** → MUST использовать grep или таргетный Read
+- **"analyze / debug / audit"** → MUST расширить контекст (offset/limit на нужную секцию)
+- **"summarize"** → OK ответить по имеющимся данным с пометкой о неполноте
+- **"simple question"** (название, тип, значение поля) → OK ответить если данные есть
+- **"verify / check / confirm"** → MUST дочитать, не делать выводов из неполных данных
+
+Не угадывай, если задача требует полного сканирования файла.
+
 ## 🧠 SELF-REFLECTION — только при ошибках + cooldown
 Рефлексия разрешена ТОЛЬКО если:
 - Инструмент вернул ошибку (timeout, 4xx/5xx, exception)
