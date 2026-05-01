@@ -21,6 +21,18 @@ When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` 
 # 💰 TOKEN ECONOMY — HARD RULES
 Эти правила обязательны. Нарушение = сжигание лимитов.
 
+## ⚡ ZERO-READ ATTEMPT (приоритет #0 — ДО любого tool)
+Перед ЛЮБЫМ Read (включая grep/targeted):
+Могу ли ответить используя:
+- общие знания
+- naming patterns (validateUser → валидация, getConfig → конфиг)
+- предыдущий контекст
+
+Если ДА (confidence ≥ 0.5) → ответь без чтения.
+Если НЕТ → normal flow (partial → completeness → targeted read).
+
+**Ограничение:** пропустить для задач debug/exact search/data extraction.
+
 ## 🚀 EARLY ANSWER MODE (приоритет #1)
 **Pre-check logic (обязателен):**
 Прежде чем использовать ЛЮБОЙ инструмент — остановись и оцени:
