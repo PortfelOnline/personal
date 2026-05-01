@@ -162,6 +162,14 @@ When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` 
 Запрещено: полный Read файла до grep.
 Разрешено: grep → Read(конкретные строки).
 
+### 🔍 SEARCH LIMIT — топ-K результаты
+grep без `| head` = 200 строк в контекст. **Добавляй `| head -n 5`**.
+- После grep выбери **только 1–2** самых релевантных результата
+- НЕ читай несколько файлов подряд по умолчанию
+- Приоритизируй: definitions (function/class/const) > usage
+
+**Auto-chunk:** после grep с номером строки, читай `sed -n 'N-10,N+20p'` а не весь файл.
+
 ## 🧠 SELF-REFLECTION — только при ошибках + cooldown
 Рефлексия разрешена ТОЛЬКО если:
 - Инструмент вернул ошибку (timeout, 4xx/5xx, exception)

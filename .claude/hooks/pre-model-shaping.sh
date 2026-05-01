@@ -78,6 +78,13 @@ fi
 if echo "$TOOL" | grep -qE "^Bash$"; then
   COMMAND=$(echo "$TOOL_INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('command',''))" 2>/dev/null)
 
+  # === GREP TOP-K GUARD ===
+  if echo "$COMMAND" | grep -qE "^grep " && ! echo "$COMMAND" | grep -qE "\|.*head"; then
+    echo "[GREP_TOP_K: grep без | head — добавь | head -n 5 чтобы не захлебнуться]"
+    echo "[GREP_TOP_K: если нужны definitions: grep -rn 'keyword' . | grep -E 'function|const|def|class' | head -n 3]"
+    echo "[GREP_TOP_K: PROCEEDING]"
+  fi >&2
+
   # Проверяем curl/wget без head/cut/grep в конце
   if echo "$COMMAND" | grep -qE "curl|wget" && ! echo "$COMMAND" | grep -qE "\|.*(head|cut|grep -o|tail|wc|sed)"; then
     # Не блокируем, но пишем предупреждение
