@@ -269,9 +269,11 @@ def _select_model(prompt: str, system: str = "", temperature: float | None = Non
         score -= 1  # структурные данные → flash
 
     # ── Итог ──
-    if score <= -2:
+    if score <= -1:
+        # score -1 уже основание для Flash:
+        # короткий промпт, простой маркер, json_mode или низкая температура — каждый сам по себе
         return FAST_MODEL
-    return DEFAULT_MODEL  # pro (консервативно: при равных шансах — pro)
+    return DEFAULT_MODEL  # pro для score >= 0 (есть сложные маркеры или длинный/смешанный промпт)
 
 
 # ── API key ────────────────────────────────────────────────────
@@ -538,15 +540,24 @@ _PRO_SCORE_THRESHOLD = -1  # score >= этого → Pro, иначе Flash
 
 def _reroute_score(entry: dict) -> int:
     """Оценка: какой бы скор дала _select_model для этого запроса.
-    Используется для аудита: если Pro-запрос имеет скор <= -2 → зря на Pro."""
+    Используется для аудита: если Pro-запрос имеет скор <= -1 → зря на Pro
+    (порог синхронизирован с _select_model)."""
     # У нас нет полного prompt, system, temperature в логе.
     # Используем то, что есть: prompt_tokens, completion_tokens, model
     prompt_len = entry.get("prompt_tokens", 0)
+    comp_len = entry.get("completion_tokens", 0)
+
+    score = 0
     if prompt_len < 200:
-        return -1  # скорее flash
-    elif prompt_len < 2000:
-        return 0   # нейтрально
-    return 1       # скорее pro
+        score -= 1  # короткий → flash
+    elif prompt_len > 2000:
+        score += 1  # длинный → pro
+
+    # Если ответ очень короткий (< 100 токенов) — дополнительный сигнал к flash
+    if comp_len > 0 and comp_len < 100 and prompt_len < 500:
+        score -= 1  # короткий ответ + недлинный промпт → flash
+
+    return score
 
 
 def _model_key(entry: dict) -> str:
@@ -605,18 +616,18 @@ def audit_usage(path: str = DEFAULT_LOG_PATH) -> dict:
             result["pro_calls"] += 1
             result["pro_cost"] += cost
 
-            # Проверка misrouting
+            # Проверка misrouting (порог синхронизирован с _select_model)
             score = _reroute_score(entry)
-            if score <= -2:
+            if score <= -1:
                 # Этот запрос мог быть Flash
+                # Flash стоит ~15% от Pro (0.30 vs 2.00 за input, 1.20 vs 8.00 за output)
+                flash_ratio = 0.15
                 result["misrouted"].append({
                     "timestamp": entry.get("timestamp", ""),
                     "prompt_tokens": entry.get("prompt_tokens", 0),
                     "completion_tokens": entry.get("completion_tokens", 0),
                     "cost": cost,
-                    "potential_saving": cost - (
-                        cost * 0.15  # ~85% экономии на Flash
-                    ),
+                    "potential_saving": round(cost * (1 - flash_ratio), 6),
                 })
 
         elif is_flash:
@@ -658,7 +669,8 @@ def audit_usage(path: str = DEFAULT_LOG_PATH) -> dict:
     if pro_share > 90 and result["pro_calls"] > 5:
         result["recommendations"].append(
             f"Pro: {pro_share:.0f}% расходов ({result['pro_calls']} вызовов). "
-            f"Рассмотрите снижение порога для Flash (score <= -1 вместо -2)."
+            f"Порог уже снижен до -1. Если дисбаланс сохраняется — проверьте "
+            f"маркеры _SIMPLE_MARKERS / _COMPLEX_MARKERS."
         )
 
     result["pro_share_pct"] = round(pro_share, 1)

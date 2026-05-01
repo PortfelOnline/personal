@@ -29,8 +29,16 @@ PREFETCH_TRIGGER="$STATE_DIR/prefetch_signal"
 LAST_TOOL_FILE="$STATE_DIR/last_tool_hash"
 LAST_ERROR_STEP="$STATE_DIR/last_error_step"
 LAST_RESULT_ERROR="$STATE_DIR/last_result_error"
+SESSION_CALLS_FILE="$STATE_DIR/total_calls_session"
+BASH_CHAIN_FILE="$STATE_DIR/bash_chain"
 
-# Init on first run
+# Init session counters ONCE (never resets between prompts)
+if [ ! -f "$SESSION_CALLS_FILE" ]; then
+  echo "0" > "$SESSION_CALLS_FILE"
+  echo "0" > "$BASH_CHAIN_FILE"
+fi
+
+# Init on first run (resets each prompt)
 if [ ! -f "$STEP_FILE" ] || [ "$(cat "$STEP_FILE")" = "0" ]; then
   echo "0" > "$STEP_FILE"
   : > "$FILES_LOG"
@@ -113,6 +121,20 @@ TOTAL_CALLS=$(cat "$CALLS_FILE")
 TOTAL_CALLS=$((TOTAL_CALLS + 1))
 echo "$TOTAL_CALLS" > "$CALLS_FILE"
 
+# Session-wide counter (never resets)
+SESSION_CALLS=$(cat "$SESSION_CALLS_FILE")
+SESSION_CALLS=$((SESSION_CALLS + 1))
+echo "$SESSION_CALLS" > "$SESSION_CALLS_FILE"
+
+# Bash chain tracking: if Bash → increment, else → reset
+if [ "$TOOL" = "Bash" ]; then
+  BASH_CHAIN=$(cat "$BASH_CHAIN_FILE")
+  BASH_CHAIN=$((BASH_CHAIN + 1))
+  echo "$BASH_CHAIN" > "$BASH_CHAIN_FILE"
+else
+  echo "0" > "$BASH_CHAIN_FILE"
+fi
+
 # Log tool (keep last 10)
 echo "$STEP:$TOOL" >> "$TOOLS_LOG"
 tail -10 "$TOOLS_LOG" > "${TOOLS_LOG}.tmp" && mv "${TOOLS_LOG}.tmp" "$TOOLS_LOG"
@@ -124,8 +146,11 @@ if [ "$TOOL" = "Read" ] && [ -n "$FILE_PATH" ]; then
 fi
 
 # Track curl/graphify outcomes for browser fallback
-if echo "$TOOL" | grep -qE "Bash\(curl|Bash\(wget"; then
-  echo "1" > "$CURL_FAILED_FILE"
+if [ "$TOOL" = "Bash" ]; then
+  BASH_CMD=$(echo "$TOOL_INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('command',''))" 2>/dev/null)
+  if echo "$BASH_CMD" | grep -qiE "^curl|^wget"; then
+    echo "1" > "$CURL_FAILED_FILE"
+  fi
 fi
 if echo "$TOOL" | grep -qE "graphify.*query|graphify.*explain"; then
   echo "1" > "$GRAPHIFY_EMPTY_FILE"
@@ -339,9 +364,23 @@ if [ "$TOOL" = "Read" ] && [ -n "$FILE_PATH" ]; then
   fi
 fi
 
-# 4. MAX_TOTAL_CALLS
+# 4. MAX_TOTAL_CALLS (per prompt)
 if [ "$TOTAL_CALLS" -gt 5 ]; then
   echo "HARD STOP: tool call limit exceeded (MAX_TOTAL_CALLS=5)." >&2
+  exit 1
+fi
+
+# 4a. SESSION-WIDE total calls (never resets)
+SESSION_CALLS_LIMIT=20
+if [ "$SESSION_CALLS" -gt "$SESSION_CALLS_LIMIT" ]; then
+  echo "HARD STOP: session call limit ($SESSION_CALLS_LIMIT) exceeded ($SESSION_CALLS total)." >&2
+  exit 1
+fi
+
+# 4b. BASH CHAIN LIMIT — >5 Bash calls in a row across prompts → STOP
+BASH_CHAIN=$(cat "$BASH_CHAIN_FILE" 2>/dev/null || echo 0)
+if [ "$BASH_CHAIN" -gt 5 ]; then
+  echo "HARD STOP: Bash chain limit exceeded ($BASH_CHAIN Bash calls in a row)." >&2
   exit 1
 fi
 
@@ -434,8 +473,8 @@ fi
 TOKENS_USED=$((TOKENS_USED + ESTIMATE))
 echo "$TOKENS_USED" > "$BUDGET_FILE"
 
-SOFT_LIMIT=30000
-HARD_LIMIT=50000
+SOFT_LIMIT=15000
+HARD_LIMIT=30000
 if [ "$TOKENS_USED" -gt "$HARD_LIMIT" ]; then
   echo "HARD STOP: task budget exceeded (HARD_LIMIT=$HARD_LIMIT, used ~${TOKENS_USED}t)." >&2
   exit 1
