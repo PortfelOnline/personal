@@ -43,10 +43,11 @@ if [ "$TOOL" = "Read" ]; then
   # === Live shaping: читаем сами и отдаём сжатую версию ===
   {
     echo "[LIVE_SUMMARIZED_FROM_${EFFECTIVE_LINES}_LINES]"
+    echo "[PARTIAL_FILE_DO_NOT_ASSUME_COMPLETE]"
     sed -n "$((OFFSET + 1)),$((OFFSET + TARGET_LINES))p" "$FILE_PATH" 2>/dev/null
     echo "..."
     echo "[LIVE_SUMMARIZED: ${EFFECTIVE_LINES} lines → ${TARGET_LINES} lines]"
-    echo "[HINT: используй offset/limit для точного чтения нужных строк]"
+    echo "[HINT: используй offset/limit или grep для таргетного чтения]"
   } >&2
 
   # Помечаем что shaping был применён — response-cache-save не сохранит результат
