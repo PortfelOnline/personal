@@ -58,27 +58,42 @@ _MODEL_COMPLEX = frozenset({
 def _should_use_flash(body: dict) -> bool:
     """Определить: flash (дёшево) или pro (полно).
 
-    1. < 200 tok → flash
-    2. Простые маркеры (translate, format) → flash
-    3. Сложные маркеры (code, debug) → pro
-    4. System > 500 tok → pro
+    Смотрит ТОЛЬКО сообщения user, не system (там tool descriptions,
+    которые одинаковые всегда и не влияют на сложность запроса).
+
+    1. Последнее user сообщение < 200 tok → flash
+    2. Простые маркеры (translate, format, ping) → flash
+    3. Сложные маркеры (code, debug, review) → pro
+    4. Все сообщения > 3000 tok суммарно → pro (много контекста)
     """
     messages = body.get("messages", [])
-    system = _normalize_to_text(body.get("system", ""))
 
-    text_parts = [system]
+    # Только user-сообщения для оценки длины
+    user_texts = []
     for m in messages:
-        if m.get("role") in ("user", "system"):
-            text_parts.append(_normalize_to_text(m.get("content", "")))
-    text = " ".join(p for p in text_parts if p)
+        if m.get("role") == "user":
+            user_texts.append(_normalize_to_text(m.get("content", "")))
+    user_text = " ".join(p for p in user_texts if p)
+    user_tok = _count_tokens(user_text) if user_text else 0
 
-    tok = _count_tokens(text)
-    if tok < 200:
+    # Если вообще нет user сообщений — flash (здоровый default)
+    if user_tok == 0:
         return True
-    if tok > 2000:
+
+    # Последнее user сообщение — самый точный индикатор сложности задачи
+    last_user = _normalize_to_text(user_texts[-1]) if user_texts else ""
+    last_tok = _count_tokens(last_user) if last_user else 0
+
+    # Очень короткий запрос → flash
+    if last_tok < 100:
+        return True
+
+    # Очень много контекста (все user сообщения) → pro
+    if user_tok > 3000:
         return False
 
-    lower = text.lower()
+    # Keyword-анализ по последнему сообщению (там суть запроса)
+    lower = last_user.lower()
     for m in _MODEL_COMPLEX:
         if re.search(rf"\b{re.escape(m)}\b", lower):
             return False
@@ -86,7 +101,8 @@ def _should_use_flash(body: dict) -> bool:
         if re.search(rf"\b{re.escape(m)}\b", lower):
             return True
 
-    return tok < 100
+    # Default: короткие (<200) → flash, иначе pro
+    return last_tok < 200
 
 
 # ── JSONL Usage Logger ──
