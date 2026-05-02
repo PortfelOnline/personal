@@ -38,6 +38,82 @@ MAX_CONTEXT_TOKENS = 128_000
 PROMPT_SAFETY_MARGIN = 1024
 TOOL_RESULT_MAX_TOKENS = 6000  # higher limit, truncation is adaptive (only when over budget)
 
+# ── Auto model selection (flash vs pro) ──
+_MODEL_SIMPLE = frozenset({
+    "translate", "summarize", "format", "spell", "grammar",
+    "convert", "short", "hello", "hi", "test", "echo", "ping",
+    "capitalize", "lowercase", "uppercase", "trim", "strip",
+    "plural", "singular", "synonym", "antonym",
+})
+_MODEL_COMPLEX = frozenset({
+    "code", "implement", "debug", "refactor", "analyze", "architect",
+    "design", "review", "optimize", "algorithm", "architecture",
+    "complex", "async", "concurrency", "parallel", "distributed",
+    "database", "query", "migration", "schema", "api", "endpoint",
+    "authentication", "authorization", "encrypt", "decrypt",
+    "performance", "benchmark", "profiling",
+})
+
+
+def _should_use_flash(body: dict) -> bool:
+    """Определить: flash (дёшево) или pro (полно).
+
+    1. < 200 tok → flash
+    2. Простые маркеры (translate, format) → flash
+    3. Сложные маркеры (code, debug) → pro
+    4. System > 500 tok → pro
+    """
+    messages = body.get("messages", [])
+    system = _normalize_to_text(body.get("system", ""))
+
+    text_parts = [system]
+    for m in messages:
+        if m.get("role") in ("user", "system"):
+            text_parts.append(_normalize_to_text(m.get("content", "")))
+    text = " ".join(p for p in text_parts if p)
+
+    tok = _count_tokens(text)
+    if tok < 200:
+        return True
+    if tok > 2000:
+        return False
+
+    lower = text.lower()
+    for m in _MODEL_COMPLEX:
+        if re.search(rf"\b{re.escape(m)}\b", lower):
+            return False
+    for m in _MODEL_SIMPLE:
+        if re.search(rf"\b{re.escape(m)}\b", lower):
+            return True
+
+    return tok < 100
+
+
+# ── JSONL Usage Logger ──
+_DEFAULT_LOG_PATH = os.path.expanduser("~/.local/var/deepseek-usage.jsonl")
+
+
+def _log_jsonl(model: str, prompt_tokens: int, completion_tokens: int, system_len: int = 0):
+    """Append one usage record to JSONL (единый с deepseek_api.py)."""
+    import time as _time
+    entry = {
+        "timestamp": _time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "model": model,
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": prompt_tokens + completion_tokens,
+        "system_prompt_len": system_len,
+        "tags": ["proxy"],
+    }
+    try:
+        parent = os.path.dirname(_DEFAULT_LOG_PATH)
+        if parent and not os.path.exists(parent):
+            os.makedirs(parent, exist_ok=True)
+        with open(_DEFAULT_LOG_PATH, "a") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
 
 def _groq_describe(base64_data: str, media_type: str) -> str | None:
     """Describe image via Groq vision API."""
@@ -590,6 +666,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
         # Route to native Claude if model name contains "claude" and API key is set
         use_native = bool(CLAUDE_KEY and "claude" in (req_obj.get("model", "") or "").lower())
 
+        # Auto model selection (only for DeepSeek, not native Claude)
+        selected_model = None
+        if not use_native and body_bytes:
+            selected_model = "deepseek-v4-flash" if _should_use_flash(req_obj) else "deepseek-v4-pro"
+            req_obj["model"] = selected_model
+
         if use_native:
             target = ANTHROPIC_DIRECT_URL + qs
         else:
@@ -640,8 +722,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     js = json.loads(body)
                     usage = js.get("usage", {})
                     if usage:
-                        print(f"  [resp] input_tokens={usage.get('input_tokens', '?')} "
-                              f"output_tokens={usage.get('output_tokens', '?')}", file=sys.stderr)
+                        inp = usage.get('input_tokens', 0)
+                        out = usage.get('output_tokens', 0)
+                        print(f"  [resp] input_tokens={inp} output_tokens={out}", file=sys.stderr)
+                        if selected_model:
+                            sys_len = _count_tokens(_normalize_to_text(req_obj.get("system", "")))
+                            _log_jsonl(selected_model, inp, out, sys_len)
                     body = json.dumps(js).encode()
                 except (json.JSONDecodeError, TypeError):
                     pass
