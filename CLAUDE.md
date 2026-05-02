@@ -37,7 +37,7 @@ When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` 
 - MAX_STEPS = adaptive (2-5, зависит от сложности запроса)
 - MAX_FILES_PER_STEP = 3
 - MAX_CALLS_PER_STEP = 2 (один и тот же tool 2+ раза подряд → STOP)
-- MAX_TOTAL_CALLS = 5 (всего за сессию → STOP)
+- MAX_TOTAL_CALLS = 30 (за один промпт-цикл, сбрасывается на новом промпте → STOP)
 - MAX_TOKENS_PER_RESPONSE = ~2000
 - Adaptive: короткие запросы → 2 шага, баги → 4, архитектура → 5
 
