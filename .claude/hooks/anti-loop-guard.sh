@@ -29,16 +29,8 @@ PREFETCH_TRIGGER="$STATE_DIR/prefetch_signal"
 LAST_TOOL_FILE="$STATE_DIR/last_tool_hash"
 LAST_ERROR_STEP="$STATE_DIR/last_error_step"
 LAST_RESULT_ERROR="$STATE_DIR/last_result_error"
-SESSION_CALLS_FILE="$STATE_DIR/total_calls_session"
-BASH_CHAIN_FILE="$STATE_DIR/bash_chain"
 
-# Init session counters ONCE (never resets between prompts)
-if [ ! -f "$SESSION_CALLS_FILE" ]; then
-  echo "0" > "$SESSION_CALLS_FILE"
-  echo "0" > "$BASH_CHAIN_FILE"
-fi
-
-# Init on first run (resets each prompt)
+# Init on first run
 if [ ! -f "$STEP_FILE" ] || [ "$(cat "$STEP_FILE")" = "0" ]; then
   echo "0" > "$STEP_FILE"
   : > "$FILES_LOG"
@@ -121,20 +113,6 @@ TOTAL_CALLS=$(cat "$CALLS_FILE")
 TOTAL_CALLS=$((TOTAL_CALLS + 1))
 echo "$TOTAL_CALLS" > "$CALLS_FILE"
 
-# Session-wide counter (never resets)
-SESSION_CALLS=$(cat "$SESSION_CALLS_FILE")
-SESSION_CALLS=$((SESSION_CALLS + 1))
-echo "$SESSION_CALLS" > "$SESSION_CALLS_FILE"
-
-# Bash chain tracking: if Bash → increment, else → reset
-if [ "$TOOL" = "Bash" ]; then
-  BASH_CHAIN=$(cat "$BASH_CHAIN_FILE")
-  BASH_CHAIN=$((BASH_CHAIN + 1))
-  echo "$BASH_CHAIN" > "$BASH_CHAIN_FILE"
-else
-  echo "0" > "$BASH_CHAIN_FILE"
-fi
-
 # Log tool (keep last 10)
 echo "$STEP:$TOOL" >> "$TOOLS_LOG"
 tail -10 "$TOOLS_LOG" > "${TOOLS_LOG}.tmp" && mv "${TOOLS_LOG}.tmp" "$TOOLS_LOG"
@@ -146,13 +124,13 @@ if [ "$TOOL" = "Read" ] && [ -n "$FILE_PATH" ]; then
 fi
 
 # Track curl/graphify outcomes for browser fallback
-if [ "$TOOL" = "Bash" ]; then
-  BASH_CMD=$(echo "$TOOL_INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('command',''))" 2>/dev/null)
-  if echo "$BASH_CMD" | grep -qiE "^curl|^wget"; then
-    echo "1" > "$CURL_FAILED_FILE"
-  fi
+# Check tool_input.command for curl/wget (since TOOL is just "Bash")
+CMD=$(echo "$TOOL_INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('command',''))" 2>/dev/null)
+if echo "$CMD" | grep -qE "^(curl|wget)\s"; then
+  echo "1" > "$CURL_FAILED_FILE"
 fi
-if echo "$TOOL" | grep -qE "graphify.*query|graphify.*explain"; then
+# graphify is called as MCP tool, not Bash
+if echo "$TOOL" | grep -qE "^mcp__graphify__"; then
   echo "1" > "$GRAPHIFY_EMPTY_FILE"
 fi
 
@@ -252,6 +230,21 @@ if [ -f "$ONE_SHOT_FILE" ]; then
       IS_SAFE_PAIR=1
     fi
 
+    # Edit → Read: отредактировал → проверь
+    if echo "$LAST_PREV_TOOL" | grep -qE "^Edit$" && echo "$TOOL" | grep -qE "^Read$"; then
+      IS_SAFE_PAIR=1
+    fi
+
+    # Bash → Write/Edit: выполни → запиши/исправь
+    if echo "$LAST_PREV_TOOL" | grep -qE "^Bash$" && echo "$TOOL" | grep -qE "Write|Edit"; then
+      IS_SAFE_PAIR=1
+    fi
+
+    # Read → Write/Edit: прочитал → запиши/исправь
+    if echo "$LAST_PREV_TOOL" | grep -qE "^Read$" && echo "$TOOL" | grep -qE "Write|Edit"; then
+      IS_SAFE_PAIR=1
+    fi
+
     # Git → Git: последовательные git-операции (status→add→commit)
     if echo "$LAST_PREV_TOOL" | grep -qE "Bash\(git" && echo "$TOOL" | grep -qE "Bash\(git"; then
       IS_SAFE_PAIR=1
@@ -264,7 +257,7 @@ if [ -f "$ONE_SHOT_FILE" ]; then
 
     if [ "$IS_SAFE_PAIR" = "0" ]; then
       echo "ONE-SHOT: tool after tool (step $LAST_TOOL_STEP: $LAST_PREV_TOOL → step $STEP: $TOOL). HARD STOP." >&2
-      echo "   Разрешённые пары: Read→Bash, Bash→Read, Write→Bash, git→git, npm→Bash" >&2
+      echo "   Разрешённые пары: Read↔Bash, Edit→Read/Bash, Bash→Write/Edit, Read→Write/Edit, git→git, npm→Bash" >&2
       exit 1
     fi
   fi
@@ -296,7 +289,7 @@ fi
 # Использует offset/limit из Read, а не полный размер файла.
 # Блокирует дальнейшее чтение если превышен лимит.
 CONTEXT_BUDGET_FILE="$STATE_DIR/context_budget_bytes"
-MAX_CONTEXT_BYTES=20000  # ~5000 токенов сырого текста в контексте
+MAX_CONTEXT_BYTES=12000  # ~3000 токенов сырого текста в контексте
 
 if [ ! -f "$CONTEXT_BUDGET_FILE" ]; then
   echo "0" > "$CONTEXT_BUDGET_FILE"
@@ -339,6 +332,34 @@ fi
 
 # === HARD STOPS (exit 1) ===
 
+# B0. BASH CHAIN DETECTOR: >3 consecutive Bash calls = STOP
+# Использует отдельный файл-счётчик (bash_chain), который обновляется
+# даже когда response-cache.sh делает exit 1 (cache hit) до вызова anti-loop-guard.
+# Файл обновляется в response-cache.sh для Bash при cache hit.
+BASH_CHAIN_FILE="$STATE_DIR/bash_chain"
+if [ ! -f "$BASH_CHAIN_FILE" ]; then echo "0" > "$BASH_CHAIN_FILE"; fi
+if echo "$TOOL" | grep -qE "^Bash$"; then
+  BASH_CHAIN=$(cat "$BASH_CHAIN_FILE" 2>/dev/null || echo 0)
+  BASH_CHAIN=$((BASH_CHAIN + 1))
+  echo "$BASH_CHAIN" > "$BASH_CHAIN_FILE"
+  if [ "$BASH_CHAIN" -gt 3 ]; then
+    echo "HARD STOP: $((BASH_CHAIN)) consecutive Bash calls (max 3). Combine commands with &&." >&2
+    exit 1
+  fi
+else
+  # Не-Bash — сбрасываем счётчик (только для не-cheap tools)
+  CHEAP_PATTERNS="Bash\(ls|Bash\(echo|Bash\(cat|Bash\(pwd|Bash\(which|Bash\(git status|Bash\(git diff"
+  if ! echo "$TOOL" | grep -qE "$CHEAP_PATTERNS" 2>/dev/null; then
+    echo "0" > "$BASH_CHAIN_FILE"
+  fi
+fi
+
+# B1. READ GUARD: file must exist before Read
+if [ "$TOOL" = "Read" ] && [ -n "$FILE_PATH" ] && [ ! -f "$FILE_PATH" ]; then
+  echo "HARD STOP: Read on non-existent file: $FILE_PATH" >&2
+  exit 1
+fi
+
 # 0. ADAPTIVE MAX_STEPS
 MAX_STEPS=$(cat "$MAX_STEPS_FILE" 2>/dev/null || echo 5)
 if [ "$STEP" -gt "$MAX_STEPS" ]; then
@@ -364,31 +385,18 @@ if [ "$TOOL" = "Read" ] && [ -n "$FILE_PATH" ]; then
   fi
 fi
 
-# 4. MAX_TOTAL_CALLS (per prompt)
-if [ "$TOTAL_CALLS" -gt 5 ]; then
-  echo "HARD STOP: tool call limit exceeded (MAX_TOTAL_CALLS=5)." >&2
+# 4. MAX_TOTAL_CALLS (per-prompt-cycle, сбрасывается в user-prompt-submit.sh)
+if [ "$TOTAL_CALLS" -gt 30 ]; then
+  echo "HARD STOP: tool call limit exceeded per prompt (MAX_TOTAL_CALLS=30)." >&2
   exit 1
 fi
 
-# 4a. SESSION-WIDE total calls (never resets)
-SESSION_CALLS_LIMIT=20
-if [ "$SESSION_CALLS" -gt "$SESSION_CALLS_LIMIT" ]; then
-  echo "HARD STOP: session call limit ($SESSION_CALLS_LIMIT) exceeded ($SESSION_CALLS total)." >&2
-  exit 1
-fi
-
-# 4b. BASH CHAIN LIMIT — >5 Bash calls in a row across prompts → STOP
-BASH_CHAIN=$(cat "$BASH_CHAIN_FILE" 2>/dev/null || echo 0)
-if [ "$BASH_CHAIN" -gt 5 ]; then
-  echo "HARD STOP: Bash chain limit exceeded ($BASH_CHAIN Bash calls in a row)." >&2
-  exit 1
-fi
-
-# 5. Same tool chained 2+ times in last 3 calls
-SAME_TOOL_COUNT=$(tail -3 "$TOOLS_LOG" 2>/dev/null | awk -F: '{print $2}' | sort | uniq -c | sort -rn | head -1 | awk '{print $1}')
-LAST_TOOL=$(tail -1 "$TOOLS_LOG" 2>/dev/null | awk -F: '{print $2}')
-if [ "$SAME_TOOL_COUNT" -ge 2 ] && [ -n "$LAST_TOOL" ]; then
-  echo "HARD STOP: tool chaining -- $LAST_TOOL called $SAME_TOOL_COUNT times in a row." >&2
+# 5. Non-Bash consecutive tool chain detector: same non-Bash tool 3+ times
+# Bash уже ловится в B0. Read/Edit/TaskTool 3x подряд = аномалия.
+BASH_CHAIN_NA=$(tail -5 "$TOOLS_LOG" 2>/dev/null | awk -F: 'BEGIN{c=0} {if($2!="Bash" && $2!="") c++; else c=0} END{print c}')
+if [ "$BASH_CHAIN_NA" -ge 3 ]; then
+  LAST_TOOL_NA=$(tail -1 "$TOOLS_LOG" 2>/dev/null | awk -F: '{print $2}')
+  echo "HARD STOP: non-Bash chaining -- $LAST_TOOL_NA called ${BASH_CHAIN_NA}x consecutively." >&2
   exit 1
 fi
 
@@ -473,8 +481,8 @@ fi
 TOKENS_USED=$((TOKENS_USED + ESTIMATE))
 echo "$TOKENS_USED" > "$BUDGET_FILE"
 
-SOFT_LIMIT=15000
-HARD_LIMIT=30000
+SOFT_LIMIT=30000
+HARD_LIMIT=50000
 if [ "$TOKENS_USED" -gt "$HARD_LIMIT" ]; then
   echo "HARD STOP: task budget exceeded (HARD_LIMIT=$HARD_LIMIT, used ~${TOKENS_USED}t)." >&2
   exit 1

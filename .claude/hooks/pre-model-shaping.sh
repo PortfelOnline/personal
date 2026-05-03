@@ -85,13 +85,32 @@ if echo "$TOOL" | grep -qE "^Bash$"; then
     echo "[GREP_TOP_K: PROCEEDING]"
   fi >&2
 
-  # Проверяем curl/wget без head/cut/grep в конце
-  if echo "$COMMAND" | grep -qE "curl|wget" && ! echo "$COMMAND" | grep -qE "\|.*(head|cut|grep -o|tail|wc|sed)"; then
-    # Не блокируем, но пишем предупреждение
-    echo "[LIVE_SUMMARIZED_WARN: curl/wget без pipe|head — результат может быть большим]"
-    echo "[LIVE_SUMMARIZED: добавь | head -c 2000 чтобы сократить]"
-    echo "[LIVE_SUMMARIZED: PROCEEDING]"
-  fi >&2
+  # === BASH OUTPUT LIMITER — HARD STOP для больших выводов ===
+  # curl/wget без pipe=генерирует >10KB в контекст почти всегда
+  if echo "$COMMAND" | grep -qE "^(curl|wget)\s" && ! echo "$COMMAND" | grep -qE "\|.*(head|cut|grep|tail|wc|sed|awk|tr|sort|jq)"; then
+    echo "[BASH_OUTPUT_LIMITER: curl/wget без pipe может вернуть >10KB в контекст]"
+    echo "[BASH_OUTPUT_LIMITER: добавь | head -c 2000 чтобы сократить вывод]"
+    echo "[BASH_OUTPUT_LIMITER: или используй WebFetch/WebSearch для контролируемого запроса]"
+    exit 1
+  fi
+
+  # cat целого файла — используй Read с offset/limit
+  if echo "$COMMAND" | grep -qE "^cat\s" && ! echo "$COMMAND" | grep -qE "\|.*(head|tail|grep|wc)"; then
+    echo "[BASH_OUTPUT_LIMITER: cat без пайпа — используй Read с offset/limit для чтения файлов]"
+    exit 1
+  fi
+
+  # find/ls без | head — может вернуть тысячи строк
+  if echo "$COMMAND" | grep -qE "^(find|ls -la)\s" && ! echo "$COMMAND" | grep -qE "\|.*(head|tail|wc|grep)"; then
+    echo "[BASH_OUTPUT_LIMITER: find/ls без | head — добавь | head -n 20]"
+    exit 1
+  fi
+
+  # git log без ограничения
+  if echo "$COMMAND" | grep -qE "^git log" && ! echo "$COMMAND" | grep -qE "\-\-oneline.*\-[0-9]+\s?$"; then
+    echo "[BASH_OUTPUT_LIMITER: git log без --oneline -N (напр. --oneline -10) — добавь лимит]"
+    exit 1
+  fi
 fi
 
 exit 0
