@@ -354,7 +354,10 @@ _LONG_LINE_THRESHOLD = 500  # chars — likely pretty-printed data
 
 
 def _compress_content(text) -> str:
-    """Content-type aware compression. Handles: file listings, stack traces, long JSON, repetitive logs."""
+    """Content-type aware compression. Handles: file listings, stack traces, long JSON, repetitive logs.
+
+    v2: lower thresholds (30/15 lines), more aggressive truncation, shorter markers.
+    """
     text = _normalize_to_text(text)
     text = _ANSI_RE.sub('', text).strip()
     if not text:
@@ -363,23 +366,22 @@ def _compress_content(text) -> str:
     lines = text.split('\n')
     n = len(lines)
 
-    # Aggressive compression for 20-40 lines: still compress
-    if n > 20:
-        # Detect repetitive lines (more than 50% similar content)
+    # --- Repetitive detection: applies from 10+ lines ---
+    if n > 10:
         unique_ratio = len(set(l.strip() for l in lines)) / max(n, 1)
         if unique_ratio < 0.3:
-            # Very repetitive output → keep first 5 + last 3 + count
-            keep = lines[:5] + [f'\n[...{n - 8} repetitive lines...]\n'] + lines[-3:]
+            keep = lines[:4] + [f'\n[...{n - 7} reps...]\n'] + lines[-3:]
             return '\n'.join(keep)
 
-    if n > 40:
+    # --- Aggressive compression for 30+ lines ---
+    if n > 30:
         stack_lines = sum(1 for l in lines if _STACK_TRACE_RE.match(l))
         json_lines = sum(1 for l in lines[:5] if l.strip().startswith(('{', '[')))
         long_lines = sum(1 for l in lines if len(l) > _LONG_LINE_THRESHOLD / 2)
 
-        # Stack trace → keep first 6 + last 3
+        # Stack trace → keep first 5 + last 2
         if stack_lines > 5:
-            keep = lines[:6] + ['[...stack trace compressed...]'] + lines[-3:]
+            keep = lines[:5] + ['[...stk...]'] + lines[-2:]
             return '\n'.join(keep)
 
         # Long JSON pretty-print → try compact
@@ -389,19 +391,19 @@ def _compress_content(text) -> str:
             if compacted != joined:
                 return compacted
 
-        # Detect large object dumps (dict/list at line start for >20% of lines)
+        # Detect large object dumps
         data_lines = sum(1 for l in lines if l.strip().startswith(('{', '}', '[', ']', '"', '  ', '\t')))
         if data_lines > n * 0.5:
-            keep = lines[:8] + [f'\n[...{n - 13} lines of data compressed...]\n'] + lines[-5:]
+            keep = lines[:6] + [f'\n[...{n - 11} data...]\n'] + lines[-5:]
             return '\n'.join(keep)
 
-        # Generic many-line output → keep first 12 + last 5
-        keep = lines[:12] + [f'\n[...{n - 17} lines compressed...]\n'] + lines[-5:]
+        # Generic many-line → keep first 8 + last 3
+        keep = lines[:8] + [f'\n[...{n - 11}...]\n'] + lines[-3:]
         return '\n'.join(keep)
 
-    # 20-40 lines: moderate compression
-    if n > 20:
-        keep = lines[:10] + [f'\n[...{n - 14} lines...]\n'] + lines[-4:]
+    # --- Moderate compression for 15-30 lines ---
+    if n > 15:
+        keep = lines[:8] + [f'\n[...{n - 11}...]\n'] + lines[-3:]
         return '\n'.join(keep)
 
     # Short enough — just strip ANSI + normalize
@@ -419,13 +421,41 @@ def _is_tool_only(msg: dict) -> bool:
 
 
 def _truncate_tool_results(messages: list, total_budget: int) -> None:
-    """Adaptive truncation: only when total budget exceeded, never below TOOL_RESULT_MAX_TOKENS."""
+    """Adaptive truncation: compress content first, then token-truncate only if still over budget.
+
+    v2: всегда применяет _compress_content ко всем tool_result (не только при переполнении),
+    что ловит большинство случаев без токен-обрезки.
+    """
     global _TOKENIZER
     if _TOKENIZER is None:
         _TOKENIZER = tiktoken.get_encoding("cl100k_base")
+
+    # Phase 1: compress all tool_results content (always — не только когда over budget)
+    for msg in messages:
+        c = msg.get("content")
+        if not isinstance(c, list):
+            continue
+        for block in c:
+            if block.get("type") != "tool_result":
+                continue
+            tc = block.get("content", "")
+            if isinstance(tc, str):
+                compressed = _compress_content(tc)
+                if len(compressed) < len(tc):
+                    block["content"] = compressed
+            elif isinstance(tc, list):
+                for tb in tc:
+                    if tb.get("type") == "text":
+                        txt = tb.get("text", "")
+                        compressed = _compress_content(txt)
+                        if len(compressed) < len(txt):
+                            tb["text"] = compressed
+
+    # Phase 2: token-truncate only if still over budget
     actual = sum(_msg_tokens(m) for m in messages)
     if actual <= total_budget:
-        return  # no truncation needed — zero risk
+        return  # compression was enough — zero token-truncation needed
+
     for msg in messages:
         c = msg.get("content")
         if not isinstance(c, list):
@@ -439,7 +469,7 @@ def _truncate_tool_results(messages: list, total_budget: int) -> None:
                 if tok > TOOL_RESULT_MAX_TOKENS:
                     encoded = _TOKENIZER.encode(_normalize_to_text(tc), disallowed_special=())
                     block["content"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
-                                        + f"\n[...truncated to {TOOL_RESULT_MAX_TOKENS} tokens]")
+                                        + f"\n[...{TOOL_RESULT_MAX_TOKENS}t]")
             elif isinstance(tc, list):
                 for tb in tc:
                     if tb.get("type") == "text":
@@ -448,7 +478,7 @@ def _truncate_tool_results(messages: list, total_budget: int) -> None:
                         if tok > TOOL_RESULT_MAX_TOKENS:
                             encoded = _TOKENIZER.encode(text, disallowed_special=())
                             tb["text"] = (_TOKENIZER.decode(encoded[:TOOL_RESULT_MAX_TOKENS])
-                                          + f"\n[...truncated to {TOOL_RESULT_MAX_TOKENS} tokens]")
+                                          + f"\n[...{TOOL_RESULT_MAX_TOKENS}t]")
 
 
 def _strip_empty_blocks(blocks: list) -> list:
@@ -620,6 +650,141 @@ def _strip_metadata(messages: list) -> None:
         msg.pop("type", None)
 
 
+# ── Lazy-load MCP tools ──
+# Ключевые слова для каждого MCP сервера — если ни одно не найдено в контексте,
+# инструменты сервера не отправляются в запрос (экономия ~500K токенов/день).
+_MCP_TRIGGERS = {
+    "mcp__graphify__": {"graphify", "graph", "knowledge graph", "граф", "нод", "node", "edge", "community"},
+    "mcp__playwright__": {"playwright", "browser", "screenshot", "скриншот", "page", "navigate",
+                          "click", "type", "snapshot", "hover", "select"},
+    "mcp__plugin_github_github__": {"github", "pull request", "pr", "issue", "commit", "repo",
+                                     "репозиторий", "коммит", "ветка", "branch", "merge", "git"},
+    "mcp__serena__": {"serena", "symbol", "find_symbol", "refactor", "class", "function",
+                      "declaration", "implementation", "rename", "diagnostics"},
+    "mcp__ruflo__": {"ruflo", "agent", "swarm", "task", "workflow", "memory", "embedding",
+                      "autopilot", "hive", "coordination", "wasm", "neural"},
+    "mcp__plugin_superpowers-chrome_chrome__": {"chrome", "superpowers", "superpowers-chrome"},
+}
+
+# Core-инструменты (Claude Code built-in) — всегда включены
+_CORE_TOOL_PREFIXES = frozenset({
+    "Bash", "Read", "Write", "Edit", "Glob", "Grep", "NotebookEdit",
+    "TaskCreate", "TaskGet", "TaskList", "TaskUpdate", "TaskOutput", "TaskStop",
+    "TodoWrite", "TodoList", "TodoUpdate", "TodoDelete",
+    "WebFetch", "WebSearch", "WebSearchResults",
+    "AskUserQuestion", "AskUser", "UserAnswer",
+    "Skill", "Agent", "Monitor",
+    "EnterPlanMode", "ExitPlanMode",
+    "EnterWorktree", "ExitWorktree",
+    "PushNotification", "RemoteTrigger",
+    "CronCreate", "CronDelete", "CronList",
+    "ScheduleWakeup",
+    "ListMcpResourcesTool", "ReadMcpResourceTool",
+})
+
+
+def _classify_tool(name: str) -> str | None:
+    """Вернуть prefix MCP-сервера или None для core-инструмента."""
+    if name.startswith("mcp__"):
+        parts = name.split("__", 2)
+        if len(parts) >= 3:
+            return f"{parts[0]}__{parts[1]}__"
+        return name
+    return None
+
+
+def _filter_tools_lazy(body: dict) -> dict:
+    """Lazy-load MCP инструменты: только если контекст их подразумевает.
+
+    Анализирует system prompt + последние 3 user-сообщения + историю tool_use.
+    Core-инструменты (Bash, Read, Write и т.д.) — всегда включены.
+    """
+    tools = body.get("tools")
+    if not isinstance(tools, list) or not tools:
+        return body
+
+    # Группировка: core vs MCP
+    core_tools = []
+    mcp_groups: dict[str, list] = {}
+
+    for tool in tools:
+        name = tool.get("name", "")
+        prefix = _classify_tool(name)
+        if prefix is None:
+            core_tools.append(tool)
+        else:
+            mcp_groups.setdefault(prefix, []).append(tool)
+
+    if not mcp_groups:
+        return body  # нет MCP инструментов
+
+    # Собираем контекст для анализа: system + последние user-сообщения
+    text_parts = []
+
+    sys_text = body.get("system")
+    if isinstance(sys_text, str) and sys_text:
+        text_parts.append(_normalize_to_text(sys_text))
+
+    messages = body.get("messages", [])
+    if isinstance(messages, list):
+        user_count = 0
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                text_parts.append(_normalize_to_text(msg.get("content", "")))
+                user_count += 1
+                if user_count >= 3:
+                    break
+
+    context = " ".join(p for p in text_parts if p).lower()
+
+    # Какие MCP сервера нужны по ключевым словам
+    needed = set()
+    for prefix, keywords in _MCP_TRIGGERS.items():
+        if prefix not in mcp_groups:
+            continue
+        for kw in keywords:
+            if kw in context:
+                needed.add(prefix)
+                break
+
+    # Всегда включаем MCP сервера, которые уже использовались в последних 10 сообщениях
+    if isinstance(messages, list):
+        for msg in messages[-10:]:
+            content = msg.get("content", [])
+            if not isinstance(content, list):
+                continue
+            if msg.get("role") == "assistant":
+                for block in content:
+                    if block.get("type") == "tool_use":
+                        n = block.get("name", "")
+                        p = _classify_tool(n)
+                        if p and p in mcp_groups:
+                            needed.add(p)
+            elif msg.get("role") == "user":
+                # Проверяем tool_result в user сообщениях
+                for block in content:
+                    if block.get("type") == "tool_result":
+                        n = block.get("tool_use_id")
+                        if n:
+                            p = _classify_tool(n)
+                            if p and p in mcp_groups:
+                                needed.add(p)
+
+    # Собираем итоговый список
+    filtered = list(core_tools)
+    for prefix, group in mcp_groups.items():
+        if prefix in needed:
+            filtered.extend(group)
+
+    dropped = len(tools) - len(filtered)
+    if dropped:
+        active = ", ".join(p.rstrip("_") for p in sorted(needed)) if needed else "none"
+        print(f"  [tools] kept={len(filtered)} dropped={dropped} active=[{active}]", file=sys.stderr)
+
+    body["tools"] = filtered
+    return body
+
+
 # ── Request processing cache (system prompt + tools don't change between calls) ──
 import hashlib as _hashlib  # noqa: E402
 _SYS_CACHE = {}   # hash → compressed_system_text
@@ -672,6 +837,9 @@ def _fix_request_cached(body: dict) -> dict:
 
 def fix_request(body: dict) -> dict:
     """Normalize whitespace, fix images, strip thinking, smart-truncate context."""
+    # Lazy-load MCP tools — только релевантные контексту
+    body = _filter_tools_lazy(body)
+
     # System + tools normalization via cache
     body = _fix_request_cached(body)
 
