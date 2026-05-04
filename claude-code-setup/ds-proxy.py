@@ -33,6 +33,9 @@ USE_OCR = os.environ.get("OCR") == "1"
 CLAUDE_KEY = os.environ.get("CLAUDE_API_KEY")
 ANTHROPIC_DIRECT_URL = "https://api.anthropic.com/v1/messages"
 
+# Max parallel tool_use blocks — DeepSeek часто выдаёт >10, API падает с 400
+MAX_PARALLEL_TOOLS = 3
+
 # DeepSeek context: 128K total, small safety margin (tiktoken точный)
 MAX_CONTEXT_TOKENS = 128_000
 PROMPT_SAFETY_MARGIN = 1024
@@ -499,6 +502,22 @@ def _dedup_consecutive_results(blocks: list) -> list:
     return deduped
 
 
+def _limit_tool_use_blocks(blocks: list) -> list:
+    """Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.
+    DeepSeek часто выдаёт 10+ tool_use за раз → API Error 400.
+    Zero-risk: избыточные tool_use блоки не будут выполнены корректно в любом случае.
+    """
+    tool_count = 0
+    limited = []
+    for block in blocks:
+        if block.get("type") == "tool_use":
+            tool_count += 1
+            if tool_count > MAX_PARALLEL_TOOLS:
+                continue  # drop excessive tool_use blocks
+        limited.append(block)
+    return limited
+
+
 _DESC_BOILERPLATE_RE = re.compile(
     r'(?i)\b(?:please\s+|note\s+that\s+|'
     r'this\s+(?:tool|function)\s+(?:is\s+)?(?:used\s+)?(?:for|to|can\s+be\s+used\s+to)\s+|'
@@ -725,8 +744,39 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.send_header(k, v)
             self.end_headers()
             if status < 400:
+                # Track tool_use block indices to limit parallel tools in streaming SSE
+                tool_use_indices = set()
+                skip_indices = set()
                 for chunk in iter(lambda: resp.read(4096), b""):
-                    self.wfile.write(chunk)
+                    if b"data: " in chunk:
+                        decoded = chunk.decode("utf-8", errors="replace")
+                        lines = decoded.split("\n")
+                        filtered = []
+                        for line in lines:
+                            if line.startswith("data: "):
+                                payload = line[6:]
+                                try:
+                                    ev = json.loads(payload)
+                                    ev_type = ev.get("type")
+                                    ev_idx = ev.get("index")
+                                    if ev_type == "content_block_start":
+                                        cb = ev.get("content_block", {})
+                                        if cb.get("type") == "tool_use":
+                                            tool_use_indices.add(ev_idx)
+                                            if len(tool_use_indices) > MAX_PARALLEL_TOOLS:
+                                                skip_indices.add(ev_idx)
+                                                continue
+                                        # text blocks are always kept
+                                    elif ev_type in ("content_block_delta", "content_block_stop"):
+                                        if ev_idx in skip_indices:
+                                            continue
+                                except (json.JSONDecodeError, TypeError):
+                                    pass
+                            filtered.append(line)
+                        if filtered:
+                            self.wfile.write("\n".join(filtered).encode("utf-8"))
+                    else:
+                        self.wfile.write(chunk)
                     self.wfile.flush()
             else:
                 self.wfile.write(resp.read())
@@ -736,6 +786,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if status < 400:
                 try:
                     js = json.loads(body)
+                    # Limit parallel tool_use blocks — DeepSeek часто выдаёт > MAX_PARALLEL_TOOLS
+                    content = js.get("content")
+                    if isinstance(content, list):
+                        js["content"] = _limit_tool_use_blocks(content)
                     usage = js.get("usage", {})
                     if usage:
                         inp = usage.get('input_tokens', 0)
