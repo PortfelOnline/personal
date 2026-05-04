@@ -39,7 +39,7 @@ MAX_PARALLEL_TOOLS = 3
 # DeepSeek context: 128K total, small safety margin (tiktoken точный)
 MAX_CONTEXT_TOKENS = 128_000
 PROMPT_SAFETY_MARGIN = 1024
-TOOL_RESULT_MAX_TOKENS = 6000  # higher limit, truncation is adaptive (only when over budget)
+TOOL_RESULT_MAX_TOKENS = 4000  # adaptive truncation (only when over budget)
 
 # ── Auto model selection (flash vs pro) ──
 _MODEL_SIMPLE = frozenset({
@@ -363,15 +363,23 @@ def _compress_content(text) -> str:
     lines = text.split('\n')
     n = len(lines)
 
-    # File listing or log with many repetitive lines → keep head+tail
+    # Aggressive compression for 20-40 lines: still compress
+    if n > 20:
+        # Detect repetitive lines (more than 50% similar content)
+        unique_ratio = len(set(l.strip() for l in lines)) / max(n, 1)
+        if unique_ratio < 0.3:
+            # Very repetitive output → keep first 5 + last 3 + count
+            keep = lines[:5] + [f'\n[...{n - 8} repetitive lines...]\n'] + lines[-3:]
+            return '\n'.join(keep)
+
     if n > 40:
         stack_lines = sum(1 for l in lines if _STACK_TRACE_RE.match(l))
         json_lines = sum(1 for l in lines[:5] if l.strip().startswith(('{', '[')))
         long_lines = sum(1 for l in lines if len(l) > _LONG_LINE_THRESHOLD / 2)
 
-        # Stack trace → keep first 8 + last 4
+        # Stack trace → keep first 6 + last 3
         if stack_lines > 5:
-            keep = lines[:8] + ['[...stack trace compressed...]'] + lines[-4:]
+            keep = lines[:6] + ['[...stack trace compressed...]'] + lines[-3:]
             return '\n'.join(keep)
 
         # Long JSON pretty-print → try compact
@@ -381,8 +389,19 @@ def _compress_content(text) -> str:
             if compacted != joined:
                 return compacted
 
-        # Generic many-line output → keep first 20 + last 10
-        keep = lines[:20] + [f'\n[...{n - 30} lines compressed...]\n'] + lines[-10:]
+        # Detect large object dumps (dict/list at line start for >20% of lines)
+        data_lines = sum(1 for l in lines if l.strip().startswith(('{', '}', '[', ']', '"', '  ', '\t')))
+        if data_lines > n * 0.5:
+            keep = lines[:8] + [f'\n[...{n - 13} lines of data compressed...]\n'] + lines[-5:]
+            return '\n'.join(keep)
+
+        # Generic many-line output → keep first 12 + last 5
+        keep = lines[:12] + [f'\n[...{n - 17} lines compressed...]\n'] + lines[-5:]
+        return '\n'.join(keep)
+
+    # 20-40 lines: moderate compression
+    if n > 20:
+        keep = lines[:10] + [f'\n[...{n - 14} lines...]\n'] + lines[-4:]
         return '\n'.join(keep)
 
     # Short enough — just strip ANSI + normalize
