@@ -1,0 +1,610 @@
+{
+  "/Users/evgenijgrudev/personal/claude-code-setup/ds-proxy.py": {
+    "mtime": 1777885597.592423,
+    "hash": "8dfc2e4610dc27b46dfbe80f93e2001f"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/session_manager.py": {
+    "mtime": 1777543671.3311758,
+    "hash": "54a7157bda8c153ae167fdd497265add"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/agent.py": {
+    "mtime": 1777543663.350852,
+    "hash": "e4c62f80308383f97cb6fdb2084af35f"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/patches/fix_agent_gap_2.py": {
+    "mtime": 1777436298.824596,
+    "hash": "03e267a6c965fa01239de696b5b196a6"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/patches/fix_6b.py": {
+    "mtime": 1777436298.829855,
+    "hash": "31d0cd85b3465043ccac1e136a512b70"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/patches/fix_agent_gap.py": {
+    "mtime": 1777436298.8193223,
+    "hash": "130da2a7257beab05add1f1908b2aa59"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/patches/tier51_auth.py": {
+    "mtime": 1777437280.268601,
+    "hash": "80c3b9cce495579a6288d5b757995612"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek/deepseek": {
+    "mtime": 1777555235.4993045,
+    "hash": "90373ac91ce898e7b80a7633ae376e38"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek/deepseek_api.py": {
+    "mtime": 1777610002.4222445,
+    "hash": "7f9231848e9b418acef3e5792f8d2e41"
+  },
+  "/Users/evgenijgrudev/personal/scripts/save-session-memory.py": {
+    "mtime": 1777311931.933025,
+    "hash": "e7e621ad285390963430b332407b16d3"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/parse_rankd_table.py": {
+    "mtime": 1773222980.0708945,
+    "hash": "c7319a25d9ce2999f35e71c10e9bfb7d"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/config.py": {
+    "mtime": 1773209481.904979,
+    "hash": "63a11a4235d860a44cfecfc2211116c1"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/rankd_parser.py": {
+    "mtime": 1773221190.9247935,
+    "hash": "029d54744ae7936322a7ccff250aed6c"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/tracker.py": {
+    "mtime": 1773143093.1948495,
+    "hash": "cdc128e3949785e6bba5a5a3e6a69bc6"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/main.py": {
+    "mtime": 1773209705.9089413,
+    "hash": "923bf846a03a3299159d044990573da8"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/rankd_scraper.py": {
+    "mtime": 1773209592.1987123,
+    "hash": "5c43ebedd6f45060e88bd95d537f5fe6"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/medium.py": {
+    "mtime": 1773209789.132704,
+    "hash": "0d4a540efb0e6820f5f93794b6bd4e64"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/disqus.py": {
+    "mtime": 1773209765.8263984,
+    "hash": "ff72b37d49b7d776fa7216bbb8cd35a3"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/about_me.py": {
+    "mtime": 1773209803.7140872,
+    "hash": "78679295102caceb9193539063c927dd"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/quora.py": {
+    "mtime": 1773209960.3255837,
+    "hash": "f6608b97b06a3aeadbfd6a1affbd84a4"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/diigo.py": {
+    "mtime": 1773209975.7053251,
+    "hash": "507c3116481000c55ba7c4152f4c46f8"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/neocities.py": {
+    "mtime": 1773143906.7248523,
+    "hash": "0a3a29b8eda243c96bcacfd614bed81c"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/folkd.py": {
+    "mtime": 1773209818.0415745,
+    "hash": "7c0ca98ba8bd884c731475d2b45b5457"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/telegra_ph.py": {
+    "mtime": 1773143606.0047812,
+    "hash": "e75ae07ca57e6b0228d3fa1f81cdbbb3"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/sites/wikidot.py": {
+    "mtime": 1773143923.363299,
+    "hash": "3057b5a2b46b4eaee689513db6b96c30"
+  },
+  "/Users/evgenijgrudev/personal/test-runner-agent.md": {
+    "mtime": 1777311931.940127,
+    "hash": "f9d37b76e0cf3f02d7bd24f3c8f656c8"
+  },
+  "/Users/evgenijgrudev/personal/seo-google.md": {
+    "mtime": 1777311931.9345977,
+    "hash": "9c594fb85dc2fd7d72fcf701d4afb80d"
+  },
+  "/Users/evgenijgrudev/personal/seo-performance.md": {
+    "mtime": 1777311931.9361825,
+    "hash": "b354ba591027a0fe29af56a7a53c7499"
+  },
+  "/Users/evgenijgrudev/personal/seo-sitemap.md": {
+    "mtime": 1777311931.9367902,
+    "hash": "9de6327c7c0bdb4adf98bc3f0e5d4b4d"
+  },
+  "/Users/evgenijgrudev/personal/autonomous-dev-github.md": {
+    "mtime": 1777311931.9003758,
+    "hash": "0a9f55dc598f2b42dd0380ad552243c6"
+  },
+  "/Users/evgenijgrudev/personal/sql-reviewer.md": {
+    "mtime": 1777311931.9398537,
+    "hash": "796086309fa42165bebff0da140570c9"
+  },
+  "/Users/evgenijgrudev/personal/seo-dataforseo.md": {
+    "mtime": 1777311931.9338872,
+    "hash": "76a391da85ebbfe74eb7755136fb37dc"
+  },
+  "/Users/evgenijgrudev/personal/php-reviewer.md": {
+    "mtime": 1777311931.9287257,
+    "hash": "398f51419d7c6065f801bc5540ced14d"
+  },
+  "/Users/evgenijgrudev/personal/autonomous-dev-brain.md": {
+    "mtime": 1777311931.899011,
+    "hash": "c4d36383d9553f47d9947b010b5b7ceb"
+  },
+  "/Users/evgenijgrudev/personal/oracle.md": {
+    "mtime": 1777311931.9280174,
+    "hash": "32326b6adaf9442561cddd67606bd2e0"
+  },
+  "/Users/evgenijgrudev/personal/db-migration-agent.md": {
+    "mtime": 1777311931.9119356,
+    "hash": "da43713163c08a79ff758e903787c3ff"
+  },
+  "/Users/evgenijgrudev/personal/seo-image-gen.md": {
+    "mtime": 1777311931.9348884,
+    "hash": "a4732fd2743a832084477c76a1da6b5f"
+  },
+  "/Users/evgenijgrudev/personal/code-search.md": {
+    "mtime": 1777311931.9086099,
+    "hash": "78a7ec285e0ae378b80d7d743dc9e09d"
+  },
+  "/Users/evgenijgrudev/personal/seo-schema.md": {
+    "mtime": 1777311931.9364948,
+    "hash": "948e89465de6d6759f65efc9ba57b433"
+  },
+  "/Users/evgenijgrudev/personal/README.md": {
+    "mtime": 1777452356.564777,
+    "hash": "26800409e8e27eef979789624c94e2f4"
+  },
+  "/Users/evgenijgrudev/personal/shell-reviewer.md": {
+    "mtime": 1777311931.9395144,
+    "hash": "5f930b7027ab6a51a33c78b450b1a77f"
+  },
+  "/Users/evgenijgrudev/personal/init-agent.md": {
+    "mtime": 1777311931.9243832,
+    "hash": "f577ab7a54cd372df40d1a05a35fb143"
+  },
+  "/Users/evgenijgrudev/personal/triage-expert.md": {
+    "mtime": 1777311931.9432232,
+    "hash": "8931388e234fc8a66b8c5acb6399b2e0"
+  },
+  "/Users/evgenijgrudev/personal/seo-maps.md": {
+    "mtime": 1777311931.9358656,
+    "hash": "f966f2012dbbce5ef1dd77ff143870ff"
+  },
+  "/Users/evgenijgrudev/personal/api-contract-reviewer.md": {
+    "mtime": 1777311931.8899584,
+    "hash": "440f7399f132cc8b98065857f4b3c1a7"
+  },
+  "/Users/evgenijgrudev/personal/autonomous-dev-gitlab.md": {
+    "mtime": 1777311931.9030259,
+    "hash": "9ff10ba26af7d8ca7f33b1861f20c10e"
+  },
+  "/Users/evgenijgrudev/personal/code-review-expert.md": {
+    "mtime": 1777311931.9079816,
+    "hash": "cb1e95eb3b7a84c2dbff7b1d200e8914"
+  },
+  "/Users/evgenijgrudev/personal/agent-template.md": {
+    "mtime": 1777311931.8891819,
+    "hash": "962498dc855b798a884808ea29484565"
+  },
+  "/Users/evgenijgrudev/personal/cli-expert.md": {
+    "mtime": 1777311931.9061418,
+    "hash": "72176af620c7aeecdd59ba54abc84093"
+  },
+  "/Users/evgenijgrudev/personal/research-expert.md": {
+    "mtime": 1777311931.9321637,
+    "hash": "8c97ee9add0bb453891393f5c4091ad5"
+  },
+  "/Users/evgenijgrudev/personal/ai-sdk-expert.md": {
+    "mtime": 1777311931.889612,
+    "hash": "749f53a9bcb58fac52f1f0d7ba6e506c"
+  },
+  "/Users/evgenijgrudev/personal/ci-gate-agent.md": {
+    "mtime": 1777311931.9055793,
+    "hash": "b6f2b6f3e99f933354ca76ef1fa2ffaf"
+  },
+  "/Users/evgenijgrudev/personal/seo-geo.md": {
+    "mtime": 1777311931.9342487,
+    "hash": "481f391114d6406e2dc48f0194a63843"
+  },
+  "/Users/evgenijgrudev/personal/seo-technical.md": {
+    "mtime": 1777311931.937083,
+    "hash": "90660b5150cd15da59b3a2c90fb627e2"
+  },
+  "/Users/evgenijgrudev/personal/seo-visual.md": {
+    "mtime": 1777311931.9378176,
+    "hash": "fbad2ac4fff743d424d0e9d8da07d1ee"
+  },
+  "/Users/evgenijgrudev/personal/AGENTS.md": {
+    "mtime": 1777311931.8882349,
+    "hash": "557f03166166faa5839868ff14ce0658"
+  },
+  "/Users/evgenijgrudev/personal/nestjs-expert.md": {
+    "mtime": 1777311931.9266934,
+    "hash": "65ab67485864f9642993e6492a2bd8d3"
+  },
+  "/Users/evgenijgrudev/personal/seo-local.md": {
+    "mtime": 1777311931.9354467,
+    "hash": "08af9420948a567b7a5ff375308127d7"
+  },
+  "/Users/evgenijgrudev/personal/seo-content.md": {
+    "mtime": 1777311931.93348,
+    "hash": "90de5b2037be90eae9bcf2bb4ad62c09"
+  },
+  "/Users/evgenijgrudev/personal/performance-profiler.md": {
+    "mtime": 1777311931.9283946,
+    "hash": "68ff8ab84cdbe07f6d31905a7420016d"
+  },
+  "/Users/evgenijgrudev/personal/autonomous-dev-manager.md": {
+    "mtime": 1777379166.9116862,
+    "hash": "68ecb091180f34dd1242d92dba45f507"
+  },
+  "/Users/evgenijgrudev/personal/CLAUDE.md": {
+    "mtime": 1777885272.9089334,
+    "hash": "d1f54cfc388a3e19bd536a03a9e78b17"
+  },
+  "/Users/evgenijgrudev/personal/autonomous-dev-executor.md": {
+    "mtime": 1777311931.8996468,
+    "hash": "5d8f649f200db53a7355213333428e15"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-34.md": {
+    "mtime": 1777378310.4268997,
+    "hash": "fcefbbda5c6896ac1683d15402e20d7b"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-41.md": {
+    "mtime": 1777383258.662449,
+    "hash": "3a1a63f40bfddd2707693acd96eb9f82"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-20.md": {
+    "mtime": 1777333044.931884,
+    "hash": "47aef0af7715e0cf888e37c95724631f"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-45.md": {
+    "mtime": 1777384620.2939825,
+    "hash": "34d68eeefa265a5e291f78bb0bf6e649"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-31.md": {
+    "mtime": 1777373699.1952312,
+    "hash": "779e05887cb3e7eff5e8be6dd9f73ac9"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-21.md": {
+    "mtime": 1777363420.9676538,
+    "hash": "bc2521ce5e1b2a1a0e51e1cbdc8614eb"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-10-13.md": {
+    "mtime": 1777319992.3771966,
+    "hash": "99b81666a84a52e754ddc1bdcd2f96eb"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-44.md": {
+    "mtime": 1777384138.1400137,
+    "hash": "bddd8409f5a6c1929db328d5f04efe5e"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-35.md": {
+    "mtime": 1777379137.6983993,
+    "hash": "d7a5d9e98009bc2feac489c01c91c16e"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/docker-compose.local.yml": {
+    "mtime": 1777469754.0744336,
+    "hash": "e4d7509d30458a7d6a4be88d8034d1ab"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-40.md": {
+    "mtime": 1777382598.3803442,
+    "hash": "ca81d7c9f55f6b2b96c68bd3dca6bde5"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-29-tier-49.md": {
+    "mtime": 1777452975.9896808,
+    "hash": "dd09b7abfc3a10e8cb24c44847957fc9"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-29-tier-52.md": {
+    "mtime": 1777452356.565052,
+    "hash": "97ae8d5732a0b98635de6ed6f759a5f5"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-40-gap-analysis.md": {
+    "mtime": 1777381757.9694529,
+    "hash": "ae97fd45b6f461fdf74773d496a952c4"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-29-tier-53.md": {
+    "mtime": 1777472593.7574224,
+    "hash": "f3ecd0f6dbf6fb22f0a5f3c3266500b2"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-deepseek-api.md": {
+    "mtime": 1777554115.5291493,
+    "hash": "ce37e53141bff075f488f8c52bf16c2f"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-38.md": {
+    "mtime": 1777381092.3767343,
+    "hash": "0347b749d89b89796855106a78ced7e2"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-05-04-fix-tool-use-concurrency.md": {
+    "mtime": 1777883295.3832984,
+    "hash": "3a62faaa6987e478b8da3922180095ab"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-29-tier-50.md": {
+    "mtime": 1777436316.5377038,
+    "hash": "df2c858818e46f695478fc1a313bdde1"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-18.md": {
+    "mtime": 1777330953.0299284,
+    "hash": "f114fb2fcca4236a6853fb7740ce6b2e"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-29-tier-51.md": {
+    "mtime": 1777437295.0161297,
+    "hash": "ae708549c843521f6a1873c3871335d2"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-19.md": {
+    "mtime": 1777332197.0171657,
+    "hash": "435ee0eca2cfd5db006a4ee36bfff045"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-48.md": {
+    "mtime": 1777428441.797585,
+    "hash": "dbbc606e93664ebe29d216af9fc38ada"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-39.md": {
+    "mtime": 1777381280.0392263,
+    "hash": "9367b256506ef4ce4040c48bf3e40377"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-32.md": {
+    "mtime": 1777376488.31129,
+    "hash": "0c1470d2405d2e572debd54f26e46ec6"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-22.md": {
+    "mtime": 1777364495.1223617,
+    "hash": "d86f203ad0be85118596ae62aa08dd63"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-47.md": {
+    "mtime": 1777428426.069629,
+    "hash": "6a4dbe1a65e503cc852b21293a647b96"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-16.md": {
+    "mtime": 1777319295.5899506,
+    "hash": "da03d2ffb16d4e288df204c4bbece8a6"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-36.md": {
+    "mtime": 1777380659.1371677,
+    "hash": "4a7547628cf2035e7ddaac263b27da53"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-43.md": {
+    "mtime": 1777383892.7509527,
+    "hash": "9b3b94fb73110d3a661680702605099e"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-26.md": {
+    "mtime": 1777367026.2793105,
+    "hash": "9cacbca53d98ce3ca99e25464965222c"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-37.md": {
+    "mtime": 1777380904.0393636,
+    "hash": "ccdacd2db3dc45d1ce72f1782d3f3b6f"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-42.md": {
+    "mtime": 1777383651.666665,
+    "hash": "768c4f0cd83624a22338c87bb7a04964"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-33.md": {
+    "mtime": 1777377160.2710316,
+    "hash": "e76f0589a0a4f5feb3de5a3f9779c853"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-23.md": {
+    "mtime": 1777365683.3953023,
+    "hash": "5c2526a5df0136532f66e4c109228c33"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-46.md": {
+    "mtime": 1777385495.7466369,
+    "hash": "f53119692adb862eea27bb085b8b21a0"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/2026-04-28-tier-17.md": {
+    "mtime": 1777322968.2310967,
+    "hash": "fcc718c5f9e218a1d0174c38c284d332"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/docker-compose.yml": {
+    "mtime": 1777319311.9661903,
+    "hash": "e1c318ed7611bd3eef037787e7d079b9"
+  },
+  "/Users/evgenijgrudev/personal/database/database-mongodb-expert.md": {
+    "mtime": 1777311931.910394,
+    "hash": "ac0b36cddd57c8fc5cd6d3e2b5b3427e"
+  },
+  "/Users/evgenijgrudev/personal/database/database-postgres-expert.md": {
+    "mtime": 1777311931.911459,
+    "hash": "1825fede0e8b5c607ac5576a01d881bc"
+  },
+  "/Users/evgenijgrudev/personal/database/database-expert.md": {
+    "mtime": 1777311931.909818,
+    "hash": "528c2d7c02e89f589609140a6324cc20"
+  },
+  "/Users/evgenijgrudev/personal/nodejs/nodejs-expert.md": {
+    "mtime": 1777311931.9274116,
+    "hash": "644ff87e1607e3308a86f541cde837f1"
+  },
+  "/Users/evgenijgrudev/personal/documentation/documentation-expert.md": {
+    "mtime": 1777311931.913396,
+    "hash": "913cc5d6df88818e4ccc8bb7b8a1de3b"
+  },
+  "/Users/evgenijgrudev/personal/devops/devops-expert.md": {
+    "mtime": 1777311931.9126015,
+    "hash": "0c6faedc35e9433327b3b088f530c8af"
+  },
+  "/Users/evgenijgrudev/personal/frontend/frontend-accessibility-expert.md": {
+    "mtime": 1777311931.9163768,
+    "hash": "efaf40de49fa48dfc0311314a3ec3c73"
+  },
+  "/Users/evgenijgrudev/personal/frontend/frontend-css-styling-expert.md": {
+    "mtime": 1777311931.9174342,
+    "hash": "11e5da1d31e45034803398ef3bcb7518"
+  },
+  "/Users/evgenijgrudev/personal/framework/framework-nextjs-expert.md": {
+    "mtime": 1777311931.9147384,
+    "hash": "e66df45be4dfe16d591ed9e9d621afaa"
+  },
+  "/Users/evgenijgrudev/personal/typescript/typescript-type-expert.md": {
+    "mtime": 1777311931.9457333,
+    "hash": "a434f90309c0d1b7dd7a7bca4c3276ed"
+  },
+  "/Users/evgenijgrudev/personal/typescript/typescript-expert.md": {
+    "mtime": 1777311931.9453516,
+    "hash": "d6590caf246e7af811591763be097655"
+  },
+  "/Users/evgenijgrudev/personal/typescript/typescript-build-expert.md": {
+    "mtime": 1777311931.9442203,
+    "hash": "7fd8607e50309f1a3640f8dc03818e3b"
+  },
+  "/Users/evgenijgrudev/personal/claude-config/README.md": {
+    "mtime": 1777574276.4402206,
+    "hash": "9784c3ebae285d85812f70f0bcf8bb13"
+  },
+  "/Users/evgenijgrudev/personal/claude-config/CLAUDE.md": {
+    "mtime": 1777573925.1994696,
+    "hash": "f2a46d54f65ca3556d14dc064dd5f4dd"
+  },
+  "/Users/evgenijgrudev/personal/shared/deepseek-tool-priming.md": {
+    "mtime": 1777311931.938828,
+    "hash": "4292d4ae0aadb43d9d00a33565b5a6ad"
+  },
+  "/Users/evgenijgrudev/personal/shared/deepseek-anti-meander.md": {
+    "mtime": 1777311931.938438,
+    "hash": "d2c09fb584b4769d9db01c369bcbe60e"
+  },
+  "/Users/evgenijgrudev/personal/shared/feedback-loop.md": {
+    "mtime": 1777311931.9391897,
+    "hash": "7d926f46499027f1a001699e9f04a24a"
+  },
+  "/Users/evgenijgrudev/personal/docs/agent/AGENT_GUIDE.md": {
+    "mtime": 1772437600.6024647,
+    "hash": "f4be59921386aa18e69d39d46b3fe55b"
+  },
+  "/Users/evgenijgrudev/personal/testing/vitest-testing-expert.md": {
+    "mtime": 1777311931.9420943,
+    "hash": "580ea6724d224e774bc4080f902f3012"
+  },
+  "/Users/evgenijgrudev/personal/testing/testing-expert.md": {
+    "mtime": 1777311931.9414103,
+    "hash": "0d228971277fb8287427c0a2a7ebb24d"
+  },
+  "/Users/evgenijgrudev/personal/testing/jest-testing-expert.md": {
+    "mtime": 1777311931.9407804,
+    "hash": "ec0ebf5fe148b3a957e2bab29679eba1"
+  },
+  "/Users/evgenijgrudev/personal/notes/graphify-setup-2026-04-25.md": {
+    "mtime": 1777105933.3936157,
+    "hash": "7510df3e730e4771460178da7e7c00d7"
+  },
+  "/Users/evgenijgrudev/personal/notes/backup-mailru-progress.md": {
+    "mtime": 1776916104.9173112,
+    "hash": "e5818334f967865fd6a5c2447ffdc971"
+  },
+  "/Users/evgenijgrudev/personal/notes/backup-server-n-progress.md": {
+    "mtime": 1776916134.6472592,
+    "hash": "97eafbafcd11768f35f3ceff1b187526"
+  },
+  "/Users/evgenijgrudev/personal/notes/graphify-improvements-2026-04-25.md": {
+    "mtime": 1777123913.5335097,
+    "hash": "6b9b6daed8779e618a9b6511a64af9ba"
+  },
+  "/Users/evgenijgrudev/personal/notes/kadmap-lag-diagnosis-2026-04-30.md": {
+    "mtime": 1777533468.216817,
+    "hash": "fe28828440fda7ce3c8d2c05af40362f"
+  },
+  "/Users/evgenijgrudev/personal/notes/refs-pool-setup.md": {
+    "mtime": 1776701172.8512497,
+    "hash": "0812a8bf6fe5f7da790fa5ab9647f5dd"
+  },
+  "/Users/evgenijgrudev/personal/notes/claude_md_principles.md": {
+    "mtime": 1771737652.6732266,
+    "hash": "4d7fde98a51cea16cdc20d2f05b34ac6"
+  },
+  "/Users/evgenijgrudev/personal/notes/stack-check-2026-04-30.md": {
+    "mtime": 1777528904.036769,
+    "hash": "478ba07ab6c172e31c39b351954fbf9f"
+  },
+  "/Users/evgenijgrudev/personal/kafka/kafka-expert.md": {
+    "mtime": 1777311931.9251344,
+    "hash": "be386b419c4fefd141eba22a3729c4a7"
+  },
+  "/Users/evgenijgrudev/personal/loopback/loopback-expert.md": {
+    "mtime": 1777311931.9258928,
+    "hash": "37ccb07988808ac77c941c6eed135cbe"
+  },
+  "/Users/evgenijgrudev/personal/scripts/README.md": {
+    "mtime": 1776155493.9745722,
+    "hash": "9613277a5afb8d7cf20c0c128b29877b"
+  },
+  "/Users/evgenijgrudev/personal/code-quality/code-quality-linting-expert.md": {
+    "mtime": 1777311931.9071488,
+    "hash": "e9f9b9626dc6b59b4d68d1268f00cbcd"
+  },
+  "/Users/evgenijgrudev/personal/refactoring/refactoring-expert.md": {
+    "mtime": 1777311931.931242,
+    "hash": "0caf1afcf5281924958c3c1d47e298a8"
+  },
+  "/Users/evgenijgrudev/personal/infrastructure/docker-reviewer.md": {
+    "mtime": 1777311931.920691,
+    "hash": "0040b8f2dbed82f65ebfbdbe23249267"
+  },
+  "/Users/evgenijgrudev/personal/infrastructure/nginx-reviewer.md": {
+    "mtime": 1777311931.923823,
+    "hash": "7238ef8cff6c848e4c83ac7ae1dd3dcc"
+  },
+  "/Users/evgenijgrudev/personal/infrastructure/iac-reviewer.md": {
+    "mtime": 1777311931.9211311,
+    "hash": "75a0c629d4b98e31fcd54381fbddc002"
+  },
+  "/Users/evgenijgrudev/personal/infrastructure/infrastructure-docker-expert.md": {
+    "mtime": 1777311931.9218714,
+    "hash": "9e76748e8666dd1615bf452fee19417b"
+  },
+  "/Users/evgenijgrudev/personal/infrastructure/infrastructure-github-actions-expert.md": {
+    "mtime": 1777311931.9226394,
+    "hash": "404a235169921df57b3507ac099ea556"
+  },
+  "/Users/evgenijgrudev/personal/e2e/e2e-playwright-expert.md": {
+    "mtime": 1777311931.9140067,
+    "hash": "771d7713a09644b907b8510f02e66ed0"
+  },
+  "/Users/evgenijgrudev/personal/react/react-expert.md": {
+    "mtime": 1777311931.929506,
+    "hash": "dd49bd4891b887dd8d18c229fcd6b51e"
+  },
+  "/Users/evgenijgrudev/personal/react/react-performance-expert.md": {
+    "mtime": 1777311931.9302816,
+    "hash": "f18804dc301fc39ac74c3b4fb20dc8ce"
+  },
+  "/Users/evgenijgrudev/personal/git/git-expert.md": {
+    "mtime": 1777311931.9179506,
+    "hash": "589db7cfe19bdda7163b8792adcfa492"
+  },
+  "/Users/evgenijgrudev/personal/build-tools/build-tools-webpack-expert.md": {
+    "mtime": 1777311931.905047,
+    "hash": "52f80197b232589bb469b9cf98fb1298"
+  },
+  "/Users/evgenijgrudev/personal/build-tools/build-tools-vite-expert.md": {
+    "mtime": 1777311931.9044876,
+    "hash": "502f57fb42c2af1ddc2131ae2edb9f7e"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/content/article_en.txt": {
+    "mtime": 1773143101.269232,
+    "hash": "ca0c7d8e1bdb5b6aa2fbaa0805e65cf8"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/content/article_ru.txt": {
+    "mtime": 1773143110.4336767,
+    "hash": "96c1c6c75a53a621730ad6071d08a6d5"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/content/article_kadastrmap_ru.txt": {
+    "mtime": 1773209535.2948081,
+    "hash": "96c1c6c75a53a621730ad6071d08a6d5"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/content/article_agent_ru.txt": {
+    "mtime": 1773209525.1105623,
+    "hash": "48c8d7406524aaf2c90ab82821c9ccae"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/content/article_agent_en.txt": {
+    "mtime": 1773209508.602861,
+    "hash": "f35f529fc43336f262dc8e0ec5bddffd"
+  },
+  "/Users/evgenijgrudev/personal/backlinks/content/article_kadastrmap_en.txt": {
+    "mtime": 1773209535.3103185,
+    "hash": "ca0c7d8e1bdb5b6aa2fbaa0805e65cf8"
+  }
+}
