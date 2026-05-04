@@ -601,8 +601,61 @@ def _strip_metadata(messages: list) -> None:
         msg.pop("type", None)
 
 
+# ── Request processing cache (system prompt + tools don't change between calls) ──
+import hashlib as _hashlib  # noqa: E402
+_SYS_CACHE = {}   # hash → compressed_system_text
+_TOOL_CACHE = {}  # hash → list of compressed tools
+
+
+def _fix_request_cached(body: dict) -> dict:
+    """Cache-aware wrapper: skip recomputation when system/tools unchanged."""
+    # Cache system prompt normalization
+    sys_prompt = body.get("system")
+    if isinstance(sys_prompt, str):
+        sys_hash = _hashlib.sha256(sys_prompt.encode()).hexdigest()[:16]
+        if sys_hash in _SYS_CACHE:
+            body["system"] = _SYS_CACHE[sys_hash]
+        else:
+            body["system"] = _compress_progress(_normalize_text(sys_prompt))
+            if body["system"]:
+                _SYS_CACHE[sys_hash] = body["system"]
+    elif sys_prompt is not None:
+        body["system"] = _compress_progress(_normalize_text(sys_prompt))
+
+    # Cache tool description normalization
+    tools = body.get("tools", [])
+    if isinstance(tools, list) and tools:
+        # Fast hash: just concatenate names+descs
+        tool_key = _hashlib.sha256(
+            ";".join(t.get("name","") + "|" + (t.get("description") or "") for t in tools).encode()
+        ).hexdigest()[:16]
+        if tool_key in _TOOL_CACHE:
+            body["tools"] = _TOOL_CACHE[tool_key]
+        else:
+            for tool in tools:
+                tool.pop("display_name", None)
+                desc = tool.get("description")
+                if isinstance(desc, str):
+                    tool["description"] = _minify_description(_compress_progress(_normalize_text(desc)))
+            _TOOL_CACHE[tool_key] = body["tools"]
+    elif isinstance(tools, list):
+        for tool in tools:
+            tool.pop("display_name", None)
+
+    # Keep cache bounded (max 64 entries each)
+    while len(_SYS_CACHE) > 64:
+        del _SYS_CACHE[next(iter(_SYS_CACHE))]
+    while len(_TOOL_CACHE) > 64:
+        del _TOOL_CACHE[next(iter(_TOOL_CACHE))]
+
+    return body
+
+
 def fix_request(body: dict) -> dict:
     """Normalize whitespace, fix images, strip thinking, smart-truncate context."""
+    # System + tools normalization via cache
+    body = _fix_request_cached(body)
+
     if "messages" in body:
         _strip_metadata(body["messages"])
     for msg in body.get("messages", []):
@@ -634,19 +687,7 @@ def fix_request(body: dict) -> dict:
     # Don't strip thinking — pass through to DeepSeek (ignored if unsupported)
     # DeepSeek ignores metadata field (user_id etc.) — zero-risk
     body.pop("metadata", None)
-    # Normalize system prompt (zero-risk whitespace compression)
-    sys_prompt = body.get("system")
-    if sys_prompt is not None:
-        body["system"] = _compress_progress(_normalize_text(sys_prompt))
-    # Normalize tools[].description — human-readable text, not input_schema (structured JSON)
-    tools = body.get("tools", [])
-    if isinstance(tools, list):
-        for tool in tools:
-            tool.pop("display_name", None)  # DeepSeek ignores this — zero-risk
-            desc = tool.get("description")
-            if isinstance(desc, str):
-                tool["description"] = _minify_description(_compress_progress(_normalize_text(desc)))
-
+    # system prompt + tools already normalized by _fix_request_cached above
     # Strip cache_control blocks — DeepSeek has no prompt caching
     if "messages" in body:
         _strip_cache_control(body["messages"])
@@ -687,7 +728,24 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self._proxy("GET")
 
     def do_POST(self):
+        if self.path.rstrip("/") == "/reload":
+            self._do_reload()
+            return
         self._proxy("POST")
+
+    def _do_reload(self):
+        """Graceful in-place restart: exec self with same args. No sessions dropped."""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"status":"reloading","pid":' + str(os.getpid()).encode() + b'}\n')
+        self.wfile.flush()
+        # Small delay to let response flush → then exec
+        import threading, time
+        def _restart():
+            time.sleep(0.2)
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        threading.Thread(target=_restart, daemon=True).start()
 
     def do_PATCH(self):
         self._proxy("PATCH")

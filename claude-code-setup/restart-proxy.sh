@@ -1,45 +1,36 @@
 #!/bin/bash
-# Graceful restart ds-proxy: старт на новом порту, переключение URL, kill старого
-# Никогда не роняет работающее соединение.
+# Graceful restart ds-proxy.
+# Приоритет: POST /reload (in-place, zero-downtime) → fallback kill+start
+# Все терминалы подхватывают через общий прокси на :8099
 
-NEW_PORT="${1:-8099}"
-OLD_PORT=$(lsof -ti:8099 2>/dev/null | head -1 | xargs -I{} sh -c 'lsof -p {} -i -P -n 2>/dev/null | grep LISTEN | awk "{print \$9}" | sed "s/.*://"')
+PORT="${1:-8099}"
+PID=$(lsof -ti:"$PORT" 2>/dev/null | head -1)
 
-if [ -n "$OLD_PORT" ] && [ "$OLD_PORT" = "$NEW_PORT" ]; then
-  # Если нужно перезапустить на том же порту — стартуем на соседнем, потом свапаем
-  NEW_PORT=$((NEW_PORT + 1))
-fi
-
-echo "[restart] Starting on :$NEW_PORT → will swap to :$OLD_PORT"
-nohup python3 ~/personal/claude-code-setup/ds-proxy.py --port "$NEW_PORT" >/tmp/ds-proxy-$NEW_PORT.log 2>&1 &
-NEW_PID=$!
-sleep 3
-
-if ! kill -0 "$NEW_PID" 2>/dev/null; then
-  echo "[restart] FAILED to start on :$NEW_PORT"
-  tail -5 /tmp/ds-proxy-$NEW_PORT.log
-  exit 1
-fi
-
-echo "[restart] Started PID $NEW_PID on :$NEW_PORT"
-
-# Если был старый — обновляем ANTHROPIC_BASE_URL ссылку (файл для подгрузки)
-echo "http://localhost:$NEW_PORT" >/tmp/anthropic_base_url
-
-# Kill старого, если был
-if [ -n "$OLD_PORT" ] && [ "$OLD_PORT" != "$NEW_PORT" ]; then
-  OLD_PID=$(lsof -ti:"$OLD_PORT" 2>/dev/null)
-  if [ -n "$OLD_PID" ]; then
-    echo "[restart] Killing old PID $OLD_PID on :$OLD_PORT"
-    kill "$OLD_PID" 2>/dev/null
-    # Если нужно на старом порту — рестартуем
-    if [ "$1" = "8099" ]; then
-      sleep 1
-      nohup python3 ~/personal/claude-code-setup/ds-proxy.py --port 8099 >/tmp/ds-proxy.log 2>&1 &
-      echo "[restart] Re-started on :8099 PID $!"
-      kill "$NEW_PID" 2>/dev/null
+if [ -n "$PID" ]; then
+  echo "[restart] Sending reload signal to PID $PID on :$PORT"
+  reload_ok=$(curl -s -X POST "http://localhost:$PORT/reload" 2>/dev/null)
+  if [ -n "$reload_ok" ]; then
+    echo "[restart] $reload_ok"
+    sleep 2
+    # Verify it's back up
+    if lsof -ti:"$PORT" >/dev/null 2>&1; then
+      echo "[restart] OK — proxy reloaded on :$PORT"
+      exit 0
     fi
   fi
+  echo "[restart] Reload failed, falling back to kill+start"
+  kill "$PID" 2>/dev/null
+  sleep 1
 fi
 
-echo "[restart] Done"
+nohup python3 ~/personal/claude-code-setup/ds-proxy.py --port "$PORT" >/tmp/ds-proxy.log 2>&1 &
+NEW_PID=$!
+sleep 2
+
+if kill -0 "$NEW_PID" 2>/dev/null; then
+  echo "[restart] Started PID $NEW_PID on :$PORT"
+else
+  echo "[restart] FAILED to start on :$PORT"
+  tail -5 /tmp/ds-proxy.log
+  exit 1
+fi
