@@ -22,3 +22,13 @@
 - **Cost reference**: Read~500-1K, Bash/WebFetch~1-3K, WebSearch~2-5K, graphify~0.5-1.5K, browser~3-10K tok.
 - **Partial Read**: `[LIVE_SUMMARIZED]` / `[PARTIAL_FILE_DO_NOT_ASSUME_COMPLETE]` → файл не полный, не делай выводов из отсутствия данных. Если задача требует полного скана → grep → offset/limit.
 - **Ответ**: не сжимать команды/параметры/пути/инструкции. Сжимать объяснения/текст/описания.
+
+# Прокси ds-proxy (zero-downtime обновления)
+- Все Claude Code сессии идут через ОДИН прокси на `localhost:8099` — обновление кода прокси
+  автоматически подхватывается всеми терминалами, т.к. они используют один эндпоинт.
+- **Рестарт без сброса сессий**: `curl -X POST http://localhost:8099/reload` — in-place
+  execv, PID не меняется, активные запросы не роняются.
+- **Если /reload не сработал**: `~/personal/claude-code-setup/restart-proxy.sh` — graceful
+  убивает и стартует заново.
+- **Что делать при изменении ds-proxy.py**: запустить `restart-proxy.sh`.
+  НЕ убивать kill -9 вручную — это оборвёт активные сессии.
