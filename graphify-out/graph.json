@@ -18,7 +18,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L61",
       "id": "claude_code_setup_ds_proxy_should_use_flash",
-      "community": 11,
+      "community": 7,
       "norm_label": "_should_use_flash()"
     },
     {
@@ -27,7 +27,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L115",
       "id": "claude_code_setup_ds_proxy_log_jsonl",
-      "community": 16,
+      "community": 15,
       "norm_label": "_log_jsonl()"
     },
     {
@@ -36,7 +36,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L137",
       "id": "claude_code_setup_ds_proxy_groq_describe",
-      "community": 34,
+      "community": 35,
       "norm_label": "_groq_describe()"
     },
     {
@@ -45,7 +45,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L161",
       "id": "claude_code_setup_ds_proxy_ocr_describe",
-      "community": 34,
+      "community": 35,
       "norm_label": "_ocr_describe()"
     },
     {
@@ -54,7 +54,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L183",
       "id": "claude_code_setup_ds_proxy_normalize_to_text",
-      "community": 11,
+      "community": 7,
       "norm_label": "_normalize_to_text()"
     },
     {
@@ -63,7 +63,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L206",
       "id": "claude_code_setup_ds_proxy_count_tokens",
-      "community": 11,
+      "community": 7,
       "norm_label": "_count_tokens()"
     },
     {
@@ -72,7 +72,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L217",
       "id": "claude_code_setup_ds_proxy_truncate_messages",
-      "community": 11,
+      "community": 7,
       "norm_label": "_truncate_messages()"
     },
     {
@@ -81,7 +81,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L306",
       "id": "claude_code_setup_ds_proxy_msg_tokens",
-      "community": 11,
+      "community": 7,
       "norm_label": "_msg_tokens()"
     },
     {
@@ -90,7 +90,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L312",
       "id": "claude_code_setup_ds_proxy_describe_image",
-      "community": 34,
+      "community": 35,
       "norm_label": "_describe_image()"
     },
     {
@@ -99,7 +99,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L323",
       "id": "claude_code_setup_ds_proxy_strip_image_blocks",
-      "community": 34,
+      "community": 35,
       "norm_label": "_strip_image_blocks()"
     },
     {
@@ -108,7 +108,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L343",
       "id": "claude_code_setup_ds_proxy_normalize_text",
-      "community": 28,
+      "community": 27,
       "norm_label": "_normalize_text()"
     },
     {
@@ -117,7 +117,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L356",
       "id": "claude_code_setup_ds_proxy_compress_content",
-      "community": 11,
+      "community": 7,
       "norm_label": "_compress_content()"
     },
     {
@@ -126,7 +126,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L417",
       "id": "claude_code_setup_ds_proxy_is_tool_only",
-      "community": 46,
+      "community": 7,
       "norm_label": "_is_tool_only()"
     },
     {
@@ -135,7 +135,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L423",
       "id": "claude_code_setup_ds_proxy_truncate_tool_results",
-      "community": 11,
+      "community": 7,
       "norm_label": "_truncate_tool_results()"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L554",
       "id": "claude_code_setup_ds_proxy_limit_tool_use_blocks",
-      "community": 16,
+      "community": 15,
       "norm_label": "_limit_tool_use_blocks()"
     },
     {
@@ -189,7 +189,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L593",
       "id": "claude_code_setup_ds_proxy_minify_description",
-      "community": 28,
+      "community": 27,
       "norm_label": "_minify_description()"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L619",
       "id": "claude_code_setup_ds_proxy_compact_json_text",
-      "community": 45,
+      "community": 48,
       "norm_label": "_compact_json_text()"
     },
     {
@@ -252,7 +252,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L794",
       "id": "claude_code_setup_ds_proxy_fix_request_cached",
-      "community": 28,
+      "community": 27,
       "norm_label": "_fix_request_cached()"
     },
     {
@@ -270,7 +270,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L897",
       "id": "claude_code_setup_ds_proxy_log_token_usage",
-      "community": 11,
+      "community": 7,
       "norm_label": "_log_token_usage()"
     },
     {
@@ -279,7 +279,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L908",
       "id": "claude_code_setup_ds_proxy_proxyhandler",
-      "community": 16,
+      "community": 15,
       "norm_label": "proxyhandler"
     },
     {
@@ -297,7 +297,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L909",
       "id": "claude_code_setup_ds_proxy_proxyhandler_do_head",
-      "community": 16,
+      "community": 15,
       "norm_label": ".do_head()"
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L914",
       "id": "claude_code_setup_ds_proxy_proxyhandler_do_get",
-      "community": 16,
+      "community": 15,
       "norm_label": ".do_get()"
     },
     {
@@ -315,7 +315,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L917",
       "id": "claude_code_setup_ds_proxy_proxyhandler_do_post",
-      "community": 16,
+      "community": 15,
       "norm_label": ".do_post()"
     },
     {
@@ -324,7 +324,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L923",
       "id": "claude_code_setup_ds_proxy_proxyhandler_do_reload",
-      "community": 16,
+      "community": 15,
       "norm_label": "._do_reload()"
     },
     {
@@ -333,7 +333,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L937",
       "id": "claude_code_setup_ds_proxy_proxyhandler_do_patch",
-      "community": 16,
+      "community": 15,
       "norm_label": ".do_patch()"
     },
     {
@@ -342,7 +342,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L940",
       "id": "claude_code_setup_ds_proxy_proxyhandler_proxy",
-      "community": 16,
+      "community": 15,
       "norm_label": "._proxy()"
     },
     {
@@ -351,7 +351,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L62",
       "id": "claude_code_setup_ds_proxy_rationale_62",
-      "community": 11,
+      "community": 7,
       "norm_label": "\u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u044c: flash (\u0434\u0435\u0448\u0435\u0432\u043e) \u0438\u043b\u0438 pro (\u043f\u043e\u043b\u043d\u043e).      \u0441\u043c\u043e\u0442\u0440\u0438\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f user,"
     },
     {
@@ -360,7 +360,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L116",
       "id": "claude_code_setup_ds_proxy_rationale_116",
-      "community": 16,
+      "community": 15,
       "norm_label": "append one usage record to jsonl (\u0435\u0434\u0438\u043d\u044b\u0438 \u0441 deepseek_api.py)."
     },
     {
@@ -369,7 +369,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L138",
       "id": "claude_code_setup_ds_proxy_rationale_138",
-      "community": 34,
+      "community": 35,
       "norm_label": "describe image via groq vision api."
     },
     {
@@ -378,7 +378,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L162",
       "id": "claude_code_setup_ds_proxy_rationale_162",
-      "community": 34,
+      "community": 35,
       "norm_label": "ocr image via tesseract."
     },
     {
@@ -387,7 +387,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L207",
       "id": "claude_code_setup_ds_proxy_rationale_207",
-      "community": 11,
+      "community": 7,
       "norm_label": "token count via tiktoken cl100k_base (shared by claude & deepseek bpe)."
     },
     {
@@ -396,7 +396,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L218",
       "id": "claude_code_setup_ds_proxy_rationale_218",
-      "community": 11,
+      "community": 7,
       "norm_label": "role-weighted truncation: compress content first, then drop tool-only, then newe"
     },
     {
@@ -405,7 +405,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L313",
       "id": "claude_code_setup_ds_proxy_rationale_313",
-      "community": 34,
+      "community": 35,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder."
     },
     {
@@ -414,7 +414,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L324",
       "id": "claude_code_setup_ds_proxy_rationale_324",
-      "community": 34,
+      "community": 35,
       "norm_label": "recursively replace image/document blocks with text (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_result)."
     },
     {
@@ -423,7 +423,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L344",
       "id": "claude_code_setup_ds_proxy_rationale_344",
-      "community": 28,
+      "community": 27,
       "norm_label": "strip trailing spaces per line + edges. zero-risk \u2014 no content modification beyo"
     },
     {
@@ -432,7 +432,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L357",
       "id": "claude_code_setup_ds_proxy_rationale_357",
-      "community": 11,
+      "community": 7,
       "norm_label": "content-type aware compression. handles: file listings, stack traces, long json,"
     },
     {
@@ -441,7 +441,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L418",
       "id": "claude_code_setup_ds_proxy_rationale_418",
-      "community": 46,
+      "community": 7,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks."
     },
     {
@@ -450,7 +450,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L424",
       "id": "claude_code_setup_ds_proxy_rationale_424",
-      "community": 11,
+      "community": 7,
       "norm_label": "adaptive truncation: compress content first, then token-truncate only if still o"
     },
     {
@@ -495,7 +495,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L555",
       "id": "claude_code_setup_ds_proxy_rationale_555",
-      "community": 16,
+      "community": 15,
       "norm_label": "limit parallel tool_use blocks to max_parallel_tools.     deepseek \u0447\u0430\u0441\u0442\u043e \u0432\u044b\u0434\u0430\u0435\u0442"
     },
     {
@@ -504,7 +504,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L594",
       "id": "claude_code_setup_ds_proxy_rationale_594",
-      "community": 28,
+      "community": 27,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman"
     },
     {
@@ -522,7 +522,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L620",
       "id": "claude_code_setup_ds_proxy_rationale_620",
-      "community": 45,
+      "community": 48,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens."
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L795",
       "id": "claude_code_setup_ds_proxy_rationale_795",
-      "community": 28,
+      "community": 27,
       "norm_label": "cache-aware wrapper: skip recomputation when system/tools unchanged."
     },
     {
@@ -585,7 +585,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L898",
       "id": "claude_code_setup_ds_proxy_rationale_898",
-      "community": 11,
+      "community": 7,
       "norm_label": "log token consumption to stderr (observability, not optimisation)."
     },
     {
@@ -594,7 +594,7 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L924",
       "id": "claude_code_setup_ds_proxy_rationale_924",
-      "community": 16,
+      "community": 15,
       "norm_label": "graceful in-place restart: exec self with same args. no sessions dropped."
     },
     {
@@ -891,7 +891,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2",
       "id": "deepseek_agent_agent_api_call_with_tools_stream",
-      "community": 17,
+      "community": 8,
       "norm_label": "_api_call_with_tools_stream()"
     },
     {
@@ -900,7 +900,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L306",
       "id": "deepseek_agent_agent_pending_key",
-      "community": 21,
+      "community": 25,
       "norm_label": "_pending_key()"
     },
     {
@@ -918,7 +918,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L878",
       "id": "deepseek_agent_agent_path_from_params",
-      "community": 21,
+      "community": 25,
       "norm_label": "_path_from_params()"
     },
     {
@@ -927,7 +927,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L891",
       "id": "deepseek_agent_agent_tool_read_file",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_read_file()"
     },
     {
@@ -936,7 +936,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L911",
       "id": "deepseek_agent_agent_tool_write_file",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_write_file()"
     },
     {
@@ -945,7 +945,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L938",
       "id": "deepseek_agent_agent_tool_edit_file",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_edit_file()"
     },
     {
@@ -954,7 +954,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L972",
       "id": "deepseek_agent_agent_tool_ls_dir",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_ls_dir()"
     },
     {
@@ -963,7 +963,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L991",
       "id": "deepseek_agent_agent_tool_grep_files",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_grep_files()"
     },
     {
@@ -972,7 +972,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1012",
       "id": "deepseek_agent_agent_tool_glob_files",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_glob_files()"
     },
     {
@@ -981,7 +981,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1025",
       "id": "deepseek_agent_agent_tool_bash",
-      "community": 21,
+      "community": 25,
       "norm_label": "tool_bash()"
     },
     {
@@ -990,7 +990,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1066",
       "id": "deepseek_agent_agent_tool_git_status",
-      "community": 21,
+      "community": 17,
       "norm_label": "tool_git_status()"
     },
     {
@@ -999,7 +999,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1080",
       "id": "deepseek_agent_agent_tool_git_diff",
-      "community": 21,
+      "community": 17,
       "norm_label": "tool_git_diff()"
     },
     {
@@ -1008,7 +1008,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1095",
       "id": "deepseek_agent_agent_tool_git_log",
-      "community": 21,
+      "community": 17,
       "norm_label": "tool_git_log()"
     },
     {
@@ -1089,7 +1089,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1262",
       "id": "deepseek_agent_agent_memory_save",
-      "community": 38,
+      "community": 40,
       "norm_label": "_memory_save()"
     },
     {
@@ -1098,7 +1098,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1269",
       "id": "deepseek_agent_agent_tool_memory_set",
-      "community": 38,
+      "community": 40,
       "norm_label": "tool_memory_set()"
     },
     {
@@ -1125,7 +1125,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1289",
       "id": "deepseek_agent_agent_tool_memory_delete",
-      "community": 38,
+      "community": 40,
       "norm_label": "tool_memory_delete()"
     },
     {
@@ -1152,7 +1152,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1345",
       "id": "deepseek_agent_agent_classify_task",
-      "community": 14,
+      "community": 8,
       "norm_label": "_classify_task()"
     },
     {
@@ -1161,7 +1161,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1370",
       "id": "deepseek_agent_agent_auto_route",
-      "community": 14,
+      "community": 8,
       "norm_label": "_auto_route()"
     },
     {
@@ -1269,7 +1269,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1578",
       "id": "deepseek_agent_agent_auto_memory_extract",
-      "community": 38,
+      "community": 40,
       "norm_label": "_auto_memory_extract()"
     },
     {
@@ -1278,7 +1278,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1618",
       "id": "deepseek_agent_agent_build_auto_prompt",
-      "community": 14,
+      "community": 8,
       "norm_label": "_build_auto_prompt()"
     },
     {
@@ -1359,7 +1359,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1810",
       "id": "deepseek_agent_agent_tool_web_search",
-      "community": 50,
+      "community": 0,
       "norm_label": "tool_web_search()"
     },
     {
@@ -1368,7 +1368,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1891",
       "id": "deepseek_agent_agent_filter_domains",
-      "community": 50,
+      "community": 0,
       "norm_label": "_filter_domains()"
     },
     {
@@ -1377,7 +1377,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1905",
       "id": "deepseek_agent_agent_tool_bg_task_start",
-      "community": 14,
+      "community": 8,
       "norm_label": "tool_bg_task_start()"
     },
     {
@@ -1386,7 +1386,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1917",
       "id": "deepseek_agent_agent_tool_bg_task_status",
-      "community": 53,
+      "community": 0,
       "norm_label": "tool_bg_task_status()"
     },
     {
@@ -1395,7 +1395,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1927",
       "id": "deepseek_agent_agent_tool_bg_task_list",
-      "community": 55,
+      "community": 52,
       "norm_label": "tool_bg_task_list()"
     },
     {
@@ -1404,7 +1404,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1942",
       "id": "deepseek_agent_agent_create_api_key",
-      "community": 22,
+      "community": 19,
       "norm_label": "_create_api_key()"
     },
     {
@@ -1413,7 +1413,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1957",
       "id": "deepseek_agent_agent_revoke_api_key",
-      "community": 22,
+      "community": 19,
       "norm_label": "_revoke_api_key()"
     },
     {
@@ -1422,7 +1422,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1967",
       "id": "deepseek_agent_agent_list_api_keys",
-      "community": 22,
+      "community": 19,
       "norm_label": "_list_api_keys()"
     },
     {
@@ -1431,7 +1431,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2035",
       "id": "deepseek_agent_agent_filter_tools",
-      "community": 14,
+      "community": 8,
       "norm_label": "_filter_tools()"
     },
     {
@@ -1440,7 +1440,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2051",
       "id": "deepseek_agent_agent_track_budget",
-      "community": 14,
+      "community": 8,
       "norm_label": "_track_budget()"
     },
     {
@@ -1449,7 +1449,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2072",
       "id": "deepseek_agent_agent_check_budget",
-      "community": 14,
+      "community": 8,
       "norm_label": "_check_budget()"
     },
     {
@@ -1458,7 +1458,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2083",
       "id": "deepseek_agent_agent_safe_run_hooks",
-      "community": 21,
+      "community": 25,
       "norm_label": "_safe_run_hooks()"
     },
     {
@@ -1467,7 +1467,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2091",
       "id": "deepseek_agent_agent_tool_mcp",
-      "community": 0,
+      "community": 53,
       "norm_label": "tool_mcp()"
     },
     {
@@ -1476,7 +1476,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2173",
       "id": "deepseek_agent_agent_api_call_with_tools",
-      "community": 14,
+      "community": 8,
       "norm_label": "_api_call_with_tools()"
     },
     {
@@ -1485,7 +1485,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2282",
       "id": "deepseek_agent_agent_handle_chat",
-      "community": 14,
+      "community": 8,
       "norm_label": "handle_chat()"
     },
     {
@@ -1494,7 +1494,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2473",
       "id": "deepseek_agent_agent_handle_chat_stream",
-      "community": 17,
+      "community": 8,
       "norm_label": "handle_chat_stream()"
     },
     {
@@ -1656,7 +1656,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3204",
       "id": "deepseek_agent_agent_load_api_keys",
-      "community": 22,
+      "community": 19,
       "norm_label": "_load_api_keys()"
     },
     {
@@ -1665,7 +1665,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3213",
       "id": "deepseek_agent_agent_save_api_keys",
-      "community": 22,
+      "community": 19,
       "norm_label": "_save_api_keys()"
     },
     {
@@ -1674,7 +1674,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3219",
       "id": "deepseek_agent_agent_generate_api_key",
-      "community": 22,
+      "community": 19,
       "norm_label": "_generate_api_key()"
     },
     {
@@ -1683,7 +1683,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3223",
       "id": "deepseek_agent_agent_seed_admin_key",
-      "community": 22,
+      "community": 19,
       "norm_label": "_seed_admin_key()"
     },
     {
@@ -1719,7 +1719,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3",
       "id": "deepseek_agent_agent_rationale_3",
-      "community": 17,
+      "community": 8,
       "norm_label": "streaming call with tool support."
     },
     {
@@ -1728,7 +1728,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L307",
       "id": "deepseek_agent_agent_rationale_307",
-      "community": 21,
+      "community": 25,
       "norm_label": "hash-based key to identify a pending dangerous operation."
     },
     {
@@ -1746,7 +1746,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1346",
       "id": "deepseek_agent_agent_rationale_1346",
-      "community": 14,
+      "community": 8,
       "norm_label": "classify user message into task type. returns (category, confidence, reason)."
     },
     {
@@ -1755,7 +1755,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1371",
       "id": "deepseek_agent_agent_rationale_1371",
-      "community": 14,
+      "community": 8,
       "norm_label": "if message matches a task profile, spawn sub-agent. returns (routed, result_dict"
     },
     {
@@ -1764,7 +1764,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1579",
       "id": "deepseek_agent_agent_rationale_1579",
-      "community": 38,
+      "community": 40,
       "norm_label": "extract key facts from an assistant response and auto-save to memory.     extrac"
     },
     {
@@ -1773,7 +1773,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1619",
       "id": "deepseek_agent_agent_rationale_1619",
-      "community": 14,
+      "community": 8,
       "norm_label": "build system prompt section with auto-memory instructions and current memory con"
     },
     {
@@ -1791,7 +1791,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1892",
       "id": "deepseek_agent_agent_rationale_1892",
-      "community": 50,
+      "community": 0,
       "norm_label": "filter results by allowed/blocked domains."
     },
     {
@@ -1800,7 +1800,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1906",
       "id": "deepseek_agent_agent_rationale_1906",
-      "community": 14,
+      "community": 8,
       "norm_label": "start a background chat task. returns immediately with task_id."
     },
     {
@@ -1809,7 +1809,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1918",
       "id": "deepseek_agent_agent_rationale_1918",
-      "community": 53,
+      "community": 0,
       "norm_label": "get status and result of a background task."
     },
     {
@@ -1818,7 +1818,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1928",
       "id": "deepseek_agent_agent_rationale_1928",
-      "community": 55,
+      "community": 52,
       "norm_label": "list background tasks, optionally filtered by status."
     },
     {
@@ -1827,7 +1827,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1943",
       "id": "deepseek_agent_agent_rationale_1943",
-      "community": 22,
+      "community": 19,
       "norm_label": "create a new api key. requires existing admin key."
     },
     {
@@ -1836,7 +1836,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1958",
       "id": "deepseek_agent_agent_rationale_1958",
-      "community": 22,
+      "community": 19,
       "norm_label": "revoke an api key by its value."
     },
     {
@@ -1845,7 +1845,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1968",
       "id": "deepseek_agent_agent_rationale_1968",
-      "community": 22,
+      "community": 19,
       "norm_label": "list all api keys (without the secret values)."
     },
     {
@@ -1854,7 +1854,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2036",
       "id": "deepseek_agent_agent_rationale_2036",
-      "community": 14,
+      "community": 8,
       "norm_label": "filter tool definitions by allow/block lists. both are lists of names.     retur"
     },
     {
@@ -1863,7 +1863,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2073",
       "id": "deepseek_agent_agent_rationale_2073",
-      "community": 14,
+      "community": 8,
       "norm_label": "return none if within budget, or error dict if exceeded."
     },
     {
@@ -1872,7 +1872,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2092",
       "id": "deepseek_agent_agent_rationale_2092",
-      "community": 0,
+      "community": 53,
       "norm_label": "dispatch to mcp server. handles both prefixed (mcp__<server>__<tool>)     and un"
     },
     {
@@ -1881,7 +1881,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2174",
       "id": "deepseek_agent_agent_rationale_2174",
-      "community": 14,
+      "community": 8,
       "norm_label": "call deepseek api with tool calling support. returns full message object."
     },
     {
@@ -1890,7 +1890,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2283",
       "id": "deepseek_agent_agent_rationale_2283",
-      "community": 14,
+      "community": 8,
       "norm_label": "multi-turn chat with tool calling loop."
     },
     {
@@ -1899,7 +1899,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2474",
       "id": "deepseek_agent_agent_rationale_2474",
-      "community": 17,
+      "community": 8,
       "norm_label": "streaming chat with sse events."
     },
     {
@@ -1926,7 +1926,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3205",
       "id": "deepseek_agent_agent_rationale_3205",
-      "community": 22,
+      "community": 19,
       "norm_label": "load api keys from json file. returns dict of key -> info."
     },
     {
@@ -1935,7 +1935,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3214",
       "id": "deepseek_agent_agent_rationale_3214",
-      "community": 22,
+      "community": 19,
       "norm_label": "save api keys to json file."
     },
     {
@@ -1944,7 +1944,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3220",
       "id": "deepseek_agent_agent_rationale_3220",
-      "community": 22,
+      "community": 19,
       "norm_label": "generate a secure random api key."
     },
     {
@@ -1953,7 +1953,7 @@
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3224",
       "id": "deepseek_agent_agent_rationale_3224",
-      "community": 22,
+      "community": 19,
       "norm_label": "create initial admin key if none exist. print to stdout."
     },
     {
@@ -1980,7 +1980,7 @@
       "source_file": "claude-code-setup/patches/fix_agent_gap_2.py",
       "source_location": "L1",
       "id": "claude_code_setup_patches_fix_agent_gap_2_py",
-      "community": 56,
+      "community": 55,
       "norm_label": "fix_agent_gap_2.py"
     },
     {
@@ -1989,7 +1989,7 @@
       "source_file": "claude-code-setup/patches/fix_6b.py",
       "source_location": "L1",
       "id": "claude_code_setup_patches_fix_6b_py",
-      "community": 57,
+      "community": 56,
       "norm_label": "fix_6b.py"
     },
     {
@@ -1998,7 +1998,7 @@
       "source_file": "claude-code-setup/patches/fix_agent_gap.py",
       "source_location": "L1",
       "id": "claude_code_setup_patches_fix_agent_gap_py",
-      "community": 51,
+      "community": 49,
       "norm_label": "fix_agent_gap.py"
     },
     {
@@ -2007,7 +2007,7 @@
       "source_file": "claude-code-setup/patches/fix_agent_gap.py",
       "source_location": "L17",
       "id": "patches_fix_agent_gap_patch_agent",
-      "community": 51,
+      "community": 49,
       "norm_label": "patch_agent()"
     },
     {
@@ -2016,7 +2016,7 @@
       "source_file": "claude-code-setup/patches/tier51_auth.py",
       "source_location": "L1",
       "id": "claude_code_setup_patches_tier51_auth_py",
-      "community": 58,
+      "community": 57,
       "norm_label": "tier51_auth.py"
     },
     {
@@ -2025,7 +2025,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L1",
       "id": "claude_code_setup_deepseek_deepseek_api_py",
-      "community": 13,
+      "community": 29,
       "norm_label": "deepseek_api.py"
     },
     {
@@ -2079,7 +2079,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L109",
       "id": "deepseek_deepseek_api_usagelogger",
-      "community": 35,
+      "community": 37,
       "norm_label": "usagelogger"
     },
     {
@@ -2088,7 +2088,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L113",
       "id": "deepseek_deepseek_api_usagelogger_init",
-      "community": 35,
+      "community": 37,
       "norm_label": ".__init__()"
     },
     {
@@ -2097,7 +2097,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L117",
       "id": "deepseek_deepseek_api_usagelogger_ensure_dir",
-      "community": 35,
+      "community": 37,
       "norm_label": "._ensure_dir()"
     },
     {
@@ -2115,7 +2115,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L142",
       "id": "deepseek_deepseek_api_usagelogger_summary",
-      "community": 35,
+      "community": 37,
       "norm_label": ".summary()"
     },
     {
@@ -2124,7 +2124,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L185",
       "id": "deepseek_deepseek_api_resolve_max_tokens",
-      "community": 36,
+      "community": 29,
       "norm_label": "_resolve_max_tokens()"
     },
     {
@@ -2142,7 +2142,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L281",
       "id": "deepseek_deepseek_api_api_key",
-      "community": 36,
+      "community": 29,
       "norm_label": "_api_key()"
     },
     {
@@ -2160,7 +2160,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L323",
       "id": "deepseek_deepseek_api_api_call",
-      "community": 36,
+      "community": 29,
       "norm_label": "_api_call()"
     },
     {
@@ -2187,7 +2187,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L531",
       "id": "deepseek_deepseek_api_get_usage_summary",
-      "community": 35,
+      "community": 37,
       "norm_label": "get_usage_summary()"
     },
     {
@@ -2196,7 +2196,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L541",
       "id": "deepseek_deepseek_api_reroute_score",
-      "community": 13,
+      "community": 39,
       "norm_label": "_reroute_score()"
     },
     {
@@ -2205,7 +2205,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L563",
       "id": "deepseek_deepseek_api_model_key",
-      "community": 13,
+      "community": 39,
       "norm_label": "_model_key()"
     },
     {
@@ -2214,7 +2214,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L580",
       "id": "deepseek_deepseek_api_audit_usage",
-      "community": 13,
+      "community": 39,
       "norm_label": "audit_usage()"
     },
     {
@@ -2223,7 +2223,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L681",
       "id": "deepseek_deepseek_api_run_audit",
-      "community": 13,
+      "community": 30,
       "norm_label": "run_audit()"
     },
     {
@@ -2232,7 +2232,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L738",
       "id": "deepseek_deepseek_api_walk_plugin_versions",
-      "community": 13,
+      "community": 30,
       "norm_label": "_walk_plugin_versions()"
     },
     {
@@ -2241,7 +2241,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L777",
       "id": "deepseek_deepseek_api_audit_plugins",
-      "community": 13,
+      "community": 30,
       "norm_label": "audit_plugins()"
     },
     {
@@ -2250,7 +2250,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L854",
       "id": "deepseek_deepseek_api_run_audit_plugins",
-      "community": 13,
+      "community": 30,
       "norm_label": "run_audit_plugins()"
     },
     {
@@ -2259,7 +2259,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L889",
       "id": "deepseek_deepseek_api_run_optimize",
-      "community": 13,
+      "community": 30,
       "norm_label": "run_optimize()"
     },
     {
@@ -2268,7 +2268,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L896",
       "id": "deepseek_deepseek_api_list_models",
-      "community": 36,
+      "community": 29,
       "norm_label": "list_models()"
     },
     {
@@ -2277,7 +2277,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L1",
       "id": "deepseek_deepseek_api_rationale_1",
-      "community": 13,
+      "community": 29,
       "norm_label": "deepseek api \u2014 \u043f\u0440\u044f\u043c\u043e\u0438 \u0434\u043e\u0441\u0442\u0443\u043f \u043a deepseek v4 \u0431\u0435\u0437 claude code.  \u0441 \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0430\u0446\u0438\u0435\u0438 \u0442\u043e\u043a\u0435"
     },
     {
@@ -2331,7 +2331,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L110",
       "id": "deepseek_deepseek_api_rationale_110",
-      "community": 35,
+      "community": 37,
       "norm_label": "\u043b\u043e\u0433\u0438\u0440\u0443\u0435\u0442 \u043a\u0430\u0436\u0434\u044b\u0438 api-\u0432\u044b\u0437\u043e\u0432 \u0432 jsonl-\u0444\u0430\u0438\u043b.     \u0444\u0430\u0438\u043b: ~/.local/var/deepseek-usage.js"
     },
     {
@@ -2340,7 +2340,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L143",
       "id": "deepseek_deepseek_api_rationale_143",
-      "community": 35,
+      "community": 37,
       "norm_label": "\u0438\u0442\u043e\u0433\u0438 \u0437\u0430 \u0432\u0441\u0435 \u0432\u0440\u0435\u043c\u044f \u0438\u0437 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0435\u0433\u043e \u043b\u043e\u0433\u0430."
     },
     {
@@ -2349,7 +2349,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L186",
       "id": "deepseek_deepseek_api_rationale_186",
-      "community": 36,
+      "community": 29,
       "norm_label": "\u043d\u0435 \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0442\u043e\u043a\u0435\u043d\u043e\u0432, \u0447\u0435\u043c \u0432\u043b\u0435\u0437\u0435\u0442 \u0432 \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442 64k.     \u043f\u0440\u0438\u043c\u0435\u0440: \u043f\u0440\u043e\u043c\u043f\u0442 50k"
     },
     {
@@ -2376,7 +2376,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L325",
       "id": "deepseek_deepseek_api_rationale_325",
-      "community": 36,
+      "community": 29,
       "norm_label": "\u043d\u0438\u0437\u043a\u043e\u0443\u0440\u043e\u0432\u043d\u0435\u0432\u044b\u0438 \u0432\u044b\u0437\u043e\u0432 deepseek chat api.      \u043e\u0442\u043b\u0438\u0447\u0438\u044f \u043e\u0442 \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u0438 \u0432\u0435\u0440\u0441\u0438\u0438:     - d"
     },
     {
@@ -2403,7 +2403,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L532",
       "id": "deepseek_deepseek_api_rationale_532",
-      "community": 35,
+      "community": 37,
       "norm_label": "\u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0440\u0430\u0441\u0445\u043e\u0434\u0443 \u0438\u0437 jsonl-\u043b\u043e\u0433\u0430."
     },
     {
@@ -2412,7 +2412,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L542",
       "id": "deepseek_deepseek_api_rationale_542",
-      "community": 13,
+      "community": 39,
       "norm_label": "\u043e\u0446\u0435\u043d\u043a\u0430: \u043a\u0430\u043a\u043e\u0438 \u0431\u044b \u0441\u043a\u043e\u0440 \u0434\u0430\u043b\u0430 _select_model \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u0430.     \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0434\u043b\u044f"
     },
     {
@@ -2421,7 +2421,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L564",
       "id": "deepseek_deepseek_api_rationale_564",
-      "community": 13,
+      "community": 39,
       "norm_label": "normalize 'auto' \u2192 resolved model, otherwise as-is."
     },
     {
@@ -2430,7 +2430,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L581",
       "id": "deepseek_deepseek_api_rationale_581",
-      "community": 13,
+      "community": 39,
       "norm_label": "\u0430\u043d\u0430\u043b\u0438\u0437 \u043b\u043e\u0433\u0430: \u043f\u043e\u0438\u0441\u043a misrouting, waste, \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u0438.      returns:         dict \u0441"
     },
     {
@@ -2439,7 +2439,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L682",
       "id": "deepseek_deepseek_api_rationale_682",
-      "community": 13,
+      "community": 30,
       "norm_label": "pretty-print audit report."
     },
     {
@@ -2448,7 +2448,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L739",
       "id": "deepseek_deepseek_api_rationale_739",
-      "community": 13,
+      "community": 30,
       "norm_label": "scan plugin cache: \u0432\u0435\u0440\u0441\u0438\u044f + \u0440\u0430\u0437\u043c\u0435\u0440 + \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u044b\u0435 \u043a\u043e\u043f\u0438\u0438."
     },
     {
@@ -2457,7 +2457,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L778",
       "id": "deepseek_deepseek_api_rationale_778",
-      "community": 13,
+      "community": 30,
       "norm_label": "\u0430\u043d\u0430\u043b\u0438\u0437 \u043f\u043b\u0430\u0433\u0438\u043d\u043e\u0432: \u0434\u0443\u0431\u043b\u0438\u043a\u0430\u0442\u044b, \u0440\u0430\u0437\u043c\u0435\u0440\u044b, \u043e\u0446\u0435\u043d\u043a\u0430 mcp \u0442\u043e\u043a\u0435\u043d\u043e\u0432.      returns:         {"
     },
     {
@@ -2466,7 +2466,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L855",
       "id": "deepseek_deepseek_api_rationale_855",
-      "community": 13,
+      "community": 30,
       "norm_label": "pretty-print plugin audit."
     },
     {
@@ -2475,7 +2475,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L890",
       "id": "deepseek_deepseek_api_rationale_890",
-      "community": 13,
+      "community": 30,
       "norm_label": "\u043f\u043e\u043b\u043d\u0430\u044f \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0430\u0446\u0438\u044f: deepseek audit + plugin audit."
     },
     {
@@ -2484,7 +2484,7 @@
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L897",
       "id": "deepseek_deepseek_api_rationale_897",
-      "community": 36,
+      "community": 29,
       "norm_label": "\u0441\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u043c\u043e\u0434\u0435\u043b\u0435\u0438."
     },
     {
@@ -2646,7 +2646,7 @@
       "source_file": "backlinks/parse_rankd_table.py",
       "source_location": "L1",
       "id": "backlinks_parse_rankd_table_py",
-      "community": 39,
+      "community": 41,
       "norm_label": "parse_rankd_table.py"
     },
     {
@@ -2655,7 +2655,7 @@
       "source_file": "backlinks/parse_rankd_table.py",
       "source_location": "L11",
       "id": "backlinks_parse_rankd_table_parse_table",
-      "community": 39,
+      "community": 41,
       "norm_label": "parse_table()"
     },
     {
@@ -2664,7 +2664,7 @@
       "source_file": "backlinks/parse_rankd_table.py",
       "source_location": "L63",
       "id": "backlinks_parse_rankd_table_main",
-      "community": 39,
+      "community": 41,
       "norm_label": "main()"
     },
     {
@@ -2673,7 +2673,7 @@
       "source_file": "backlinks/config.py",
       "source_location": "L1",
       "id": "backlinks_config_py",
-      "community": 52,
+      "community": 50,
       "norm_label": "config.py"
     },
     {
@@ -2682,7 +2682,7 @@
       "source_file": "backlinks/config.py",
       "source_location": "L1",
       "id": "backlinks_config_rationale_1",
-      "community": 52,
+      "community": 50,
       "norm_label": "backlink bot \u2014 \u043c\u0443\u043b\u044c\u0442\u0438-\u0441\u0430\u0438\u0442\u043e\u0432\u0430\u044f \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044f \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0434\u043e\u043c\u0435\u043d\u043e\u0432. \u0432\u044b\u0431\u043e"
     },
     {
@@ -2952,7 +2952,7 @@
       "source_file": "backlinks/sites/disqus.py",
       "source_location": "L1",
       "id": "backlinks_sites_disqus_py",
-      "community": 40,
+      "community": 42,
       "norm_label": "disqus.py"
     },
     {
@@ -2961,7 +2961,7 @@
       "source_file": "backlinks/sites/disqus.py",
       "source_location": "L13",
       "id": "sites_disqus_run",
-      "community": 40,
+      "community": 42,
       "norm_label": "run()"
     },
     {
@@ -2970,7 +2970,7 @@
       "source_file": "backlinks/sites/disqus.py",
       "source_location": "L1",
       "id": "sites_disqus_rationale_1",
-      "community": 40,
+      "community": 42,
       "norm_label": "disqus \u2014 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0441 \u0441\u0441\u044b\u043b\u043a\u043e\u0438 \u043d\u0430 \u0441\u0430\u0438\u0442 da: 93, do-follow: no (\u043d\u043e \u0432\u044b\u0441\u043e\u043a\u0438\u0438 \u0430\u0432\u0442\u043e\u0440\u0438\u0442\u0435\u0442 \u0434"
     },
     {
@@ -2979,7 +2979,7 @@
       "source_file": "backlinks/sites/about_me.py",
       "source_location": "L1",
       "id": "backlinks_sites_about_me_py",
-      "community": 41,
+      "community": 43,
       "norm_label": "about_me.py"
     },
     {
@@ -2988,7 +2988,7 @@
       "source_file": "backlinks/sites/about_me.py",
       "source_location": "L13",
       "id": "sites_about_me_run",
-      "community": 41,
+      "community": 43,
       "norm_label": "run()"
     },
     {
@@ -2997,7 +2997,7 @@
       "source_file": "backlinks/sites/about_me.py",
       "source_location": "L1",
       "id": "sites_about_me_rationale_1",
-      "community": 41,
+      "community": 43,
       "norm_label": "about.me \u2014 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0441 \u0441\u0441\u044b\u043b\u043a\u043e\u0438 \u043d\u0430 \u0441\u0430\u0438\u0442 da: 71, do-follow: yes"
     },
     {
@@ -3006,7 +3006,7 @@
       "source_file": "backlinks/sites/quora.py",
       "source_location": "L1",
       "id": "backlinks_sites_quora_py",
-      "community": 42,
+      "community": 44,
       "norm_label": "quora.py"
     },
     {
@@ -3015,7 +3015,7 @@
       "source_file": "backlinks/sites/quora.py",
       "source_location": "L13",
       "id": "sites_quora_run",
-      "community": 42,
+      "community": 44,
       "norm_label": "run()"
     },
     {
@@ -3024,7 +3024,7 @@
       "source_file": "backlinks/sites/quora.py",
       "source_location": "L1",
       "id": "sites_quora_rationale_1",
-      "community": 42,
+      "community": 44,
       "norm_label": "quora \u2014 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0441 \u0441\u0441\u044b\u043b\u043a\u043e\u0438 \u043d\u0430 \u0441\u0430\u0438\u0442 da: 93, do-follow: yes (\u0441\u0441\u044b\u043b\u043a\u0438 \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u2014 do-"
     },
     {
@@ -3033,7 +3033,7 @@
       "source_file": "backlinks/sites/diigo.py",
       "source_location": "L1",
       "id": "backlinks_sites_diigo_py",
-      "community": 43,
+      "community": 45,
       "norm_label": "diigo.py"
     },
     {
@@ -3042,7 +3042,7 @@
       "source_file": "backlinks/sites/diigo.py",
       "source_location": "L20",
       "id": "sites_diigo_run",
-      "community": 43,
+      "community": 45,
       "norm_label": "run()"
     },
     {
@@ -3051,7 +3051,7 @@
       "source_file": "backlinks/sites/diigo.py",
       "source_location": "L1",
       "id": "sites_diigo_rationale_1",
-      "community": 43,
+      "community": 45,
       "norm_label": "diigo \u2014 \u0441\u043e\u0446\u0438\u0430\u043b\u044c\u043d\u0430\u044f \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430 + \u043f\u0440\u043e\u0444\u0438\u043b\u044c da: 70, do-follow: yes (\u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0438 \u0438\u043d\u0434\u0435\u043a\u0441\u0438\u0440\u0443"
     },
     {
@@ -3060,7 +3060,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L1",
       "id": "backlinks_sites_neocities_py",
-      "community": 25,
+      "community": 24,
       "norm_label": "neocities.py"
     },
     {
@@ -3069,7 +3069,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L17",
       "id": "sites_neocities_register",
-      "community": 25,
+      "community": 24,
       "norm_label": "register()"
     },
     {
@@ -3078,7 +3078,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L36",
       "id": "sites_neocities_upload_page",
-      "community": 25,
+      "community": 24,
       "norm_label": "upload_page()"
     },
     {
@@ -3087,7 +3087,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L79",
       "id": "sites_neocities_run",
-      "community": 25,
+      "community": 24,
       "norm_label": "run()"
     },
     {
@@ -3096,7 +3096,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L1",
       "id": "sites_neocities_rationale_1",
-      "community": 25,
+      "community": 24,
       "norm_label": "neocities \u2014 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f + \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0441\u0442\u0430\u0442\u044c\u0438 \u0447\u0435\u0440\u0435\u0437 api da: 83, do-follow: yes, \u0444\u0430\u0437\u0430"
     },
     {
@@ -3105,7 +3105,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L18",
       "id": "sites_neocities_rationale_18",
-      "community": 25,
+      "community": 24,
       "norm_label": "\u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0430\u043a\u043a\u0430\u0443\u043d\u0442 \u0447\u0435\u0440\u0435\u0437 \u0431\u0440\u0430\u0443\u0437\u0435\u0440."
     },
     {
@@ -3114,7 +3114,7 @@
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L37",
       "id": "sites_neocities_rationale_37",
-      "community": 25,
+      "community": 24,
       "norm_label": "\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c html \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443 \u0447\u0435\u0440\u0435\u0437 api."
     },
     {
@@ -3123,7 +3123,7 @@
       "source_file": "backlinks/sites/folkd.py",
       "source_location": "L1",
       "id": "backlinks_sites_folkd_py",
-      "community": 44,
+      "community": 46,
       "norm_label": "folkd.py"
     },
     {
@@ -3132,7 +3132,7 @@
       "source_file": "backlinks/sites/folkd.py",
       "source_location": "L20",
       "id": "sites_folkd_run",
-      "community": 44,
+      "community": 46,
       "norm_label": "run()"
     },
     {
@@ -3141,7 +3141,7 @@
       "source_file": "backlinks/sites/folkd.py",
       "source_location": "L1",
       "id": "sites_folkd_rationale_1",
-      "community": 44,
+      "community": 46,
       "norm_label": "folkd.com \u2014 \u0441\u043e\u0446\u0438\u0430\u043b\u044c\u043d\u0430\u044f \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430 (bookmark) da: 60, do-follow: yes"
     },
     {
@@ -3150,7 +3150,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L1",
       "id": "backlinks_sites_telegra_ph_py",
-      "community": 20,
+      "community": 18,
       "norm_label": "telegra_ph.py"
     },
     {
@@ -3159,7 +3159,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L23",
       "id": "sites_telegra_ph_api_post",
-      "community": 20,
+      "community": 18,
       "norm_label": "api_post()"
     },
     {
@@ -3168,7 +3168,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L35",
       "id": "sites_telegra_ph_create_account",
-      "community": 20,
+      "community": 18,
       "norm_label": "create_account()"
     },
     {
@@ -3177,7 +3177,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L47",
       "id": "sites_telegra_ph_publish_article",
-      "community": 20,
+      "community": 18,
       "norm_label": "publish_article()"
     },
     {
@@ -3186,7 +3186,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L105",
       "id": "sites_telegra_ph_run",
-      "community": 20,
+      "community": 18,
       "norm_label": "run()"
     },
     {
@@ -3195,7 +3195,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L1",
       "id": "sites_telegra_ph_rationale_1",
-      "community": 20,
+      "community": 18,
       "norm_label": "telegra.ph \u2014 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0441\u0442\u0430\u0442\u044c\u0438 \u0431\u0435\u0437 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 da: 81, do-follow: yes, \u0444\u0430\u0437\u0430 2"
     },
     {
@@ -3204,7 +3204,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L36",
       "id": "sites_telegra_ph_rationale_36",
-      "community": 20,
+      "community": 18,
       "norm_label": "\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0430\u043d\u043e\u043d\u0438\u043c\u043d\u044b\u0438 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 telegraph."
     },
     {
@@ -3213,7 +3213,7 @@
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L48",
       "id": "sites_telegra_ph_rationale_48",
-      "community": 20,
+      "community": 18,
       "norm_label": "\u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u0442\u044c \u0441\u0442\u0430\u0442\u044c\u044e \u0438\u0437 \u0444\u0430\u0438\u043b\u0430, \u0432\u0435\u0440\u043d\u0443\u0442\u044c url."
     },
     {
@@ -3222,7 +3222,7 @@
       "source_file": "backlinks/sites/wikidot.py",
       "source_location": "L1",
       "id": "backlinks_sites_wikidot_py",
-      "community": 23,
+      "community": 22,
       "norm_label": "wikidot.py"
     },
     {
@@ -3231,7 +3231,7 @@
       "source_file": "backlinks/sites/wikidot.py",
       "source_location": "L16",
       "id": "sites_wikidot_run",
-      "community": 23,
+      "community": 22,
       "norm_label": "run()"
     },
     {
@@ -3240,7 +3240,7 @@
       "source_file": "backlinks/sites/wikidot.py",
       "source_location": "L1",
       "id": "sites_wikidot_rationale_1",
-      "community": 23,
+      "community": 22,
       "norm_label": "wikidot \u2014 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f + \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435 wiki-\u0441\u0430\u0438\u0442\u0430 \u0441\u043e \u0441\u0442\u0430\u0442\u044c\u0435\u0438 da: 83, do-follow: yes, \u0444"
     },
     {
@@ -3248,7 +3248,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L416",
-      "community": 46,
+      "community": 7,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "claude_code_setup_ds_proxy_rationale_416"
     },
@@ -3257,7 +3257,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L422",
-      "community": 11,
+      "community": 7,
       "norm_label": "adaptive truncation: only when total budget exceeded, never below tool_result_ma",
       "id": "claude_code_setup_ds_proxy_rationale_422"
     },
@@ -3302,7 +3302,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L525",
-      "community": 16,
+      "community": 15,
       "norm_label": "limit parallel tool_use blocks to max_parallel_tools.     deepseek \u0447\u0430\u0441\u0442\u043e \u0432\u044b\u0434\u0430\u0435\u0442",
       "id": "claude_code_setup_ds_proxy_rationale_525"
     },
@@ -3311,7 +3311,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L564",
-      "community": 28,
+      "community": 27,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman",
       "id": "claude_code_setup_ds_proxy_rationale_564"
     },
@@ -3329,7 +3329,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L590",
-      "community": 45,
+      "community": 48,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "claude_code_setup_ds_proxy_rationale_590"
     },
@@ -3356,7 +3356,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L630",
-      "community": 28,
+      "community": 27,
       "norm_label": "cache-aware wrapper: skip recomputation when system/tools unchanged.",
       "id": "claude_code_setup_ds_proxy_rationale_630"
     },
@@ -3374,7 +3374,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L730",
-      "community": 11,
+      "community": 7,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "claude_code_setup_ds_proxy_rationale_730"
     },
@@ -3383,7 +3383,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L756",
-      "community": 16,
+      "community": 15,
       "norm_label": "graceful in-place restart: exec self with same args. no sessions dropped.",
       "id": "claude_code_setup_ds_proxy_rationale_756"
     },
@@ -3392,7 +3392,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L397",
-      "community": 46,
+      "community": 7,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "claude_code_setup_ds_proxy_rationale_397"
     },
@@ -3401,7 +3401,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L403",
-      "community": 11,
+      "community": 7,
       "norm_label": "adaptive truncation: only when total budget exceeded, never below tool_result_ma",
       "id": "claude_code_setup_ds_proxy_rationale_403"
     },
@@ -3446,7 +3446,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L506",
-      "community": 16,
+      "community": 15,
       "norm_label": "limit parallel tool_use blocks to max_parallel_tools.     deepseek \u0447\u0430\u0441\u0442\u043e \u0432\u044b\u0434\u0430\u0435\u0442",
       "id": "claude_code_setup_ds_proxy_rationale_506"
     },
@@ -3455,7 +3455,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L545",
-      "community": 28,
+      "community": 27,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman",
       "id": "claude_code_setup_ds_proxy_rationale_545"
     },
@@ -3473,7 +3473,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L571",
-      "community": 45,
+      "community": 48,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "claude_code_setup_ds_proxy_rationale_571"
     },
@@ -3500,7 +3500,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L611",
-      "community": 28,
+      "community": 27,
       "norm_label": "cache-aware wrapper: skip recomputation when system/tools unchanged.",
       "id": "claude_code_setup_ds_proxy_rationale_611"
     },
@@ -3518,7 +3518,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L711",
-      "community": 11,
+      "community": 7,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "claude_code_setup_ds_proxy_rationale_711"
     },
@@ -3527,7 +3527,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L737",
-      "community": 16,
+      "community": 15,
       "norm_label": "graceful in-place restart: exec self with same args. no sessions dropped.",
       "id": "claude_code_setup_ds_proxy_rationale_737"
     },
@@ -3545,7 +3545,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L670",
-      "community": 11,
+      "community": 7,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "claude_code_setup_ds_proxy_rationale_670"
     },
@@ -3563,7 +3563,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L112",
-      "community": 32,
+      "community": 34,
       "norm_label": "_log_jsonl()",
       "id": "ds_proxy_log_jsonl"
     },
@@ -3572,7 +3572,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L134",
-      "community": 23,
+      "community": 22,
       "norm_label": "_groq_describe()",
       "id": "ds_proxy_groq_describe"
     },
@@ -3581,7 +3581,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L158",
-      "community": 23,
+      "community": 22,
       "norm_label": "_ocr_describe()",
       "id": "ds_proxy_ocr_describe"
     },
@@ -3626,7 +3626,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L309",
-      "community": 23,
+      "community": 22,
       "norm_label": "_describe_image()",
       "id": "ds_proxy_describe_image"
     },
@@ -3635,7 +3635,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L320",
-      "community": 23,
+      "community": 22,
       "norm_label": "_strip_image_blocks()",
       "id": "ds_proxy_strip_image_blocks"
     },
@@ -3779,7 +3779,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L661",
-      "community": 32,
+      "community": 34,
       "norm_label": "proxyhandler",
       "id": "ds_proxy_proxyhandler"
     },
@@ -3788,7 +3788,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L662",
-      "community": 32,
+      "community": 34,
       "norm_label": ".do_head()",
       "id": "ds_proxy_proxyhandler_do_head"
     },
@@ -3797,7 +3797,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L667",
-      "community": 32,
+      "community": 34,
       "norm_label": ".do_get()",
       "id": "ds_proxy_proxyhandler_do_get"
     },
@@ -3806,7 +3806,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L670",
-      "community": 32,
+      "community": 34,
       "norm_label": ".do_post()",
       "id": "ds_proxy_proxyhandler_do_post"
     },
@@ -3815,7 +3815,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L673",
-      "community": 32,
+      "community": 34,
       "norm_label": ".do_patch()",
       "id": "ds_proxy_proxyhandler_do_patch"
     },
@@ -3824,7 +3824,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L676",
-      "community": 32,
+      "community": 34,
       "norm_label": "._proxy()",
       "id": "ds_proxy_proxyhandler_proxy"
     },
@@ -3842,7 +3842,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L113",
-      "community": 32,
+      "community": 34,
       "norm_label": "append one usage record to jsonl (\u0435\u0434\u0438\u043d\u044b\u0438 \u0441 deepseek_api.py).",
       "id": "ds_proxy_rationale_113"
     },
@@ -3851,7 +3851,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L135",
-      "community": 23,
+      "community": 22,
       "norm_label": "describe image via groq vision api.",
       "id": "ds_proxy_rationale_135"
     },
@@ -3860,7 +3860,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L159",
-      "community": 23,
+      "community": 22,
       "norm_label": "ocr image via tesseract.",
       "id": "ds_proxy_rationale_159"
     },
@@ -3887,7 +3887,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L310",
-      "community": 23,
+      "community": 22,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_310"
     },
@@ -3896,7 +3896,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L321",
-      "community": 23,
+      "community": 22,
       "norm_label": "recursively replace image/document blocks with text (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_result).",
       "id": "ds_proxy_rationale_321"
     },
@@ -4040,7 +4040,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L11",
-      "community": 8,
+      "community": 11,
       "norm_label": "session",
       "id": "session_manager_session"
     },
@@ -4049,7 +4049,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L12",
-      "community": 8,
+      "community": 11,
       "norm_label": ".__init__()",
       "id": "session_manager_session_init"
     },
@@ -4058,7 +4058,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L23",
-      "community": 8,
+      "community": 11,
       "norm_label": ".add()",
       "id": "session_manager_session_add"
     },
@@ -4067,7 +4067,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L34",
-      "community": 8,
+      "community": 11,
       "norm_label": ".api_msgs()",
       "id": "session_manager_session_api_msgs"
     },
@@ -4076,7 +4076,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L47",
-      "community": 8,
+      "community": 11,
       "norm_label": ".log_usage()",
       "id": "session_manager_session_log_usage"
     },
@@ -4085,7 +4085,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L52",
-      "community": 8,
+      "community": 11,
       "norm_label": ".needs_compact()",
       "id": "session_manager_session_needs_compact"
     },
@@ -4094,7 +4094,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L55",
-      "community": 8,
+      "community": 11,
       "norm_label": ".compact()",
       "id": "session_manager_session_compact"
     },
@@ -4103,7 +4103,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L96",
-      "community": 15,
+      "community": 4,
       "norm_label": ".stats()",
       "id": "session_manager_session_stats"
     },
@@ -4112,7 +4112,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L106",
-      "community": 7,
+      "community": 14,
       "norm_label": "sessionmanager",
       "id": "session_manager_sessionmanager"
     },
@@ -4121,7 +4121,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L107",
-      "community": 7,
+      "community": 14,
       "norm_label": ".__init__()",
       "id": "session_manager_sessionmanager_init"
     },
@@ -4130,7 +4130,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L110",
-      "community": 8,
+      "community": 11,
       "norm_label": ".create()",
       "id": "session_manager_sessionmanager_create"
     },
@@ -4148,7 +4148,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L118",
-      "community": 7,
+      "community": 21,
       "norm_label": ".delete()",
       "id": "session_manager_sessionmanager_delete"
     },
@@ -4166,7 +4166,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L124",
-      "community": 7,
+      "community": 14,
       "norm_label": ".save()",
       "id": "session_manager_sessionmanager_save"
     },
@@ -4175,7 +4175,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L145",
-      "community": 29,
+      "community": 36,
       "norm_label": ".load()",
       "id": "session_manager_sessionmanager_load"
     },
@@ -4184,7 +4184,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L164",
-      "community": 7,
+      "community": 21,
       "norm_label": ".fork()",
       "id": "session_manager_sessionmanager_fork"
     },
@@ -4193,7 +4193,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L177",
-      "community": 7,
+      "community": 14,
       "norm_label": ".export_session()",
       "id": "session_manager_sessionmanager_export_session"
     },
@@ -4202,7 +4202,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L194",
-      "community": 7,
+      "community": 21,
       "norm_label": ".import_session()",
       "id": "session_manager_sessionmanager_import_session"
     },
@@ -4211,7 +4211,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L210",
-      "community": 7,
+      "community": 21,
       "norm_label": ".rename()",
       "id": "session_manager_sessionmanager_rename"
     },
@@ -4220,7 +4220,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L219",
-      "community": 7,
+      "community": 14,
       "norm_label": ".get_last_active()",
       "id": "session_manager_sessionmanager_get_last_active"
     },
@@ -4238,7 +4238,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L56",
-      "community": 8,
+      "community": 11,
       "norm_label": "summarize old messages using chat_func. falls back to truncation.",
       "id": "session_manager_rationale_56"
     },
@@ -4247,7 +4247,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L125",
-      "community": 7,
+      "community": 14,
       "norm_label": "save all sessions to json file.",
       "id": "session_manager_rationale_125"
     },
@@ -4256,7 +4256,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L146",
-      "community": 29,
+      "community": 36,
       "norm_label": "load sessions from json file. returns count of restored sessions.",
       "id": "session_manager_rationale_146"
     },
@@ -4265,7 +4265,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L165",
-      "community": 7,
+      "community": 21,
       "norm_label": "create a new session seeded from an existing one. returns new_sid.",
       "id": "session_manager_rationale_165"
     },
@@ -4274,7 +4274,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L178",
-      "community": 7,
+      "community": 14,
       "norm_label": "export full session data as dict.",
       "id": "session_manager_rationale_178"
     },
@@ -4283,7 +4283,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L195",
-      "community": 7,
+      "community": 21,
       "norm_label": "import session from dict. returns new_sid or none.",
       "id": "session_manager_rationale_195"
     },
@@ -4292,7 +4292,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L211",
-      "community": 7,
+      "community": 21,
       "norm_label": "set human-readable name for a session.",
       "id": "session_manager_rationale_211"
     },
@@ -4301,7 +4301,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/session_manager.py",
       "source_location": "L220",
-      "community": 7,
+      "community": 14,
       "norm_label": "return the most recently updated session, or none.",
       "id": "session_manager_rationale_220"
     },
@@ -4310,7 +4310,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2",
-      "community": 26,
+      "community": 32,
       "norm_label": "_api_call_with_tools_stream()",
       "id": "agent_api_call_with_tools_stream"
     },
@@ -4319,7 +4319,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L306",
-      "community": 24,
+      "community": 23,
       "norm_label": "_pending_key()",
       "id": "agent_pending_key"
     },
@@ -4328,7 +4328,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L311",
-      "community": 0,
+      "community": 51,
       "norm_label": "_is_confirmation()",
       "id": "agent_is_confirmation"
     },
@@ -4337,7 +4337,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L878",
-      "community": 24,
+      "community": 23,
       "norm_label": "_path_from_params()",
       "id": "agent_path_from_params"
     },
@@ -4346,7 +4346,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L891",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_read_file()",
       "id": "agent_tool_read_file"
     },
@@ -4355,7 +4355,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L911",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_write_file()",
       "id": "agent_tool_write_file"
     },
@@ -4364,7 +4364,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L938",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_edit_file()",
       "id": "agent_tool_edit_file"
     },
@@ -4373,7 +4373,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L972",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_ls_dir()",
       "id": "agent_tool_ls_dir"
     },
@@ -4382,7 +4382,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L991",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_grep_files()",
       "id": "agent_tool_grep_files"
     },
@@ -4391,7 +4391,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1012",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_glob_files()",
       "id": "agent_tool_glob_files"
     },
@@ -4400,7 +4400,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1025",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_bash()",
       "id": "agent_tool_bash"
     },
@@ -4409,7 +4409,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1066",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_git_status()",
       "id": "agent_tool_git_status"
     },
@@ -4418,7 +4418,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1080",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_git_diff()",
       "id": "agent_tool_git_diff"
     },
@@ -4427,7 +4427,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1095",
-      "community": 24,
+      "community": 23,
       "norm_label": "tool_git_log()",
       "id": "agent_tool_git_log"
     },
@@ -4571,7 +4571,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1345",
-      "community": 48,
+      "community": 14,
       "norm_label": "_classify_task()",
       "id": "agent_classify_task"
     },
@@ -4580,7 +4580,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1370",
-      "community": 48,
+      "community": 14,
       "norm_label": "_auto_route()",
       "id": "agent_auto_route"
     },
@@ -4625,7 +4625,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1483",
-      "community": 4,
+      "community": 13,
       "norm_label": "tool_subagent_kill()",
       "id": "agent_tool_subagent_kill"
     },
@@ -4670,7 +4670,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1552",
-      "community": 4,
+      "community": 13,
       "norm_label": "tool_plan_approve()",
       "id": "agent_tool_plan_approve"
     },
@@ -4688,7 +4688,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1578",
-      "community": 7,
+      "community": 13,
       "norm_label": "_auto_memory_extract()",
       "id": "agent_auto_memory_extract"
     },
@@ -4697,7 +4697,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1618",
-      "community": 8,
+      "community": 11,
       "norm_label": "_build_auto_prompt()",
       "id": "agent_build_auto_prompt"
     },
@@ -4706,7 +4706,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1651",
-      "community": 7,
+      "community": 13,
       "norm_label": "_monitor_worker()",
       "id": "agent_monitor_worker"
     },
@@ -4778,7 +4778,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1810",
-      "community": 49,
+      "community": 0,
       "norm_label": "tool_web_search()",
       "id": "agent_tool_web_search"
     },
@@ -4787,7 +4787,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1891",
-      "community": 49,
+      "community": 0,
       "norm_label": "_filter_domains()",
       "id": "agent_filter_domains"
     },
@@ -4796,7 +4796,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1905",
-      "community": 8,
+      "community": 14,
       "norm_label": "tool_bg_task_start()",
       "id": "agent_tool_bg_task_start"
     },
@@ -4805,7 +4805,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1917",
-      "community": 7,
+      "community": 4,
       "norm_label": "tool_bg_task_status()",
       "id": "agent_tool_bg_task_status"
     },
@@ -4823,7 +4823,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1942",
-      "community": 18,
+      "community": 20,
       "norm_label": "_create_api_key()",
       "id": "agent_create_api_key"
     },
@@ -4832,7 +4832,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1957",
-      "community": 18,
+      "community": 20,
       "norm_label": "_revoke_api_key()",
       "id": "agent_revoke_api_key"
     },
@@ -4841,7 +4841,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1967",
-      "community": 18,
+      "community": 20,
       "norm_label": "_list_api_keys()",
       "id": "agent_list_api_keys"
     },
@@ -4850,7 +4850,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2035",
-      "community": 8,
+      "community": 11,
       "norm_label": "_filter_tools()",
       "id": "agent_filter_tools"
     },
@@ -4859,7 +4859,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2051",
-      "community": 8,
+      "community": 11,
       "norm_label": "_track_budget()",
       "id": "agent_track_budget"
     },
@@ -4868,7 +4868,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2072",
-      "community": 8,
+      "community": 11,
       "norm_label": "_check_budget()",
       "id": "agent_check_budget"
     },
@@ -4877,7 +4877,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2083",
-      "community": 8,
+      "community": 11,
       "norm_label": "_safe_run_hooks()",
       "id": "agent_safe_run_hooks"
     },
@@ -4886,7 +4886,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2091",
-      "community": 7,
+      "community": 4,
       "norm_label": "tool_mcp()",
       "id": "agent_tool_mcp"
     },
@@ -4895,7 +4895,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2173",
-      "community": 26,
+      "community": 32,
       "norm_label": "_api_call_with_tools()",
       "id": "agent_api_call_with_tools"
     },
@@ -4904,7 +4904,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2282",
-      "community": 8,
+      "community": 11,
       "norm_label": "handle_chat()",
       "id": "agent_handle_chat"
     },
@@ -4913,7 +4913,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2473",
-      "community": 8,
+      "community": 11,
       "norm_label": "handle_chat_stream()",
       "id": "agent_handle_chat_stream"
     },
@@ -4922,7 +4922,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2606",
-      "community": 15,
+      "community": 13,
       "norm_label": "_docker_api()",
       "id": "agent_docker_api"
     },
@@ -4931,7 +4931,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2626",
-      "community": 15,
+      "community": 13,
       "norm_label": "check_services()",
       "id": "agent_check_services"
     },
@@ -4940,7 +4940,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2663",
-      "community": 15,
+      "community": 13,
       "norm_label": "nightly_cleanup()",
       "id": "agent_nightly_cleanup"
     },
@@ -4958,7 +4958,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2743",
-      "community": 15,
+      "community": 13,
       "norm_label": "log()",
       "id": "agent_log"
     },
@@ -4976,7 +4976,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2755",
-      "community": 15,
+      "community": 13,
       "norm_label": "_alert()",
       "id": "agent_alert"
     },
@@ -4985,7 +4985,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2761",
-      "community": 29,
+      "community": 36,
       "norm_label": "init_mcp()",
       "id": "agent_init_mcp"
     },
@@ -5003,7 +5003,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2850",
-      "community": 15,
+      "community": 21,
       "norm_label": "handler",
       "id": "agent_handler"
     },
@@ -5012,7 +5012,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2851",
-      "community": 15,
+      "community": 21,
       "norm_label": ".log_message()",
       "id": "agent_handler_log_message"
     },
@@ -5021,7 +5021,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2854",
-      "community": 15,
+      "community": 21,
       "norm_label": "._json()",
       "id": "agent_handler_json"
     },
@@ -5030,7 +5030,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2862",
-      "community": 15,
+      "community": 13,
       "norm_label": "._read_body()",
       "id": "agent_handler_read_body"
     },
@@ -5039,7 +5039,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2875",
-      "community": 15,
+      "community": 13,
       "norm_label": ".do_get()",
       "id": "agent_handler_do_get"
     },
@@ -5048,7 +5048,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3017",
-      "community": 15,
+      "community": 21,
       "norm_label": ".do_post()",
       "id": "agent_handler_do_post"
     },
@@ -5057,7 +5057,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3130",
-      "community": 15,
+      "community": 13,
       "norm_label": "._handle_sse_stream()",
       "id": "agent_handler_handle_sse_stream"
     },
@@ -5066,7 +5066,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3174",
-      "community": 15,
+      "community": 21,
       "norm_label": ".do_delete()",
       "id": "agent_handler_do_delete"
     },
@@ -5075,7 +5075,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3204",
-      "community": 18,
+      "community": 20,
       "norm_label": "_load_api_keys()",
       "id": "agent_load_api_keys"
     },
@@ -5084,7 +5084,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3213",
-      "community": 18,
+      "community": 20,
       "norm_label": "_save_api_keys()",
       "id": "agent_save_api_keys"
     },
@@ -5093,7 +5093,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3219",
-      "community": 18,
+      "community": 20,
       "norm_label": "_generate_api_key()",
       "id": "agent_generate_api_key"
     },
@@ -5102,7 +5102,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3223",
-      "community": 18,
+      "community": 20,
       "norm_label": "_seed_admin_key()",
       "id": "agent_seed_admin_key"
     },
@@ -5111,7 +5111,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3245",
-      "community": 18,
+      "community": 21,
       "norm_label": "_check_auth()",
       "id": "agent_check_auth"
     },
@@ -5120,7 +5120,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3279",
-      "community": 15,
+      "community": 13,
       "norm_label": "_cron_on_trigger()",
       "id": "agent_cron_on_trigger"
     },
@@ -5129,7 +5129,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3294",
-      "community": 29,
+      "community": 13,
       "norm_label": "_shutdown_handler()",
       "id": "agent_shutdown_handler"
     },
@@ -5138,7 +5138,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3",
-      "community": 26,
+      "community": 32,
       "norm_label": "streaming call with tool support.",
       "id": "agent_rationale_3"
     },
@@ -5147,7 +5147,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L307",
-      "community": 24,
+      "community": 23,
       "norm_label": "hash-based key to identify a pending dangerous operation.",
       "id": "agent_rationale_307"
     },
@@ -5156,7 +5156,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L312",
-      "community": 0,
+      "community": 51,
       "norm_label": "check if user message is a confirmation for a pending dangerous operation.",
       "id": "agent_rationale_312"
     },
@@ -5165,7 +5165,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1346",
-      "community": 48,
+      "community": 14,
       "norm_label": "classify user message into task type. returns (category, confidence, reason).",
       "id": "agent_rationale_1346"
     },
@@ -5174,7 +5174,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1371",
-      "community": 48,
+      "community": 14,
       "norm_label": "if message matches a task profile, spawn sub-agent. returns (routed, result_dict",
       "id": "agent_rationale_1371"
     },
@@ -5183,7 +5183,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1579",
-      "community": 7,
+      "community": 13,
       "norm_label": "extract key facts from an assistant response and auto-save to memory.     extrac",
       "id": "agent_rationale_1579"
     },
@@ -5192,7 +5192,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1619",
-      "community": 8,
+      "community": 14,
       "norm_label": "build system prompt section with auto-memory instructions and current memory con",
       "id": "agent_rationale_1619"
     },
@@ -5201,7 +5201,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1652",
-      "community": 7,
+      "community": 13,
       "norm_label": "run a shell command in a thread, capture output.",
       "id": "agent_rationale_1652"
     },
@@ -5210,7 +5210,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1892",
-      "community": 49,
+      "community": 0,
       "norm_label": "filter results by allowed/blocked domains.",
       "id": "agent_rationale_1892"
     },
@@ -5219,7 +5219,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1906",
-      "community": 8,
+      "community": 14,
       "norm_label": "start a background chat task. returns immediately with task_id.",
       "id": "agent_rationale_1906"
     },
@@ -5228,7 +5228,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1918",
-      "community": 7,
+      "community": 4,
       "norm_label": "get status and result of a background task.",
       "id": "agent_rationale_1918"
     },
@@ -5246,7 +5246,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1943",
-      "community": 18,
+      "community": 20,
       "norm_label": "create a new api key. requires existing admin key.",
       "id": "agent_rationale_1943"
     },
@@ -5255,7 +5255,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1958",
-      "community": 18,
+      "community": 20,
       "norm_label": "revoke an api key by its value.",
       "id": "agent_rationale_1958"
     },
@@ -5264,7 +5264,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L1968",
-      "community": 18,
+      "community": 20,
       "norm_label": "list all api keys (without the secret values).",
       "id": "agent_rationale_1968"
     },
@@ -5273,7 +5273,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2036",
-      "community": 8,
+      "community": 14,
       "norm_label": "filter tool definitions by allow/block lists. both are lists of names.     retur",
       "id": "agent_rationale_2036"
     },
@@ -5282,7 +5282,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2073",
-      "community": 8,
+      "community": 11,
       "norm_label": "return none if within budget, or error dict if exceeded.",
       "id": "agent_rationale_2073"
     },
@@ -5291,7 +5291,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2092",
-      "community": 7,
+      "community": 4,
       "norm_label": "dispatch to mcp server. handles both prefixed (mcp__<server>__<tool>)     and un",
       "id": "agent_rationale_2092"
     },
@@ -5300,7 +5300,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2174",
-      "community": 26,
+      "community": 32,
       "norm_label": "call deepseek api with tool calling support. returns full message object.",
       "id": "agent_rationale_2174"
     },
@@ -5309,7 +5309,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2283",
-      "community": 8,
+      "community": 14,
       "norm_label": "multi-turn chat with tool calling loop.",
       "id": "agent_rationale_2283"
     },
@@ -5318,7 +5318,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2474",
-      "community": 8,
+      "community": 14,
       "norm_label": "streaming chat with sse events.",
       "id": "agent_rationale_2474"
     },
@@ -5327,7 +5327,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L2762",
-      "community": 29,
+      "community": 36,
       "norm_label": "initialize mcp servers and merge their tools.",
       "id": "agent_rationale_2762"
     },
@@ -5336,7 +5336,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3131",
-      "community": 15,
+      "community": 13,
       "norm_label": "handle get /chat/stream via sse.",
       "id": "agent_rationale_3131"
     },
@@ -5345,7 +5345,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3205",
-      "community": 18,
+      "community": 20,
       "norm_label": "load api keys from json file. returns dict of key -> info.",
       "id": "agent_rationale_3205"
     },
@@ -5354,7 +5354,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3214",
-      "community": 18,
+      "community": 20,
       "norm_label": "save api keys to json file.",
       "id": "agent_rationale_3214"
     },
@@ -5363,7 +5363,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3220",
-      "community": 18,
+      "community": 20,
       "norm_label": "generate a secure random api key.",
       "id": "agent_rationale_3220"
     },
@@ -5372,7 +5372,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3224",
-      "community": 18,
+      "community": 20,
       "norm_label": "create initial admin key if none exist. print to stdout.",
       "id": "agent_rationale_3224"
     },
@@ -5381,7 +5381,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3246",
-      "community": 18,
+      "community": 21,
       "norm_label": "validate authorization header. returns (prefix, error_json_or_none).     prefix",
       "id": "agent_rationale_3246"
     },
@@ -5390,7 +5390,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L3280",
-      "community": 15,
+      "community": 13,
       "norm_label": "when a user cron task fires, call handle_chat.",
       "id": "agent_rationale_3280"
     },
@@ -5399,7 +5399,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/patches/fix_agent_gap.py",
       "source_location": "L17",
-      "community": 51,
+      "community": 49,
       "norm_label": "patch_agent()",
       "id": "fix_agent_gap_patch_agent"
     },
@@ -5408,7 +5408,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L48",
-      "community": 19,
+      "community": 16,
       "norm_label": "_get_encoding()",
       "id": "deepseek_api_get_encoding"
     },
@@ -5417,7 +5417,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L61",
-      "community": 19,
+      "community": 16,
       "norm_label": "count_tokens()",
       "id": "deepseek_api_count_tokens"
     },
@@ -5426,7 +5426,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L71",
-      "community": 19,
+      "community": 16,
       "norm_label": "count_messages()",
       "id": "deepseek_api_count_messages"
     },
@@ -5435,7 +5435,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L84",
-      "community": 19,
+      "community": 16,
       "norm_label": "format_tokens()",
       "id": "deepseek_api_format_tokens"
     },
@@ -5444,7 +5444,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L91",
-      "community": 27,
+      "community": 26,
       "norm_label": "calculate_cost()",
       "id": "deepseek_api_calculate_cost"
     },
@@ -5453,7 +5453,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L109",
-      "community": 27,
+      "community": 26,
       "norm_label": "usagelogger",
       "id": "deepseek_api_usagelogger"
     },
@@ -5462,7 +5462,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L113",
-      "community": 27,
+      "community": 26,
       "norm_label": ".__init__()",
       "id": "deepseek_api_usagelogger_init"
     },
@@ -5471,7 +5471,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L117",
-      "community": 27,
+      "community": 26,
       "norm_label": "._ensure_dir()",
       "id": "deepseek_api_usagelogger_ensure_dir"
     },
@@ -5480,7 +5480,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L122",
-      "community": 27,
+      "community": 26,
       "norm_label": ".log()",
       "id": "deepseek_api_usagelogger_log"
     },
@@ -5489,7 +5489,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L142",
-      "community": 27,
+      "community": 26,
       "norm_label": ".summary()",
       "id": "deepseek_api_usagelogger_summary"
     },
@@ -5498,7 +5498,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L185",
-      "community": 19,
+      "community": 16,
       "norm_label": "_resolve_max_tokens()",
       "id": "deepseek_api_resolve_max_tokens"
     },
@@ -5507,7 +5507,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L214",
-      "community": 19,
+      "community": 16,
       "norm_label": "_select_model()",
       "id": "deepseek_api_select_model"
     },
@@ -5516,7 +5516,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L281",
-      "community": 26,
+      "community": 32,
       "norm_label": "_api_key()",
       "id": "deepseek_api_api_key"
     },
@@ -5525,7 +5525,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L293",
-      "community": 19,
+      "community": 16,
       "norm_label": "_check_prompt_length()",
       "id": "deepseek_api_check_prompt_length"
     },
@@ -5534,7 +5534,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L323",
-      "community": 26,
+      "community": 32,
       "norm_label": "_api_call()",
       "id": "deepseek_api_api_call"
     },
@@ -5543,7 +5543,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L371",
-      "community": 26,
+      "community": 11,
       "norm_label": "chat()",
       "id": "deepseek_api_chat"
     },
@@ -5552,7 +5552,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L423",
-      "community": 19,
+      "community": 16,
       "norm_label": "stream_chat()",
       "id": "deepseek_api_stream_chat"
     },
@@ -5561,7 +5561,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L531",
-      "community": 27,
+      "community": 26,
       "norm_label": "get_usage_summary()",
       "id": "deepseek_api_get_usage_summary"
     },
@@ -5570,7 +5570,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L541",
-      "community": 30,
+      "community": 28,
       "norm_label": "_reroute_score()",
       "id": "deepseek_api_reroute_score"
     },
@@ -5579,7 +5579,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L563",
-      "community": 30,
+      "community": 28,
       "norm_label": "_model_key()",
       "id": "deepseek_api_model_key"
     },
@@ -5588,7 +5588,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L580",
-      "community": 30,
+      "community": 28,
       "norm_label": "audit_usage()",
       "id": "deepseek_api_audit_usage"
     },
@@ -5597,7 +5597,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L681",
-      "community": 30,
+      "community": 28,
       "norm_label": "run_audit()",
       "id": "deepseek_api_run_audit"
     },
@@ -5606,7 +5606,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L738",
-      "community": 37,
+      "community": 38,
       "norm_label": "_walk_plugin_versions()",
       "id": "deepseek_api_walk_plugin_versions"
     },
@@ -5615,7 +5615,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L777",
-      "community": 37,
+      "community": 38,
       "norm_label": "audit_plugins()",
       "id": "deepseek_api_audit_plugins"
     },
@@ -5624,7 +5624,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L854",
-      "community": 37,
+      "community": 38,
       "norm_label": "run_audit_plugins()",
       "id": "deepseek_api_run_audit_plugins"
     },
@@ -5633,7 +5633,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L889",
-      "community": 30,
+      "community": 28,
       "norm_label": "run_optimize()",
       "id": "deepseek_api_run_optimize"
     },
@@ -5642,7 +5642,7 @@
       "file_type": "code",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L896",
-      "community": 26,
+      "community": 32,
       "norm_label": "list_models()",
       "id": "deepseek_api_list_models"
     },
@@ -5651,7 +5651,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L1",
-      "community": 13,
+      "community": 29,
       "norm_label": "deepseek api \u2014 \u043f\u0440\u044f\u043c\u043e\u0438 \u0434\u043e\u0441\u0442\u0443\u043f \u043a deepseek v4 \u0431\u0435\u0437 claude code.  \u0441 \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0430\u0446\u0438\u0435\u0438 \u0442\u043e\u043a\u0435",
       "id": "deepseek_api_rationale_1"
     },
@@ -5660,7 +5660,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L49",
-      "community": 19,
+      "community": 16,
       "norm_label": "lazy-\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 tiktoken encoding.     \u043f\u0430\u0434\u0430\u0435\u0442 \u043c\u043e\u043b\u0447\u0430 \u0435\u0441\u043b\u0438 tiktoken \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u2014",
       "id": "deepseek_api_rationale_49"
     },
@@ -5669,7 +5669,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L62",
-      "community": 19,
+      "community": 16,
       "norm_label": "\u043e\u0446\u0435\u043d\u043a\u0430 \u0447\u0438\u0441\u043b\u0430 \u0442\u043e\u043a\u0435\u043d\u043e\u0432 \u0447\u0435\u0440\u0435\u0437 tiktoken (cl100k_base).     deepseek v4 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442 \u0442\u043e",
       "id": "deepseek_api_rationale_62"
     },
@@ -5678,7 +5678,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L72",
-      "community": 19,
+      "community": 16,
       "norm_label": "\u0441\u0443\u043c\u043c\u0430 \u0442\u043e\u043a\u0435\u043d\u043e\u0432 \u0432\u043e \u0432\u0441\u0435\u0445 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f\u0445.",
       "id": "deepseek_api_rationale_72"
     },
@@ -5687,7 +5687,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L85",
-      "community": 19,
+      "community": 16,
       "norm_label": "12,345,678 \u2192 \u0444\u043e\u0440\u043c\u0430\u0442 \u0441 \u0440\u0430\u0437\u0434\u0435\u043b\u0438\u0442\u0435\u043b\u044f\u043c\u0438.",
       "id": "deepseek_api_rationale_85"
     },
@@ -5696,7 +5696,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L92",
-      "community": 27,
+      "community": 26,
       "norm_label": "\u0440\u0430\u0441\u0447\u0435\u0442 \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0432 usd \u043f\u043e \u0446\u0435\u043d\u0430\u043c deepseek.",
       "id": "deepseek_api_rationale_92"
     },
@@ -5705,7 +5705,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L110",
-      "community": 27,
+      "community": 26,
       "norm_label": "\u043b\u043e\u0433\u0438\u0440\u0443\u0435\u0442 \u043a\u0430\u0436\u0434\u044b\u0438 api-\u0432\u044b\u0437\u043e\u0432 \u0432 jsonl-\u0444\u0430\u0438\u043b.     \u0444\u0430\u0438\u043b: ~/.local/var/deepseek-usage.js",
       "id": "deepseek_api_rationale_110"
     },
@@ -5714,7 +5714,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L143",
-      "community": 27,
+      "community": 26,
       "norm_label": "\u0438\u0442\u043e\u0433\u0438 \u0437\u0430 \u0432\u0441\u0435 \u0432\u0440\u0435\u043c\u044f \u0438\u0437 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0435\u0433\u043e \u043b\u043e\u0433\u0430.",
       "id": "deepseek_api_rationale_143"
     },
@@ -5723,7 +5723,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L186",
-      "community": 19,
+      "community": 16,
       "norm_label": "\u043d\u0435 \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0442\u043e\u043a\u0435\u043d\u043e\u0432, \u0447\u0435\u043c \u0432\u043b\u0435\u0437\u0435\u0442 \u0432 \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442 64k.     \u043f\u0440\u0438\u043c\u0435\u0440: \u043f\u0440\u043e\u043c\u043f\u0442 50k",
       "id": "deepseek_api_rationale_186"
     },
@@ -5732,7 +5732,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L216",
-      "community": 19,
+      "community": 16,
       "norm_label": "\u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0438 \u0432\u044b\u0431\u043e\u0440 \u043c\u043e\u0434\u0435\u043b\u0438 \u043d\u0430 \u043e\u0441\u043d\u043e\u0432\u0435 \u044d\u0432\u0440\u0438\u0441\u0442\u0438\u043a.      \u043f\u0440\u0430\u0432\u0438\u043b\u0430:     - \u0434\u043b\u0438\u043d\u0430: < 200",
       "id": "deepseek_api_rationale_216"
     },
@@ -5741,7 +5741,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L294",
-      "community": 19,
+      "community": 16,
       "norm_label": "\u043f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0435\u043d\u0438\u044f \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u043c\u043f\u0442/\u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0432\u044b\u0445\u043e\u0434\u044f\u0442 \u0437\u0430 \u0440\u0430\u0437\u0443\u043c\u043d\u044b\u0435 \u043f\u0440\u0435\u0434\u0435\u043b\u044b.",
       "id": "deepseek_api_rationale_294"
     },
@@ -5750,7 +5750,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L325",
-      "community": 26,
+      "community": 32,
       "norm_label": "\u043d\u0438\u0437\u043a\u043e\u0443\u0440\u043e\u0432\u043d\u0435\u0432\u044b\u0438 \u0432\u044b\u0437\u043e\u0432 deepseek chat api.      \u043e\u0442\u043b\u0438\u0447\u0438\u044f \u043e\u0442 \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u0438 \u0432\u0435\u0440\u0441\u0438\u0438:     - d",
       "id": "deepseek_api_rationale_325"
     },
@@ -5759,7 +5759,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L373",
-      "community": 26,
+      "community": 11,
       "norm_label": "\u0432\u044b\u0437\u043e\u0432 deepseek (\u043d\u0435 streaming).      args:         prompt: \u0442\u0435\u043a\u0441\u0442 \u0437\u0430\u043f\u0440\u043e\u0441\u0430",
       "id": "deepseek_api_rationale_373"
     },
@@ -5768,7 +5768,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L425",
-      "community": 19,
+      "community": 16,
       "norm_label": "streaming \u0432\u044b\u0437\u043e\u0432 deepseek.      deepseek \u0432 streaming-\u0440\u0435\u0436\u0438\u043c\u0435 \u0448\u043b\u0435\u0442 usage     \u0432 \u0444\u0438\u043d\u0430",
       "id": "deepseek_api_rationale_425"
     },
@@ -5777,7 +5777,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L532",
-      "community": 27,
+      "community": 26,
       "norm_label": "\u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0440\u0430\u0441\u0445\u043e\u0434\u0443 \u0438\u0437 jsonl-\u043b\u043e\u0433\u0430.",
       "id": "deepseek_api_rationale_532"
     },
@@ -5786,7 +5786,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L542",
-      "community": 30,
+      "community": 28,
       "norm_label": "\u043e\u0446\u0435\u043d\u043a\u0430: \u043a\u0430\u043a\u043e\u0438 \u0431\u044b \u0441\u043a\u043e\u0440 \u0434\u0430\u043b\u0430 _select_model \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u0430.     \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0434\u043b\u044f",
       "id": "deepseek_api_rationale_542"
     },
@@ -5795,7 +5795,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L564",
-      "community": 30,
+      "community": 28,
       "norm_label": "normalize 'auto' \u2192 resolved model, otherwise as-is.",
       "id": "deepseek_api_rationale_564"
     },
@@ -5804,7 +5804,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L581",
-      "community": 30,
+      "community": 28,
       "norm_label": "\u0430\u043d\u0430\u043b\u0438\u0437 \u043b\u043e\u0433\u0430: \u043f\u043e\u0438\u0441\u043a misrouting, waste, \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u0438.      returns:         dict \u0441",
       "id": "deepseek_api_rationale_581"
     },
@@ -5813,7 +5813,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L682",
-      "community": 30,
+      "community": 28,
       "norm_label": "pretty-print audit report.",
       "id": "deepseek_api_rationale_682"
     },
@@ -5822,7 +5822,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L739",
-      "community": 37,
+      "community": 38,
       "norm_label": "scan plugin cache: \u0432\u0435\u0440\u0441\u0438\u044f + \u0440\u0430\u0437\u043c\u0435\u0440 + \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u044b\u0435 \u043a\u043e\u043f\u0438\u0438.",
       "id": "deepseek_api_rationale_739"
     },
@@ -5831,7 +5831,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L778",
-      "community": 37,
+      "community": 38,
       "norm_label": "\u0430\u043d\u0430\u043b\u0438\u0437 \u043f\u043b\u0430\u0433\u0438\u043d\u043e\u0432: \u0434\u0443\u0431\u043b\u0438\u043a\u0430\u0442\u044b, \u0440\u0430\u0437\u043c\u0435\u0440\u044b, \u043e\u0446\u0435\u043d\u043a\u0430 mcp \u0442\u043e\u043a\u0435\u043d\u043e\u0432.      returns:         {",
       "id": "deepseek_api_rationale_778"
     },
@@ -5840,7 +5840,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L855",
-      "community": 37,
+      "community": 38,
       "norm_label": "pretty-print plugin audit.",
       "id": "deepseek_api_rationale_855"
     },
@@ -5849,7 +5849,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L890",
-      "community": 30,
+      "community": 28,
       "norm_label": "\u043f\u043e\u043b\u043d\u0430\u044f \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0430\u0446\u0438\u044f: deepseek audit + plugin audit.",
       "id": "deepseek_api_rationale_890"
     },
@@ -5858,7 +5858,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L897",
-      "community": 26,
+      "community": 32,
       "norm_label": "\u0441\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u043c\u043e\u0434\u0435\u043b\u0435\u0438.",
       "id": "deepseek_api_rationale_897"
     },
@@ -6011,7 +6011,7 @@
       "file_type": "code",
       "source_file": "backlinks/parse_rankd_table.py",
       "source_location": "L11",
-      "community": 39,
+      "community": 41,
       "norm_label": "parse_table()",
       "id": "parse_rankd_table_parse_table"
     },
@@ -6020,7 +6020,7 @@
       "file_type": "code",
       "source_file": "backlinks/parse_rankd_table.py",
       "source_location": "L63",
-      "community": 39,
+      "community": 41,
       "norm_label": "main()",
       "id": "parse_rankd_table_main"
     },
@@ -6029,7 +6029,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/config.py",
       "source_location": "L1",
-      "community": 52,
+      "community": 50,
       "norm_label": "backlink bot \u2014 \u043c\u0443\u043b\u044c\u0442\u0438-\u0441\u0430\u0438\u0442\u043e\u0432\u0430\u044f \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044f \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0434\u043e\u043c\u0435\u043d\u043e\u0432. \u0432\u044b\u0431\u043e",
       "id": "config_rationale_1"
     },
@@ -6074,7 +6074,7 @@
       "file_type": "code",
       "source_file": "backlinks/tracker.py",
       "source_location": "L22",
-      "community": 29,
+      "community": 11,
       "norm_label": "save()",
       "id": "tracker_save"
     },
@@ -6128,7 +6128,7 @@
       "file_type": "code",
       "source_file": "backlinks/main.py",
       "source_location": "L57",
-      "community": 29,
+      "community": 36,
       "norm_label": "run_top_rankd()",
       "id": "main_run_top_rankd"
     },
@@ -6137,7 +6137,7 @@
       "file_type": "code",
       "source_file": "backlinks/main.py",
       "source_location": "L108",
-      "community": 29,
+      "community": 36,
       "norm_label": "_get_done_sites()",
       "id": "main_get_done_sites"
     },
@@ -6155,7 +6155,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/main.py",
       "source_location": "L58",
-      "community": 29,
+      "community": 36,
       "norm_label": "\u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0442\u043e\u043f-n do-follow \u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c \u0438\u0437 rankd \u0447\u0435\u0440\u0435\u0437 \u0431\u0440\u0430\u0443\u0437\u0435\u0440 (\u043f\u043e\u043b\u0443-\u0430\u0432\u0442\u043e).",
       "id": "main_rationale_58"
     },
@@ -6164,7 +6164,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/main.py",
       "source_location": "L109",
-      "community": 29,
+      "community": 36,
       "norm_label": "\u0432\u0435\u0440\u043d\u0443\u0442\u044c \u043d\u0430\u0431\u043e\u0440 \u0443\u0436\u0435 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d\u043d\u044b\u0445 \u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c \u0438\u0437 csv.",
       "id": "main_rationale_109"
     },
@@ -6254,7 +6254,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/disqus.py",
       "source_location": "L13",
-      "community": 40,
+      "community": 42,
       "norm_label": "run()",
       "id": "disqus_run"
     },
@@ -6263,7 +6263,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/disqus.py",
       "source_location": "L1",
-      "community": 40,
+      "community": 42,
       "norm_label": "disqus \u2014 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0441 \u0441\u0441\u044b\u043b\u043a\u043e\u0438 \u043d\u0430 \u0441\u0430\u0438\u0442 da: 93, do-follow: no (\u043d\u043e \u0432\u044b\u0441\u043e\u043a\u0438\u0438 \u0430\u0432\u0442\u043e\u0440\u0438\u0442\u0435\u0442 \u0434",
       "id": "disqus_rationale_1"
     },
@@ -6272,7 +6272,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/about_me.py",
       "source_location": "L13",
-      "community": 41,
+      "community": 43,
       "norm_label": "run()",
       "id": "about_me_run"
     },
@@ -6281,7 +6281,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/about_me.py",
       "source_location": "L1",
-      "community": 41,
+      "community": 43,
       "norm_label": "about.me \u2014 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0441 \u0441\u0441\u044b\u043b\u043a\u043e\u0438 \u043d\u0430 \u0441\u0430\u0438\u0442 da: 71, do-follow: yes",
       "id": "about_me_rationale_1"
     },
@@ -6290,7 +6290,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/quora.py",
       "source_location": "L13",
-      "community": 42,
+      "community": 44,
       "norm_label": "run()",
       "id": "quora_run"
     },
@@ -6299,7 +6299,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/quora.py",
       "source_location": "L1",
-      "community": 42,
+      "community": 44,
       "norm_label": "quora \u2014 \u043f\u0440\u043e\u0444\u0438\u043b\u044c \u0441 \u0441\u0441\u044b\u043b\u043a\u043e\u0438 \u043d\u0430 \u0441\u0430\u0438\u0442 da: 93, do-follow: yes (\u0441\u0441\u044b\u043b\u043a\u0438 \u0432 \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u2014 do-",
       "id": "quora_rationale_1"
     },
@@ -6308,7 +6308,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/diigo.py",
       "source_location": "L20",
-      "community": 43,
+      "community": 45,
       "norm_label": "run()",
       "id": "diigo_run"
     },
@@ -6317,7 +6317,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/diigo.py",
       "source_location": "L1",
-      "community": 43,
+      "community": 45,
       "norm_label": "diigo \u2014 \u0441\u043e\u0446\u0438\u0430\u043b\u044c\u043d\u0430\u044f \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430 + \u043f\u0440\u043e\u0444\u0438\u043b\u044c da: 70, do-follow: yes (\u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0438 \u0438\u043d\u0434\u0435\u043a\u0441\u0438\u0440\u0443",
       "id": "diigo_rationale_1"
     },
@@ -6326,7 +6326,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L17",
-      "community": 25,
+      "community": 24,
       "norm_label": "register()",
       "id": "neocities_register"
     },
@@ -6335,7 +6335,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L36",
-      "community": 25,
+      "community": 24,
       "norm_label": "upload_page()",
       "id": "neocities_upload_page"
     },
@@ -6344,7 +6344,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L79",
-      "community": 25,
+      "community": 24,
       "norm_label": "run()",
       "id": "neocities_run"
     },
@@ -6353,7 +6353,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L1",
-      "community": 25,
+      "community": 24,
       "norm_label": "neocities \u2014 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f + \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0441\u0442\u0430\u0442\u044c\u0438 \u0447\u0435\u0440\u0435\u0437 api da: 83, do-follow: yes, \u0444\u0430\u0437\u0430",
       "id": "neocities_rationale_1"
     },
@@ -6362,7 +6362,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L18",
-      "community": 25,
+      "community": 24,
       "norm_label": "\u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0430\u043a\u043a\u0430\u0443\u043d\u0442 \u0447\u0435\u0440\u0435\u0437 \u0431\u0440\u0430\u0443\u0437\u0435\u0440.",
       "id": "neocities_rationale_18"
     },
@@ -6371,7 +6371,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/neocities.py",
       "source_location": "L37",
-      "community": 25,
+      "community": 24,
       "norm_label": "\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c html \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443 \u0447\u0435\u0440\u0435\u0437 api.",
       "id": "neocities_rationale_37"
     },
@@ -6380,7 +6380,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/folkd.py",
       "source_location": "L20",
-      "community": 44,
+      "community": 46,
       "norm_label": "run()",
       "id": "folkd_run"
     },
@@ -6389,7 +6389,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/folkd.py",
       "source_location": "L1",
-      "community": 44,
+      "community": 46,
       "norm_label": "folkd.com \u2014 \u0441\u043e\u0446\u0438\u0430\u043b\u044c\u043d\u0430\u044f \u0437\u0430\u043a\u043b\u0430\u0434\u043a\u0430 (bookmark) da: 60, do-follow: yes",
       "id": "folkd_rationale_1"
     },
@@ -6398,7 +6398,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L23",
-      "community": 20,
+      "community": 18,
       "norm_label": "api_post()",
       "id": "telegra_ph_api_post"
     },
@@ -6407,7 +6407,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L35",
-      "community": 20,
+      "community": 18,
       "norm_label": "create_account()",
       "id": "telegra_ph_create_account"
     },
@@ -6416,7 +6416,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L47",
-      "community": 20,
+      "community": 18,
       "norm_label": "publish_article()",
       "id": "telegra_ph_publish_article"
     },
@@ -6425,7 +6425,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L105",
-      "community": 20,
+      "community": 18,
       "norm_label": "run()",
       "id": "telegra_ph_run"
     },
@@ -6434,7 +6434,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L1",
-      "community": 20,
+      "community": 18,
       "norm_label": "telegra.ph \u2014 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0441\u0442\u0430\u0442\u044c\u0438 \u0431\u0435\u0437 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 da: 81, do-follow: yes, \u0444\u0430\u0437\u0430 2",
       "id": "telegra_ph_rationale_1"
     },
@@ -6443,7 +6443,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L36",
-      "community": 20,
+      "community": 18,
       "norm_label": "\u0441\u043e\u0437\u0434\u0430\u0442\u044c \u0430\u043d\u043e\u043d\u0438\u043c\u043d\u044b\u0438 \u0430\u043a\u043a\u0430\u0443\u043d\u0442 telegraph.",
       "id": "telegra_ph_rationale_36"
     },
@@ -6452,7 +6452,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/telegra_ph.py",
       "source_location": "L48",
-      "community": 20,
+      "community": 18,
       "norm_label": "\u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u0442\u044c \u0441\u0442\u0430\u0442\u044c\u044e \u0438\u0437 \u0444\u0430\u0438\u043b\u0430, \u0432\u0435\u0440\u043d\u0443\u0442\u044c url.",
       "id": "telegra_ph_rationale_48"
     },
@@ -6461,7 +6461,7 @@
       "file_type": "code",
       "source_file": "backlinks/sites/wikidot.py",
       "source_location": "L16",
-      "community": 23,
+      "community": 22,
       "norm_label": "run()",
       "id": "wikidot_run"
     },
@@ -6470,7 +6470,7 @@
       "file_type": "rationale",
       "source_file": "backlinks/sites/wikidot.py",
       "source_location": "L1",
-      "community": 23,
+      "community": 22,
       "norm_label": "wikidot \u2014 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f + \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435 wiki-\u0441\u0430\u0438\u0442\u0430 \u0441\u043e \u0441\u0442\u0430\u0442\u044c\u0435\u0438 da: 83, do-follow: yes, \u0444",
       "id": "wikidot_rationale_1"
     },
@@ -6479,7 +6479,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L97",
-      "community": 59,
+      "community": 58,
       "norm_label": "drop oldest non-system messages to fit deepseek's 128k window.",
       "id": "ds_proxy_rationale_97"
     },
@@ -6488,7 +6488,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L119",
-      "community": 60,
+      "community": 59,
       "norm_label": "token count for a message including format overhead (~5 tok/msg).",
       "id": "ds_proxy_rationale_119"
     },
@@ -6497,7 +6497,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L143",
-      "community": 61,
+      "community": 60,
       "norm_label": "ocr image via tesseract.",
       "id": "ds_proxy_rationale_143"
     },
@@ -6506,7 +6506,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L188",
-      "community": 62,
+      "community": 61,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_188"
     },
@@ -6515,7 +6515,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L199",
-      "community": 63,
+      "community": 62,
       "norm_label": "role-weighted truncation: compress content first, then drop tool-only, then newe",
       "id": "ds_proxy_rationale_199"
     },
@@ -6524,7 +6524,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L294",
-      "community": 64,
+      "community": 63,
       "norm_label": "adaptive truncation: only when total budget exceeded, never below tool_result_ma",
       "id": "ds_proxy_rationale_294"
     },
@@ -6533,7 +6533,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L305",
-      "community": 65,
+      "community": 64,
       "norm_label": "recursively replace image/document blocks with text (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_result).",
       "id": "ds_proxy_rationale_305"
     },
@@ -6542,7 +6542,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L325",
-      "community": 66,
+      "community": 65,
       "norm_label": "strip trailing spaces per line + edges. zero-risk \u2014 no content modification beyo",
       "id": "ds_proxy_rationale_325"
     },
@@ -6551,7 +6551,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L338",
-      "community": 67,
+      "community": 66,
       "norm_label": "content-type aware compression. handles: file listings, stack traces, long json,",
       "id": "ds_proxy_rationale_338"
     },
@@ -6560,7 +6560,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L378",
-      "community": 68,
+      "community": 67,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "ds_proxy_rationale_378"
     },
@@ -6569,7 +6569,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L384",
-      "community": 69,
+      "community": 68,
       "norm_label": "adaptive truncation: only when total budget exceeded, never below tool_result_ma",
       "id": "ds_proxy_rationale_384"
     },
@@ -6578,7 +6578,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L417",
-      "community": 70,
+      "community": 69,
       "norm_label": "remove empty tool_result and text blocks. zero risk \u2014 empty blocks carry no info",
       "id": "ds_proxy_rationale_417"
     },
@@ -6587,7 +6587,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L445",
-      "community": 71,
+      "community": 70,
       "norm_label": "merge adjacent text blocks into one. zero risk \u2014 preserves all content.",
       "id": "ds_proxy_rationale_445"
     },
@@ -6596,7 +6596,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L462",
-      "community": 72,
+      "community": 71,
       "norm_label": "extract text from a tool_result block for comparison.",
       "id": "ds_proxy_rationale_462"
     },
@@ -6605,7 +6605,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L471",
-      "community": 73,
+      "community": 72,
       "norm_label": "drop consecutive tool_result blocks with identical text. zero-risk: identical co",
       "id": "ds_proxy_rationale_471"
     },
@@ -6614,7 +6614,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L510",
-      "community": 74,
+      "community": 73,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman",
       "id": "ds_proxy_rationale_510"
     },
@@ -6623,7 +6623,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L523",
-      "community": 75,
+      "community": 74,
       "norm_label": "strip markdown code fences from tool results. zero-risk: only strips standard fe",
       "id": "ds_proxy_rationale_523"
     },
@@ -6632,7 +6632,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L536",
-      "community": 76,
+      "community": 75,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "ds_proxy_rationale_536"
     },
@@ -6641,7 +6641,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L549",
-      "community": 77,
+      "community": 76,
       "norm_label": "remove cache_control from all blocks (deepseek doesn't support anthropic caching",
       "id": "ds_proxy_rationale_549"
     },
@@ -6650,7 +6650,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L563",
-      "community": 78,
+      "community": 77,
       "norm_label": "remove id/type from messages \u2014 deepseek ignores them (zero-risk).",
       "id": "ds_proxy_rationale_563"
     },
@@ -6659,7 +6659,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L570",
-      "community": 79,
+      "community": 78,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_570"
     },
@@ -6668,7 +6668,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L635",
-      "community": 80,
+      "community": 79,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "ds_proxy_rationale_635"
     },
@@ -6677,7 +6677,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L43",
-      "community": 81,
+      "community": 80,
       "norm_label": "describe image via groq vision api.",
       "id": "ds_proxy_rationale_43"
     },
@@ -6686,7 +6686,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L67",
-      "community": 82,
+      "community": 81,
       "norm_label": "ocr image via tesseract.",
       "id": "ds_proxy_rationale_67"
     },
@@ -6695,7 +6695,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L112",
-      "community": 83,
+      "community": 82,
       "norm_label": "token count via tiktoken cl100k_base (shared by claude & deepseek bpe).",
       "id": "ds_proxy_rationale_112"
     },
@@ -6704,7 +6704,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L123",
-      "community": 84,
+      "community": 83,
       "norm_label": "role-weighted truncation: compress content first, then drop tool-only, then newe",
       "id": "ds_proxy_rationale_123"
     },
@@ -6713,7 +6713,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L218",
-      "community": 85,
+      "community": 84,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_218"
     },
@@ -6722,7 +6722,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L229",
-      "community": 86,
+      "community": 85,
       "norm_label": "recursively replace image/document blocks with text (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_result).",
       "id": "ds_proxy_rationale_229"
     },
@@ -6731,7 +6731,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L249",
-      "community": 87,
+      "community": 86,
       "norm_label": "content-type aware compression. handles: file listings, stack traces, long json,",
       "id": "ds_proxy_rationale_249"
     },
@@ -6740,7 +6740,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L262",
-      "community": 88,
+      "community": 87,
       "norm_label": "merge adjacent text blocks into one. zero risk \u2014 preserves all content.",
       "id": "ds_proxy_rationale_262"
     },
@@ -6749,7 +6749,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L302",
-      "community": 89,
+      "community": 88,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "ds_proxy_rationale_302"
     },
@@ -6758,7 +6758,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L308",
-      "community": 90,
+      "community": 89,
       "norm_label": "adaptive truncation: only when total budget exceeded, never below tool_result_ma",
       "id": "ds_proxy_rationale_308"
     },
@@ -6767,7 +6767,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L369",
-      "community": 91,
+      "community": 90,
       "norm_label": "merge adjacent text blocks into one. zero risk \u2014 preserves all content.",
       "id": "ds_proxy_rationale_369"
     },
@@ -6776,7 +6776,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L386",
-      "community": 92,
+      "community": 91,
       "norm_label": "drop consecutive tool_result blocks with identical text. zero-risk: identical co",
       "id": "ds_proxy_rationale_386"
     },
@@ -6785,7 +6785,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L395",
-      "community": 93,
+      "community": 92,
       "norm_label": "drop consecutive tool_result blocks with identical text. zero-risk: identical co",
       "id": "ds_proxy_rationale_395"
     },
@@ -6794,7 +6794,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L434",
-      "community": 94,
+      "community": 93,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman",
       "id": "ds_proxy_rationale_434"
     },
@@ -6803,7 +6803,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L447",
-      "community": 95,
+      "community": 94,
       "norm_label": "strip markdown code fences from tool results. zero-risk: only strips standard fe",
       "id": "ds_proxy_rationale_447"
     },
@@ -6812,7 +6812,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L460",
-      "community": 96,
+      "community": 95,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "ds_proxy_rationale_460"
     },
@@ -6821,7 +6821,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L473",
-      "community": 97,
+      "community": 96,
       "norm_label": "remove cache_control from all blocks (deepseek doesn't support anthropic caching",
       "id": "ds_proxy_rationale_473"
     },
@@ -6830,7 +6830,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L494",
-      "community": 98,
+      "community": 97,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_494"
     },
@@ -6839,7 +6839,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L559",
-      "community": 99,
+      "community": 98,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "ds_proxy_rationale_559"
     },
@@ -6848,7 +6848,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L292",
-      "community": 100,
+      "community": 99,
       "norm_label": "\u043f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0435\u043d\u0438\u044f \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u043c\u043f\u0442/\u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0432\u044b\u0445\u043e\u0434\u044f\u0442 \u0437\u0430 \u0440\u0430\u0437\u0443\u043c\u043d\u044b\u0435 \u043f\u0440\u0435\u0434\u0435\u043b\u044b.",
       "id": "deepseek_api_rationale_292"
     },
@@ -6857,7 +6857,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L323",
-      "community": 101,
+      "community": 100,
       "norm_label": "\u043d\u0438\u0437\u043a\u043e\u0443\u0440\u043e\u0432\u043d\u0435\u0432\u044b\u0438 \u0432\u044b\u0437\u043e\u0432 deepseek chat api.      \u043e\u0442\u043b\u0438\u0447\u0438\u044f \u043e\u0442 \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u0438 \u0432\u0435\u0440\u0441\u0438\u0438:     - d",
       "id": "deepseek_api_rationale_323"
     },
@@ -6866,7 +6866,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L371",
-      "community": 102,
+      "community": 101,
       "norm_label": "\u0432\u044b\u0437\u043e\u0432 deepseek (\u043d\u0435 streaming).      args:         prompt: \u0442\u0435\u043a\u0441\u0442 \u0437\u0430\u043f\u0440\u043e\u0441\u0430",
       "id": "deepseek_api_rationale_371"
     },
@@ -6875,7 +6875,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L423",
-      "community": 103,
+      "community": 102,
       "norm_label": "streaming \u0432\u044b\u0437\u043e\u0432 deepseek.      deepseek \u0432 streaming-\u0440\u0435\u0436\u0438\u043c\u0435 \u0448\u043b\u0435\u0442 usage     \u0432 \u0444\u0438\u043d\u0430",
       "id": "deepseek_api_rationale_423"
     },
@@ -6884,7 +6884,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L530",
-      "community": 104,
+      "community": 103,
       "norm_label": "\u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0440\u0430\u0441\u0445\u043e\u0434\u0443 \u0438\u0437 jsonl-\u043b\u043e\u0433\u0430.",
       "id": "deepseek_api_rationale_530"
     },
@@ -6893,7 +6893,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L540",
-      "community": 105,
+      "community": 104,
       "norm_label": "\u043e\u0446\u0435\u043d\u043a\u0430: \u043a\u0430\u043a\u043e\u0438 \u0431\u044b \u0441\u043a\u043e\u0440 \u0434\u0430\u043b\u0430 _select_model \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0437\u0430\u043f\u0440\u043e\u0441\u0430.     \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0434\u043b\u044f",
       "id": "deepseek_api_rationale_540"
     },
@@ -6902,7 +6902,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L553",
-      "community": 106,
+      "community": 105,
       "norm_label": "normalize 'auto' \u2192 resolved model, otherwise as-is.",
       "id": "deepseek_api_rationale_553"
     },
@@ -6911,7 +6911,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L570",
-      "community": 107,
+      "community": 106,
       "norm_label": "\u0430\u043d\u0430\u043b\u0438\u0437 \u043b\u043e\u0433\u0430: \u043f\u043e\u0438\u0441\u043a misrouting, waste, \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u0438.      returns:         dict \u0441",
       "id": "deepseek_api_rationale_570"
     },
@@ -6920,7 +6920,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L670",
-      "community": 108,
+      "community": 107,
       "norm_label": "pretty-print audit report.",
       "id": "deepseek_api_rationale_670"
     },
@@ -6929,7 +6929,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L727",
-      "community": 109,
+      "community": 108,
       "norm_label": "scan plugin cache: \u0432\u0435\u0440\u0441\u0438\u044f + \u0440\u0430\u0437\u043c\u0435\u0440 + \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u044b\u0435 \u043a\u043e\u043f\u0438\u0438.",
       "id": "deepseek_api_rationale_727"
     },
@@ -6938,7 +6938,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L766",
-      "community": 110,
+      "community": 109,
       "norm_label": "\u0430\u043d\u0430\u043b\u0438\u0437 \u043f\u043b\u0430\u0433\u0438\u043d\u043e\u0432: \u0434\u0443\u0431\u043b\u0438\u043a\u0430\u0442\u044b, \u0440\u0430\u0437\u043c\u0435\u0440\u044b, \u043e\u0446\u0435\u043d\u043a\u0430 mcp \u0442\u043e\u043a\u0435\u043d\u043e\u0432.      returns:         {",
       "id": "deepseek_api_rationale_766"
     },
@@ -6947,7 +6947,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L843",
-      "community": 111,
+      "community": 110,
       "norm_label": "pretty-print plugin audit.",
       "id": "deepseek_api_rationale_843"
     },
@@ -6956,7 +6956,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L878",
-      "community": 112,
+      "community": 111,
       "norm_label": "\u043f\u043e\u043b\u043d\u0430\u044f \u043e\u043f\u0442\u0438\u043c\u0438\u0437\u0430\u0446\u0438\u044f: deepseek audit + plugin audit.",
       "id": "deepseek_api_rationale_878"
     },
@@ -6965,7 +6965,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L885",
-      "community": 113,
+      "community": 112,
       "norm_label": "\u0441\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u043c\u043e\u0434\u0435\u043b\u0435\u0438.",
       "id": "deepseek_api_rationale_885"
     },
@@ -6974,7 +6974,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L722",
-      "community": 114,
+      "community": 113,
       "norm_label": "\u0441\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u043c\u043e\u0434\u0435\u043b\u0435\u0438.",
       "id": "deepseek_api_rationale_722"
     },
@@ -6983,7 +6983,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L537",
-      "community": 115,
+      "community": 114,
       "norm_label": "\u0441\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u043c\u043e\u0434\u0435\u043b\u0435\u0438.",
       "id": "deepseek_api_rationale_537"
     },
@@ -6992,7 +6992,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L47",
-      "community": 116,
+      "community": 115,
       "norm_label": "lazy-\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 tiktoken encoding.     \u043f\u0430\u0434\u0430\u0435\u0442 \u043c\u043e\u043b\u0447\u0430 \u0435\u0441\u043b\u0438 tiktoken \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u2014",
       "id": "deepseek_api_rationale_47"
     },
@@ -7001,7 +7001,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L60",
-      "community": 117,
+      "community": 116,
       "norm_label": "\u043e\u0446\u0435\u043d\u043a\u0430 \u0447\u0438\u0441\u043b\u0430 \u0442\u043e\u043a\u0435\u043d\u043e\u0432 \u0447\u0435\u0440\u0435\u0437 tiktoken (cl100k_base).     deepseek v4 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442 \u0442\u043e",
       "id": "deepseek_api_rationale_60"
     },
@@ -7010,7 +7010,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L70",
-      "community": 118,
+      "community": 117,
       "norm_label": "\u0441\u0443\u043c\u043c\u0430 \u0442\u043e\u043a\u0435\u043d\u043e\u0432 \u0432\u043e \u0432\u0441\u0435\u0445 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u044f\u0445.",
       "id": "deepseek_api_rationale_70"
     },
@@ -7019,7 +7019,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L83",
-      "community": 119,
+      "community": 118,
       "norm_label": "12,345,678 \u2192 \u0444\u043e\u0440\u043c\u0430\u0442 \u0441 \u0440\u0430\u0437\u0434\u0435\u043b\u0438\u0442\u0435\u043b\u044f\u043c\u0438.",
       "id": "deepseek_api_rationale_83"
     },
@@ -7028,7 +7028,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L90",
-      "community": 120,
+      "community": 119,
       "norm_label": "\u0440\u0430\u0441\u0447\u0435\u0442 \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u0430 \u0432 usd \u043f\u043e \u0446\u0435\u043d\u0430\u043c deepseek.",
       "id": "deepseek_api_rationale_90"
     },
@@ -7037,7 +7037,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L108",
-      "community": 121,
+      "community": 120,
       "norm_label": "\u043b\u043e\u0433\u0438\u0440\u0443\u0435\u0442 \u043a\u0430\u0436\u0434\u044b\u0438 api-\u0432\u044b\u0437\u043e\u0432 \u0432 jsonl-\u0444\u0430\u0438\u043b.     \u0444\u0430\u0438\u043b: ~/.local/var/deepseek-usage.js",
       "id": "deepseek_api_rationale_108"
     },
@@ -7046,7 +7046,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L141",
-      "community": 122,
+      "community": 121,
       "norm_label": "\u0438\u0442\u043e\u0433\u0438 \u0437\u0430 \u0432\u0441\u0435 \u0432\u0440\u0435\u043c\u044f \u0438\u0437 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0435\u0433\u043e \u043b\u043e\u0433\u0430.",
       "id": "deepseek_api_rationale_141"
     },
@@ -7055,7 +7055,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L184",
-      "community": 123,
+      "community": 122,
       "norm_label": "\u043d\u0435 \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u0442\u043e\u043a\u0435\u043d\u043e\u0432, \u0447\u0435\u043c \u0432\u043b\u0435\u0437\u0435\u0442 \u0432 \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442 64k.     \u043f\u0440\u0438\u043c\u0435\u0440: \u043f\u0440\u043e\u043c\u043f\u0442 50k",
       "id": "deepseek_api_rationale_184"
     },
@@ -7064,7 +7064,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L206",
-      "community": 124,
+      "community": 123,
       "norm_label": "\u043f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0435\u043d\u0438\u044f \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u043c\u043f\u0442/\u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0432\u044b\u0445\u043e\u0434\u044f\u0442 \u0437\u0430 \u0440\u0430\u0437\u0443\u043c\u043d\u044b\u0435 \u043f\u0440\u0435\u0434\u0435\u043b\u044b.",
       "id": "deepseek_api_rationale_206"
     },
@@ -7073,7 +7073,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L237",
-      "community": 125,
+      "community": 124,
       "norm_label": "\u043d\u0438\u0437\u043a\u043e\u0443\u0440\u043e\u0432\u043d\u0435\u0432\u044b\u0438 \u0432\u044b\u0437\u043e\u0432 deepseek chat api.      \u043e\u0442\u043b\u0438\u0447\u0438\u044f \u043e\u0442 \u0438\u0441\u0445\u043e\u0434\u043d\u043e\u0438 \u0432\u0435\u0440\u0441\u0438\u0438:     - d",
       "id": "deepseek_api_rationale_237"
     },
@@ -7082,7 +7082,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L285",
-      "community": 126,
+      "community": 125,
       "norm_label": "\u0432\u044b\u0437\u043e\u0432 deepseek (\u043d\u0435 streaming).      args:         prompt: \u0442\u0435\u043a\u0441\u0442 \u0437\u0430\u043f\u0440\u043e\u0441\u0430",
       "id": "deepseek_api_rationale_285"
     },
@@ -7091,7 +7091,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L328",
-      "community": 127,
+      "community": 126,
       "norm_label": "streaming \u0432\u044b\u0437\u043e\u0432 deepseek.      deepseek \u0432 streaming-\u0440\u0435\u0436\u0438\u043c\u0435 \u0448\u043b\u0435\u0442 usage     \u0432 \u0444\u0438\u043d\u0430",
       "id": "deepseek_api_rationale_328"
     },
@@ -7100,7 +7100,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L426",
-      "community": 128,
+      "community": 127,
       "norm_label": "\u0441\u0432\u043e\u0434\u043a\u0430 \u043f\u043e \u0440\u0430\u0441\u0445\u043e\u0434\u0443 \u0438\u0437 jsonl-\u043b\u043e\u0433\u0430.",
       "id": "deepseek_api_rationale_426"
     },
@@ -7109,7 +7109,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek/deepseek_api.py",
       "source_location": "L433",
-      "community": 129,
+      "community": 128,
       "norm_label": "\u0441\u043f\u0438\u0441\u043e\u043a \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0445 \u043c\u043e\u0434\u0435\u043b\u0435\u0438.",
       "id": "deepseek_api_rationale_433"
     },
@@ -7118,7 +7118,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L45",
-      "community": 130,
+      "community": 129,
       "norm_label": "daily maintenance: clean logs, check disk, ai summary.",
       "id": "agent_rationale_45"
     },
@@ -7127,7 +7127,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/deepseek-agent/agent.py",
       "source_location": "L77",
-      "community": 131,
+      "community": 130,
       "norm_label": "weekly: update reference repos + graphify graphs.",
       "id": "agent_rationale_77"
     },
@@ -7136,7 +7136,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L89",
-      "community": 132,
+      "community": 131,
       "norm_label": "token count via tiktoken cl100k_base (shared by claude & deepseek bpe).",
       "id": "ds_proxy_rationale_89"
     },
@@ -7145,7 +7145,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L186",
-      "community": 133,
+      "community": 132,
       "norm_label": "token count for a message including format overhead (~5 tok/msg).",
       "id": "ds_proxy_rationale_186"
     },
@@ -7154,7 +7154,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L206",
-      "community": 134,
+      "community": 133,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_206"
     },
@@ -7163,7 +7163,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L217",
-      "community": 135,
+      "community": 134,
       "norm_label": "recursively replace image/document blocks with text (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_result).",
       "id": "ds_proxy_rationale_217"
     },
@@ -7172,7 +7172,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L237",
-      "community": 136,
+      "community": 135,
       "norm_label": "strip trailing spaces per line + edges. zero-risk \u2014 no content modification beyo",
       "id": "ds_proxy_rationale_237"
     },
@@ -7181,7 +7181,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L288",
-      "community": 137,
+      "community": 136,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "ds_proxy_rationale_288"
     },
@@ -7190,7 +7190,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L327",
-      "community": 138,
+      "community": 137,
       "norm_label": "remove empty tool_result and text blocks. zero risk \u2014 empty blocks carry no info",
       "id": "ds_proxy_rationale_327"
     },
@@ -7199,7 +7199,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L355",
-      "community": 139,
+      "community": 138,
       "norm_label": "merge adjacent text blocks into one. zero risk \u2014 preserves all content.",
       "id": "ds_proxy_rationale_355"
     },
@@ -7208,7 +7208,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L372",
-      "community": 140,
+      "community": 139,
       "norm_label": "extract text from a tool_result block for comparison.",
       "id": "ds_proxy_rationale_372"
     },
@@ -7217,7 +7217,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L425",
-      "community": 141,
+      "community": 140,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman",
       "id": "ds_proxy_rationale_425"
     },
@@ -7226,7 +7226,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L438",
-      "community": 142,
+      "community": 141,
       "norm_label": "strip markdown code fences from tool results. zero-risk: only strips standard fe",
       "id": "ds_proxy_rationale_438"
     },
@@ -7235,7 +7235,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L451",
-      "community": 143,
+      "community": 142,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "ds_proxy_rationale_451"
     },
@@ -7244,7 +7244,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L464",
-      "community": 144,
+      "community": 143,
       "norm_label": "remove cache_control from all blocks (deepseek doesn't support anthropic caching",
       "id": "ds_proxy_rationale_464"
     },
@@ -7253,7 +7253,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L485",
-      "community": 145,
+      "community": 144,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_485"
     },
@@ -7262,7 +7262,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L548",
-      "community": 146,
+      "community": 145,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "ds_proxy_rationale_548"
     },
@@ -7271,7 +7271,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L131",
-      "community": 147,
+      "community": 146,
       "norm_label": "token count for a message including format overhead (~5 tok/msg).",
       "id": "ds_proxy_rationale_131"
     },
@@ -7280,7 +7280,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L151",
-      "community": 148,
+      "community": 147,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_151"
     },
@@ -7289,7 +7289,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L162",
-      "community": 149,
+      "community": 148,
       "norm_label": "recursively replace image/document blocks with text (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_result).",
       "id": "ds_proxy_rationale_162"
     },
@@ -7298,7 +7298,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L182",
-      "community": 150,
+      "community": 149,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "ds_proxy_rationale_182"
     },
@@ -7307,7 +7307,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L190",
-      "community": 151,
+      "community": 150,
       "norm_label": "strip ansi codes only \u2014 no [step n/m] removal (risk: model references step numbe",
       "id": "ds_proxy_rationale_190"
     },
@@ -7316,7 +7316,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L195",
-      "community": 152,
+      "community": 151,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "ds_proxy_rationale_195"
     },
@@ -7325,7 +7325,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L201",
-      "community": 153,
+      "community": 152,
       "norm_label": "adaptive truncation: only when total budget exceeded, never below tool_result_ma",
       "id": "ds_proxy_rationale_201"
     },
@@ -7334,7 +7334,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L234",
-      "community": 154,
+      "community": 153,
       "norm_label": "remove empty tool_result and text blocks. zero risk \u2014 empty blocks carry no info",
       "id": "ds_proxy_rationale_234"
     },
@@ -7343,7 +7343,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L279",
-      "community": 155,
+      "community": 154,
       "norm_label": "extract text from a tool_result block for comparison.",
       "id": "ds_proxy_rationale_279"
     },
@@ -7352,7 +7352,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L293",
-      "community": 156,
+      "community": 155,
       "norm_label": "drop consecutive tool_result blocks with identical text. zero-risk: identical co",
       "id": "ds_proxy_rationale_293"
     },
@@ -7361,7 +7361,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L332",
-      "community": 157,
+      "community": 156,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero-risk: preserves all seman",
       "id": "ds_proxy_rationale_332"
     },
@@ -7370,7 +7370,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L345",
-      "community": 158,
+      "community": 157,
       "norm_label": "strip markdown code fences from tool results. zero-risk: only strips standard fe",
       "id": "ds_proxy_rationale_345"
     },
@@ -7379,7 +7379,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L358",
-      "community": 159,
+      "community": 158,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "ds_proxy_rationale_358"
     },
@@ -7388,7 +7388,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L371",
-      "community": 160,
+      "community": 159,
       "norm_label": "remove cache_control from all blocks (deepseek doesn't support anthropic caching",
       "id": "ds_proxy_rationale_371"
     },
@@ -7397,7 +7397,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L385",
-      "community": 161,
+      "community": 160,
       "norm_label": "remove id/type from messages \u2014 deepseek ignores them (zero-risk).",
       "id": "ds_proxy_rationale_385"
     },
@@ -7406,7 +7406,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L392",
-      "community": 162,
+      "community": 161,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_392"
     },
@@ -7415,7 +7415,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L455",
-      "community": 163,
+      "community": 162,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "ds_proxy_rationale_455"
     },
@@ -7424,7 +7424,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L290",
-      "community": 164,
+      "community": 163,
       "norm_label": "drop consecutive tool_result blocks with identical text. low risk \u2014 identical co",
       "id": "ds_proxy_rationale_290"
     },
@@ -7433,7 +7433,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L326",
-      "community": 165,
+      "community": 164,
       "norm_label": "strip boilerplate/hedging from tool descriptions. zero risk \u2014 preserves all sema",
       "id": "ds_proxy_rationale_326"
     },
@@ -7442,7 +7442,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L336",
-      "community": 166,
+      "community": 165,
       "norm_label": "strip markdown code fences from tool results. lets _compact_json_text work on fe",
       "id": "ds_proxy_rationale_336"
     },
@@ -7451,7 +7451,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L347",
-      "community": 167,
+      "community": 166,
       "norm_label": "compact pretty-printed json. zero risk \u2014 identical data, fewer tokens.",
       "id": "ds_proxy_rationale_347"
     },
@@ -7460,7 +7460,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L360",
-      "community": 168,
+      "community": 167,
       "norm_label": "remove cache_control from all blocks (deepseek doesn't support anthropic caching",
       "id": "ds_proxy_rationale_360"
     },
@@ -7469,7 +7469,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L374",
-      "community": 169,
+      "community": 168,
       "norm_label": "remove id/type from messages \u2014 deepseek ignores them (zero-risk).",
       "id": "ds_proxy_rationale_374"
     },
@@ -7478,7 +7478,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L381",
-      "community": 170,
+      "community": 169,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_381"
     },
@@ -7487,7 +7487,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L444",
-      "community": 171,
+      "community": 170,
       "norm_label": "log token consumption to stderr (observability, not optimisation).",
       "id": "ds_proxy_rationale_444"
     },
@@ -7496,7 +7496,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L41",
-      "community": 172,
+      "community": 171,
       "norm_label": "describe image via groq vision api.",
       "id": "ds_proxy_rationale_41"
     },
@@ -7505,7 +7505,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L127",
-      "community": 173,
+      "community": 172,
       "norm_label": "token count for a message including format overhead (~5 tok/msg).",
       "id": "ds_proxy_rationale_127"
     },
@@ -7514,7 +7514,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L147",
-      "community": 174,
+      "community": 173,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_147"
     },
@@ -7523,7 +7523,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L158",
-      "community": 175,
+      "community": 174,
       "norm_label": "recursively replace image blocks with text descriptions (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_resu",
       "id": "ds_proxy_rationale_158"
     },
@@ -7532,7 +7532,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L178",
-      "community": 176,
+      "community": 175,
       "norm_label": "compress 3+ newlines \u2192 2, strip trailing spaces per line, strip edges.",
       "id": "ds_proxy_rationale_178"
     },
@@ -7541,7 +7541,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L183",
-      "community": 177,
+      "community": 176,
       "norm_label": "true if message is exclusively tool_result/tool_use blocks.",
       "id": "ds_proxy_rationale_183"
     },
@@ -7550,7 +7550,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L189",
-      "community": 178,
+      "community": 177,
       "norm_label": "truncate tool_result content to tool_result_max_tokens (mutates in-place).",
       "id": "ds_proxy_rationale_189"
     },
@@ -7559,7 +7559,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L219",
-      "community": 179,
+      "community": 178,
       "norm_label": "remove cache_control from all blocks (deepseek doesn't support anthropic caching",
       "id": "ds_proxy_rationale_219"
     },
@@ -7568,7 +7568,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L233",
-      "community": 180,
+      "community": 179,
       "norm_label": "normalize whitespace, fix images, strip thinking, smart-truncate context.",
       "id": "ds_proxy_rationale_233"
     },
@@ -7577,7 +7577,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L40",
-      "community": 181,
+      "community": 180,
       "norm_label": "describe image via groq vision api.",
       "id": "ds_proxy_rationale_40"
     },
@@ -7586,7 +7586,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L66",
-      "community": 182,
+      "community": 181,
       "norm_label": "ocr image via tesseract.",
       "id": "ds_proxy_rationale_66"
     },
@@ -7595,7 +7595,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L88",
-      "community": 183,
+      "community": 182,
       "norm_label": "token count via tiktoken cl100k_base (shared by claude & deepseek bpe).",
       "id": "ds_proxy_rationale_88"
     },
@@ -7604,7 +7604,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L96",
-      "community": 184,
+      "community": 183,
       "norm_label": "drop oldest non-system messages to fit deepseek's 128k window.",
       "id": "ds_proxy_rationale_96"
     },
@@ -7613,7 +7613,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L126",
-      "community": 185,
+      "community": 184,
       "norm_label": "token count for a message including format overhead (~5 tok/msg).",
       "id": "ds_proxy_rationale_126"
     },
@@ -7622,7 +7622,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L146",
-      "community": 186,
+      "community": 185,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_146"
     },
@@ -7631,7 +7631,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L157",
-      "community": 187,
+      "community": 186,
       "norm_label": "recursively replace image blocks with text descriptions (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_resu",
       "id": "ds_proxy_rationale_157"
     },
@@ -7640,7 +7640,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L177",
-      "community": 188,
+      "community": 187,
       "norm_label": "compress 3+ newlines \u2192 2, strip trailing spaces per line, strip edges.",
       "id": "ds_proxy_rationale_177"
     },
@@ -7649,7 +7649,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L122",
-      "community": 189,
+      "community": 188,
       "norm_label": "fix images (vision/ocr), strip thinking, truncate context for deepseek.",
       "id": "ds_proxy_rationale_122"
     },
@@ -7658,7 +7658,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L142",
-      "community": 190,
+      "community": 189,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_142"
     },
@@ -7667,7 +7667,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L153",
-      "community": 191,
+      "community": 190,
       "norm_label": "recursively replace image blocks with text descriptions (\u0432 \u0442.\u0447. \u0432\u043d\u0443\u0442\u0440\u0438 tool_resu",
       "id": "ds_proxy_rationale_153"
     },
@@ -7676,7 +7676,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L173",
-      "community": 192,
+      "community": 191,
       "norm_label": "fix images (vision/ocr), strip thinking, truncate context for deepseek.",
       "id": "ds_proxy_rationale_173"
     },
@@ -7685,7 +7685,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L137",
-      "community": 193,
+      "community": 192,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_137"
     },
@@ -7694,7 +7694,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L148",
-      "community": 194,
+      "community": 193,
       "norm_label": "fix images (vision/ocr), strip thinking, truncate context for deepseek.",
       "id": "ds_proxy_rationale_148"
     },
@@ -7703,7 +7703,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L134",
-      "community": 195,
+      "community": 194,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_134"
     },
@@ -7712,7 +7712,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L145",
-      "community": 196,
+      "community": 195,
       "norm_label": "fix images (vision/ocr), strip thinking, truncate context for deepseek.",
       "id": "ds_proxy_rationale_145"
     },
@@ -7721,7 +7721,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L85",
-      "community": 197,
+      "community": 196,
       "norm_label": "toka estimate \u2014 ~4 chars/token, conservative for cjk/emoji.",
       "id": "ds_proxy_rationale_85"
     },
@@ -7730,7 +7730,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L90",
-      "community": 198,
+      "community": 197,
       "norm_label": "drop oldest non-system messages to fit deepseek's 128k window.",
       "id": "ds_proxy_rationale_90"
     },
@@ -7739,7 +7739,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L111",
-      "community": 199,
+      "community": 198,
       "norm_label": "try groq vision \u2192 ocr \u2192 fallback placeholder.",
       "id": "ds_proxy_rationale_111"
     },
@@ -7748,7 +7748,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L26",
-      "community": 200,
+      "community": 199,
       "norm_label": "strip images and fix thinking blocks.",
       "id": "ds_proxy_rationale_26"
     },
@@ -7757,7 +7757,7 @@
       "file_type": "rationale",
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L92",
-      "community": 201,
+      "community": 200,
       "norm_label": "forward sse stream, unfiltered.",
       "id": "ds_proxy_rationale_92"
     }
@@ -8009,9 +8009,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L686",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_py",
-      "target": "claude_code_setup_ds_proxy_classify_tool",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_classify_tool"
     },
     {
       "relation": "contains",
@@ -8019,9 +8019,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L696",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_py",
-      "target": "claude_code_setup_ds_proxy_filter_tools_lazy",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_filter_tools_lazy"
     },
     {
       "relation": "contains",
@@ -8502,9 +8502,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L726",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_filter_tools_lazy",
-      "target": "claude_code_setup_ds_proxy_normalize_to_text",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_normalize_to_text"
     },
     {
       "relation": "calls",
@@ -8772,9 +8772,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L443",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_truncate_tool_results",
-      "target": "claude_code_setup_ds_proxy_compress_content",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_compress_content"
     },
     {
       "relation": "rationale_for",
@@ -8792,9 +8792,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L418",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_418",
-      "target": "claude_code_setup_ds_proxy_is_tool_only",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_is_tool_only"
     },
     {
       "relation": "rationale_for",
@@ -8833,9 +8833,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L424",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_424",
-      "target": "claude_code_setup_ds_proxy_truncate_tool_results",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_truncate_tool_results"
     },
     {
       "relation": "rationale_for",
@@ -8874,9 +8874,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L485",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_485",
-      "target": "claude_code_setup_ds_proxy_strip_empty_blocks",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_strip_empty_blocks"
     },
     {
       "relation": "rationale_for",
@@ -8915,9 +8915,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L513",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_513",
-      "target": "claude_code_setup_ds_proxy_merge_text_blocks",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_merge_text_blocks"
     },
     {
       "relation": "rationale_for",
@@ -8956,9 +8956,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L530",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_530",
-      "target": "claude_code_setup_ds_proxy_tool_result_text",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_tool_result_text"
     },
     {
       "relation": "rationale_for",
@@ -8997,9 +8997,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L539",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_539",
-      "target": "claude_code_setup_ds_proxy_dedup_consecutive_results",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_dedup_consecutive_results"
     },
     {
       "relation": "rationale_for",
@@ -9038,9 +9038,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L555",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_555",
-      "target": "claude_code_setup_ds_proxy_limit_tool_use_blocks",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_limit_tool_use_blocks"
     },
     {
       "relation": "rationale_for",
@@ -9079,9 +9079,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L594",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_594",
-      "target": "claude_code_setup_ds_proxy_minify_description",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_minify_description"
     },
     {
       "relation": "rationale_for",
@@ -9131,9 +9131,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L607",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_607",
-      "target": "claude_code_setup_ds_proxy_strip_code_fences",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_strip_code_fences"
     },
     {
       "relation": "rationale_for",
@@ -9172,9 +9172,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L620",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_620",
-      "target": "claude_code_setup_ds_proxy_compact_json_text",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_compact_json_text"
     },
     {
       "relation": "rationale_for",
@@ -9213,9 +9213,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L633",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_633",
-      "target": "claude_code_setup_ds_proxy_strip_cache_control",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_strip_cache_control"
     },
     {
       "relation": "rationale_for",
@@ -9254,9 +9254,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L647",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_647",
-      "target": "claude_code_setup_ds_proxy_strip_metadata",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_strip_metadata"
     },
     {
       "relation": "rationale_for",
@@ -9285,9 +9285,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L712",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_filter_tools_lazy",
-      "target": "claude_code_setup_ds_proxy_classify_tool",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_classify_tool"
     },
     {
       "relation": "rationale_for",
@@ -9295,9 +9295,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L687",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_687",
-      "target": "claude_code_setup_ds_proxy_classify_tool",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_classify_tool"
     },
     {
       "relation": "calls",
@@ -9306,9 +9306,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L841",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_fix_request",
-      "target": "claude_code_setup_ds_proxy_filter_tools_lazy",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_filter_tools_lazy"
     },
     {
       "relation": "rationale_for",
@@ -9316,9 +9316,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L697",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_697",
-      "target": "claude_code_setup_ds_proxy_filter_tools_lazy",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_filter_tools_lazy"
     },
     {
       "relation": "calls",
@@ -9348,9 +9348,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L795",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_795",
-      "target": "claude_code_setup_ds_proxy_fix_request_cached",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_fix_request_cached"
     },
     {
       "relation": "rationale_for",
@@ -9389,9 +9389,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L839",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_839",
-      "target": "claude_code_setup_ds_proxy_fix_request",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_fix_request"
     },
     {
       "relation": "rationale_for",
@@ -9440,9 +9440,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L898",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_898",
-      "target": "claude_code_setup_ds_proxy_log_token_usage",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_log_token_usage"
     },
     {
       "relation": "rationale_for",
@@ -9613,9 +9613,9 @@
       "source_file": "claude-code-setup/ds-proxy.py",
       "source_location": "L924",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "claude_code_setup_ds_proxy_rationale_924",
-      "target": "claude_code_setup_ds_proxy_proxyhandler_do_reload",
-      "confidence_score": 1.0
+      "target": "claude_code_setup_ds_proxy_proxyhandler_do_reload"
     },
     {
       "relation": "rationale_for",
@@ -21384,5 +21384,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "54a840a10d2a63e83e9dcea091e2c919f0f491d5"
+  "built_at_commit": "e6843cc8ea8ee4ef8e247edd251d8201a165ed9b"
 }
