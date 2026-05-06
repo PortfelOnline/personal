@@ -109,6 +109,58 @@ def _compute_context_delta(body: dict) -> tuple:
     cache_hit_chars = common_prefix_len * 1000
 
     return common_prefix_len, len(messages) - common_prefix_len, cache_hit_chars
+
+# ============================================================
+# BALANCE TRACKER — отслеживает стоимость запросов
+# ============================================================
+BALANCE_FILE = os.path.expanduser("~/.claude/logs/proxy-balance.json")
+
+def _load_balance():
+    """Load running balance from disk."""
+    if os.path.exists(BALANCE_FILE):
+        try:
+            with open(BALANCE_FILE) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"total_cost_usd": 0.0, "total_requests": 0, "total_tokens": 0,
+            "by_model": {}, "session_id": None, "last_updated": None}
+
+def _save_balance(bal):
+    """Persist balance to disk."""
+    import time as _time
+    bal["last_updated"] = _time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    os.makedirs(os.path.dirname(BALANCE_FILE), exist_ok=True)
+    try:
+        with open(BALANCE_FILE, "w") as f:
+            json.dump(bal, f, indent=2)
+    except Exception:
+        pass
+
+def _update_balance(model: str, prompt_tokens: int, completion_tokens: int):
+    """Add a request's usage to running balance."""
+    bal = _load_balance()
+    cost = _cost_for_model(model, prompt_tokens, completion_tokens)
+    bal["total_cost_usd"] += cost
+    bal["total_requests"] += 1
+    bal["total_tokens"] += prompt_tokens + completion_tokens
+    # By model breakdown
+    bm = bal.setdefault("by_model", {})
+    md = bm.setdefault(model, {"cost": 0.0, "requests": 0, "tokens": 0})
+    md["cost"] += cost
+    md["requests"] += 1
+    md["tokens"] += prompt_tokens + completion_tokens
+
+    # Check and warn if DEEPSEEK_API budget exhausted
+    deepseek_total = sum(m["cost"] for m in bm.values())
+    if deepseek_total > 10.0:
+        print(f"[ds-proxy] ⚠️ DeepSeek API spend: ${deepseek_total:.2f} — consider switching to Claude Pro", file=sys.stderr)
+    if deepseek_total > 20.0:
+        print(f"[ds-proxy] 🚨 DeepSeek API spend: ${deepseek_total:.2f} — STOP, switch to cl-pro!", file=sys.stderr)
+
+    _save_balance(bal)
+    return bal
+
 GROQ_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_MODEL = "llama-4-scout-17b-16e-instruct"
 USE_OCR = os.environ.get("OCR") == "1"
@@ -194,14 +246,28 @@ def _should_use_flash(body: dict) -> bool:
 _DEFAULT_LOG_PATH = os.path.expanduser("~/.local/var/deepseek-usage.jsonl")
 
 
-def _log_jsonl(model: str, prompt_tokens: int, completion_tokens: int, system_len: int = 0):
-    """Append one usage record to JSONL (единый с deepseek_api.py)."""
+def _cost_for_model(model: str, prompt_tokens: int, completion_tokens: int, cache_read: int = 0, cache_create: int = 0) -> float:
+    """Calculate cost in USD for a given model and token counts."""
+    if "flash" in model.lower():
+        # DeepSeek Flash: $0.14/M input, $0.28/M output
+        return (prompt_tokens / 1e6) * 0.14 + (completion_tokens / 1e6) * 0.28
+    elif "deepseek" in model.lower():
+        # DeepSeek Pro: $2.00/M input, $8.00/M output
+        return (prompt_tokens / 1e6) * 2.00 + (completion_tokens / 1e6) * 8.00
+    else:
+        # Anthropic models (if used): approximate
+        return (prompt_tokens / 1e6) * 3.00 + (completion_tokens / 1e6) * 15.00
+
+def _log_jsonl(model: str, prompt_tokens: int, completion_tokens: int, system_len: int = 0, cache_read: int = 0, cache_create: int = 0):
+    """Append one usage record to JSONL + update running balance."""
     import time as _time
+    cost = _cost_for_model(model, prompt_tokens, completion_tokens, cache_read, cache_create)
     entry = {
         "timestamp": _time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "model": model,
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
+        "cost_usd": round(cost, 6),
         "total_tokens": prompt_tokens + completion_tokens,
         "system_prompt_len": system_len,
         "tags": ["proxy"],
@@ -1044,7 +1110,21 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if self.path.rstrip("/") == "/reload":
             self._do_reload()
             return
+        if self.path.rstrip("/") == "/balance":
+            self._do_balance()
+            return
         self._proxy("POST")
+
+    def _do_balance(self):
+        """Return JSON balance report."""
+        bal = _load_balance()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            **bal,
+            "tip": "Use 'cls' or 'claude-stats' in terminal to view."
+        }, indent=2).encode())
 
     def _do_reload(self):
         """Graceful in-place restart: exec self with same args. No sessions dropped."""
@@ -1169,6 +1249,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                         if selected_model:
                             sys_len = _count_tokens(_normalize_to_text(req_obj.get("system", "")))
                             _log_jsonl(selected_model, inp, out, sys_len)
+                            _update_balance(selected_model, inp, out)
                     body = json.dumps(js).encode()
                 except (json.JSONDecodeError, TypeError):
                     pass
