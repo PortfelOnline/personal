@@ -1,16 +1,16 @@
-# Graph Report - personal  (2026-05-04)
+# Graph Report - personal  (2026-05-06)
 
 ## Corpus Check
-- 25 files · ~162,754 words
+- 25 files · ~163,597 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 862 nodes · 1338 edges · 194 communities detected
+- 862 nodes · 1338 edges · 199 communities detected
 - Extraction: 84% EXTRACTED · 16% INFERRED · 0% AMBIGUOUS · INFERRED: 209 edges (avg confidence: 0.76)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fa1ade89`
+- Built from commit: `682c274a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,14 +63,14 @@
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
 - [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
 - [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
-- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
-- [[_COMMUNITY_Community 57|Community 57]]
-- [[_COMMUNITY_Community 58|Community 58]]
-- [[_COMMUNITY_Community 59|Community 59]]
 - [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
@@ -209,6 +209,11 @@
 - [[_COMMUNITY_Community 195|Community 195]]
 - [[_COMMUNITY_Community 196|Community 196]]
 - [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 198|Community 198]]
+- [[_COMMUNITY_Community 199|Community 199]]
+- [[_COMMUNITY_Community 200|Community 200]]
+- [[_COMMUNITY_Community 201|Community 201]]
+- [[_COMMUNITY_Community 202|Community 202]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `SessionManager` - 43 edges
@@ -234,11 +239,11 @@
 - `SessionManager` --uses--> `Hash-based key to identify a pending dangerous operation.`  [INFERRED]
   claude-code-setup/deepseek-agent/session_manager.py → claude-code-setup/deepseek-agent/agent.py
 
-## Communities (198 total, 146 thin omitted)
+## Communities (203 total, 148 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
-Nodes (28): _filter_domains(), init_plugins_all(), _memory_save(), _plan_format_sections(), Filter results by allowed/blocked domains., run(), _subagent_worker(), _tasks_save() (+20 more)
+Nodes (25): init_plugins_all(), _memory_save(), _plan_format_sections(), run(), _subagent_worker(), _tasks_save(), tool_memory_delete(), tool_memory_set() (+17 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.09
@@ -254,27 +259,27 @@ Nodes (12): Save all sessions to JSON file., Load sessions from JSON file. Retur
 
 ### Community 4 - "Community 4"
 Cohesion: 0.08
-Nodes (26): _notify_telegram(), Get status and result of a background task., List background tasks, optionally filtered by status., Dispatch to MCP server. Handles both prefixed (mcp__<server>__<tool>)     and un, tool_bg_task_list(), tool_bg_task_status(), tool_cron_create(), tool_cron_delete() (+18 more)
-
-### Community 5 - "Community 5"
-Cohesion: 0.11
-Nodes (21): _count_tokens(), _log_jsonl(), _log_token_usage(), _msg_tokens(), _normalize_to_text(), ProxyHandler, Append one usage record to JSONL (единый с deepseek_api.py)., Token count via tiktoken cl100k_base (shared by Claude & DeepSeek BPE). (+13 more)
-
-### Community 6 - "Community 6"
-Cohesion: 0.09
-Nodes (26): _api_call_with_tools(), _api_call_with_tools_stream(), _auto_memory_extract(), _auto_route(), _build_auto_prompt(), _check_budget(), _classify_task(), _filter_tools() (+18 more)
-
-### Community 7 - "Community 7"
-Cohesion: 0.08
 Nodes (25): fix_request(), _merge_text_blocks(), Remove empty tool_result and text blocks. Zero risk — empty blocks carry no info, Remove empty tool_result and text blocks. Zero risk — empty blocks carry no info, Merge adjacent text blocks into one. Zero risk — preserves all content., Merge adjacent text blocks into one. Zero risk — preserves all content., Remove empty tool_result and text blocks. Zero risk — empty blocks carry no info, Merge adjacent text blocks into one. Zero risk — preserves all content. (+17 more)
 
-### Community 8 - "Community 8"
+### Community 5 - "Community 5"
+Cohesion: 0.12
+Nodes (18): BaseHTTPRequestHandler, _build_auto_prompt(), _check_auth(), _check_budget(), _filter_tools(), handle_chat(), handle_chat_stream(), Handler (+10 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.08
+Nodes (24): _monitor_worker(), _notify_telegram(), Run a shell command in a thread, capture output., Start a background chat task. Returns immediately with task_id., Get status and result of a background task., Dispatch to MCP server. Handles both prefixed (mcp__<server>__<tool>)     and un, tool_bg_task_start(), tool_bg_task_status() (+16 more)
+
+### Community 7 - "Community 7"
 Cohesion: 0.11
 Nodes (20): main(), parse_rankd_text(), Parse raw text pasted from Rankd listing pages., get_all_platform_urls(), main(), Scrape a single platform page and return structured data., Get all platform page URLs from the Rankd database., scrape_platform_page() (+12 more)
 
+### Community 8 - "Community 8"
+Cohesion: 0.12
+Nodes (23): _classify_tool(), _compress_content(), _count_tokens(), _filter_tools_lazy(), _log_token_usage(), _msg_tokens(), _normalize_to_text(), Token count via tiktoken cl100k_base (shared by Claude & DeepSeek BPE). (+15 more)
+
 ### Community 9 - "Community 9"
-Cohesion: 0.15
-Nodes (14): _build_auto_prompt(), _check_budget(), _filter_tools(), handle_chat(), handle_chat_stream(), Build system prompt section with auto-memory instructions and current memory con, Filter tool definitions by allow/block lists. Both are lists of names.     Retur, Return None if within budget, or error dict if exceeded. (+6 more)
+Cohesion: 0.13
+Nodes (16): _build_auto_prompt(), _check_budget(), _filter_tools(), handle_chat(), handle_chat_stream(), Build system prompt section with auto-memory instructions and current memory con, Filter tool definitions by allow/block lists. Both are lists of names.     Retur, Return None if within budget, or error dict if exceeded. (+8 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.13
@@ -282,115 +287,115 @@ Nodes (19): _get_done_sites(), main(), Вернуть набор уже обра
 
 ### Community 11 - "Community 11"
 Cohesion: 0.12
-Nodes (20): _alert(), check_services(), _cron_on_trigger(), _docker_api(), init_mcp(), init_plugins_all(), log(), _monitor_worker() (+12 more)
+Nodes (20): _alert(), _api_call_with_tools(), _api_call_with_tools_stream(), check_services(), _cron_on_trigger(), _docker_api(), init_mcp(), init_plugins_all() (+12 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.11
-Nodes (12): _auto_route(), _classify_task(), Classify user message into task type. Returns (category, confidence, reason)., If message matches a task profile, spawn sub-agent. Returns (routed, result_dict, Start a background chat task. Returns immediately with task_id., tool_bg_task_start(), Save all sessions to JSON file., Create a new session seeded from an existing one. Returns new_sid. (+4 more)
+Nodes (11): _auto_memory_extract(), _cron_on_trigger(), Extract key facts from an assistant response and auto-save to memory.     Extrac, When a user cron task fires, call handle_chat., Save all sessions to JSON file., Create a new session seeded from an existing one. Returns new_sid., Export full session data as dict., Import session from dict. Returns new_sid or None. (+3 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.15
-Nodes (18): _api_call(), calculate_cost(), chat(), _check_prompt_length(), count_messages(), count_tokens(), Не запрашивать больше токенов, чем влезет в контекст 64K.     Пример: промпт 50K, Автоматический выбор модели на основе эвристик.      Правила:     - Длина: < 200 (+10 more)
+Cohesion: 0.14
+Nodes (18): calculate_cost(), chat(), _check_prompt_length(), count_messages(), count_tokens(), format_tokens(), _get_encoding(), Автоматический выбор модели на основе эвристик.      Правила:     - Длина: < 200 (+10 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.15
-Nodes (15): DeepSeek API — прямой доступ к DeepSeek V4 без Claude Code.  С оптимизацией токе, _api_key(), audit_plugins(), format_tokens(), _get_encoding(), list_models(), DeepSeek API — прямой доступ к DeepSeek V4 без Claude Code.  С оптимизацией токе, Lazy-загрузка tiktoken encoding.     Падает молча если tiktoken не установлен — (+7 more)
+Nodes (18): audit_plugins(), audit_usage(), _model_key(), DeepSeek API — прямой доступ к DeepSeek V4 без Claude Code.  С оптимизацией токе, Оценка: какой бы скор дала _select_model для этого запроса.     Используется для, normalize 'auto' → resolved model, otherwise as-is., Анализ лога: поиск misrouting, waste, рекомендации.      Returns:         dict с, Pretty-print audit report. (+10 more)
 
 ### Community 15 - "Community 15"
+Cohesion: 0.21
+Nodes (11): _alert(), _check_auth(), check_services(), _docker_api(), Handler, log(), nightly_cleanup(), Handle GET /chat/stream via SSE. (+3 more)
+
+### Community 16 - "Community 16"
+Cohesion: 0.16
+Nodes (10): _limit_tool_use_blocks(), _log_jsonl(), ProxyHandler, Append one usage record to JSONL (единый с deepseek_api.py)., Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.     DeepSeek часто выдаёт, Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.     DeepSeek часто выдаёт, Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.     DeepSeek часто выдаёт, Graceful in-place restart: exec self with same args. No sessions dropped. (+2 more)
+
+### Community 17 - "Community 17"
 Cohesion: 0.15
 Nodes (16): _check_prompt_length(), count_messages(), count_tokens(), format_tokens(), _get_encoding(), Не запрашивать больше токенов, чем влезет в контекст 64K.     Пример: промпт 50K, Автоматический выбор модели на основе эвристик.      Правила:     - Длина: < 200, Предупреждения если промпт/система выходят за разумные пределы. (+8 more)
 
-### Community 16 - "Community 16"
-Cohesion: 0.21
-Nodes (8): BaseHTTPRequestHandler, _check_auth(), Handler, Handle GET /chat/stream via SSE., Validate Authorization header. Returns (prefix, error_json_or_None).     prefix, tool_git_diff(), tool_git_log(), tool_git_status()
-
-### Community 17 - "Community 17"
+### Community 18 - "Community 18"
 Cohesion: 0.21
 Nodes (14): api_post(), create_account(), publish_article(), Telegra.ph — публикация статьи без регистрации DA: 81, Do-Follow: Yes, Фаза 2, Создать анонимный аккаунт Telegraph., Опубликовать статью из файла, вернуть URL., run(), api_post() (+6 more)
 
-### Community 18 - "Community 18"
-Cohesion: 0.18
-Nodes (14): _create_api_key(), _generate_api_key(), _list_api_keys(), _load_api_keys(), Create a new API key. Requires existing admin key., Revoke an API key by its value., List all API keys (without the secret values)., Load API keys from JSON file. Returns dict of key -> info. (+6 more)
-
 ### Community 19 - "Community 19"
-Cohesion: 0.18
-Nodes (14): _create_api_key(), _generate_api_key(), _list_api_keys(), _load_api_keys(), Create a new API key. Requires existing admin key., Revoke an API key by its value., List all API keys (without the secret values)., Load API keys from JSON file. Returns dict of key -> info. (+6 more)
+Cohesion: 0.16
+Nodes (14): _path_from_params(), _pending_key(), Hash-based key to identify a pending dangerous operation., _safe_run_hooks(), tool_bash(), tool_edit_file(), tool_git_diff(), tool_git_log() (+6 more)
 
 ### Community 20 - "Community 20"
+Cohesion: 0.18
+Nodes (14): _create_api_key(), _generate_api_key(), _list_api_keys(), _load_api_keys(), Create a new API key. Requires existing admin key., Revoke an API key by its value., List all API keys (without the secret values)., Load API keys from JSON file. Returns dict of key -> info. (+6 more)
+
+### Community 21 - "Community 21"
+Cohesion: 0.18
+Nodes (14): _create_api_key(), _generate_api_key(), _list_api_keys(), _load_api_keys(), Create a new API key. Requires existing admin key., Revoke an API key by its value., List all API keys (without the secret values)., Load API keys from JSON file. Returns dict of key -> info. (+6 more)
+
+### Community 22 - "Community 22"
 Cohesion: 0.15
 Nodes (11): _describe_image(), _groq_describe(), _ocr_describe(), Describe image via Groq vision API., OCR image via tesseract., Try Groq vision → OCR → fallback placeholder., Recursively replace image/document blocks with text (в т.ч. внутри tool_result)., _strip_image_blocks() (+3 more)
 
-### Community 21 - "Community 21"
+### Community 23 - "Community 23"
 Cohesion: 0.17
 Nodes (13): _path_from_params(), _pending_key(), Hash-based key to identify a pending dangerous operation., tool_bash(), tool_edit_file(), tool_git_diff(), tool_git_log(), tool_git_status() (+5 more)
-
-### Community 22 - "Community 22"
-Cohesion: 0.19
-Nodes (13): _alert(), _auto_memory_extract(), check_services(), _cron_on_trigger(), _docker_api(), log(), _monitor_worker(), nightly_cleanup() (+5 more)
-
-### Community 23 - "Community 23"
-Cohesion: 0.26
-Nodes (5): _check_auth(), Handler, Handle GET /chat/stream via SSE., Validate Authorization header. Returns (prefix, error_json_or_None).     prefix, Export full session data as dict.
 
 ### Community 24 - "Community 24"
 Cohesion: 0.21
 Nodes (12): NeoCities — регистрация + загрузка статьи через API DA: 83, Do-Follow: Yes, Фаза, Зарегистрировать аккаунт через браузер., Загрузить HTML страницу через API., register(), run(), upload_page(), NeoCities — регистрация + загрузка статьи через API DA: 83, Do-Follow: Yes, Фаза, Зарегистрировать аккаунт через браузер. (+4 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.17
-Nodes (12): _compact_json_text(), _compress_content(), _is_tool_only(), Role-weighted truncation: compress content first, then drop tool-only, then newe, Content-type aware compression. Handles: file listings, stack traces, long JSON,, True if message is exclusively tool_result/tool_use blocks., True if message is exclusively tool_result/tool_use blocks., True if message is exclusively tool_result/tool_use blocks. (+4 more)
-
-### Community 26 - "Community 26"
-Cohesion: 0.22
-Nodes (11): _path_from_params(), _pending_key(), Hash-based key to identify a pending dangerous operation., _safe_run_hooks(), tool_bash(), tool_edit_file(), tool_glob_files(), tool_grep_files() (+3 more)
-
-### Community 27 - "Community 27"
-Cohesion: 0.18
-Nodes (11): _api_call_with_tools(), _api_call_with_tools_stream(), Call DeepSeek API with tool calling support. Returns full message object., Streaming call with tool support., _api_call(), _api_key(), chat(), list_models() (+3 more)
-
-### Community 28 - "Community 28"
 Cohesion: 0.22
 Nodes (7): calculate_cost(), get_usage_summary(), Логирует каждый API-вызов в JSONL-файл.     Файл: ~/.local/var/deepseek-usage.js, Итоги за всё время из существующего лога., Сводка по расходу из JSONL-лога., Расчёт стоимости запроса в USD по ценам DeepSeek., UsageLogger
 
-### Community 29 - "Community 29"
+### Community 26 - "Community 26"
 Cohesion: 0.2
 Nodes (10): _fix_request_cached(), _minify_description(), _normalize_text(), Strip trailing spaces per line + edges. Zero-risk — no content modification beyo, Strip boilerplate/hedging from tool descriptions. Zero-risk: preserves all seman, Strip boilerplate/hedging from tool descriptions. Zero-risk: preserves all seman, Strip boilerplate/hedging from tool descriptions. Zero-risk: preserves all seman, Cache-aware wrapper: skip recomputation when system/tools unchanged. (+2 more)
 
-### Community 30 - "Community 30"
+### Community 27 - "Community 27"
 Cohesion: 0.2
-Nodes (9): init_mcp(), Initialize MCP servers and merge their tools., _shutdown_handler(), _get_done_sites(), Вернуть набор уже обработанных платформ из CSV., Запустить топ-N do-follow платформ из Rankd через браузер (полу-авто)., run_top_rankd(), Load sessions from JSON file. Returns count of restored sessions. (+1 more)
+Nodes (8): _api_call_with_tools_stream(), List background tasks, optionally filtered by status., Streaming call with tool support., tool_bg_task_list(), tool_monitor_list(), tool_plan_list(), tool_subagent_list(), tool_task_list()
 
-### Community 31 - "Community 31"
-Cohesion: 0.2
-Nodes (10): audit_usage(), _model_key(), Оценка: какой бы скор дала _select_model для этого запроса.     Используется для, normalize 'auto' → resolved model, otherwise as-is., Анализ лога: поиск misrouting, waste, рекомендации.      Returns:         dict с, Pretty-print audit report., Полная оптимизация: DeepSeek audit + Plugin audit., _reroute_score() (+2 more)
-
-### Community 32 - "Community 32"
+### Community 28 - "Community 28"
 Cohesion: 0.2
 Nodes (10): audit_usage(), _model_key(), Оценка: какой бы скор дала _select_model для этого запроса.     Используется для, normalize 'auto' → resolved model, otherwise as-is., Анализ лога: поиск misrouting, waste, рекомендации.      Returns:         dict с, Pretty-print audit report., Полная оптимизация: DeepSeek audit + Plugin audit., _reroute_score() (+2 more)
 
-### Community 33 - "Community 33"
+### Community 29 - "Community 29"
 Cohesion: 0.33
 Nodes (8): get_user_id(), publish_article(), Medium.com — публикация статьи через API DA: 96, Do-Follow: YES (ссылки в тексте, run(), get_user_id(), publish_article(), Medium.com — публикация статьи через API DA: 96, Do-Follow: YES (ссылки в тексте, run()
 
-### Community 34 - "Community 34"
-Cohesion: 0.36
-Nodes (3): _log_jsonl(), ProxyHandler, Append one usage record to JSONL (единый с deepseek_api.py).
+### Community 30 - "Community 30"
+Cohesion: 0.22
+Nodes (9): _api_call_with_tools(), Call DeepSeek API with tool calling support. Returns full message object., _api_call(), _api_key(), chat(), list_models(), Низкоуровневый вызов DeepSeek Chat API.      Отличия от исходной версии:     - d, Вызов DeepSeek (не streaming).      Args:         prompt: текст запроса (+1 more)
 
-### Community 35 - "Community 35"
+### Community 31 - "Community 31"
 Cohesion: 0.25
 Nodes (8): _dedup_consecutive_results(), Extract text from a tool_result block for comparison., Drop consecutive tool_result blocks with identical text. Zero-risk: identical co, Extract text from a tool_result block for comparison., Drop consecutive tool_result blocks with identical text. Zero-risk: identical co, Extract text from a tool_result block for comparison., Drop consecutive tool_result blocks with identical text. Zero-risk: identical co, _tool_result_text()
 
-### Community 36 - "Community 36"
+### Community 32 - "Community 32"
+Cohesion: 0.36
+Nodes (3): _log_jsonl(), ProxyHandler, Append one usage record to JSONL (единый с deepseek_api.py).
+
+### Community 33 - "Community 33"
 Cohesion: 0.25
 Nodes (8): _describe_image(), _groq_describe(), _ocr_describe(), Describe image via Groq vision API., OCR image via tesseract., Try Groq vision → OCR → fallback placeholder., Recursively replace image/document blocks with text (в т.ч. внутри tool_result)., _strip_image_blocks()
 
-### Community 37 - "Community 37"
+### Community 34 - "Community 34"
+Cohesion: 0.25
+Nodes (7): init_mcp(), Initialize MCP servers and merge their tools., _shutdown_handler(), Запустить топ-N do-follow платформ из Rankd через браузер (полу-авто)., run_top_rankd(), Load sessions from JSON file. Returns count of restored sessions., save()
+
+### Community 35 - "Community 35"
 Cohesion: 0.32
 Nodes (5): get_usage_summary(), Логирует каждый API-вызов в JSONL-файл.     Файл: ~/.local/var/deepseek-usage.js, Итоги за всё время из существующего лога., Сводка по расходу из JSONL-лога., UsageLogger
 
-### Community 38 - "Community 38"
+### Community 36 - "Community 36"
+Cohesion: 0.29
+Nodes (7): _api_call(), _api_key(), list_models(), Не запрашивать больше токенов, чем влезет в контекст 64K.     Пример: промпт 50K, Низкоуровневый вызов DeepSeek Chat API.      Отличия от исходной версии:     - d, Список доступных моделей., _resolve_max_tokens()
+
+### Community 37 - "Community 37"
 Cohesion: 0.33
 Nodes (6): audit_plugins(), Scan plugin cache: версия + размер + установленные копии., Анализ плагинов: дубликаты, размеры, оценка MCP токенов.      Returns:         {, Pretty-print plugin audit., run_audit_plugins(), _walk_plugin_versions()
+
+### Community 38 - "Community 38"
+Cohesion: 0.4
+Nodes (5): _auto_memory_extract(), _memory_save(), Extract key facts from an assistant response and auto-save to memory.     Extrac, tool_memory_delete(), tool_memory_set()
 
 ### Community 39 - "Community 39"
 Cohesion: 0.6
@@ -418,29 +423,41 @@ Nodes (3): Folkd.com — социальная закладка (bookmark) DA: 60
 
 ### Community 45 - "Community 45"
 Cohesion: 0.5
-Nodes (4): _limit_tool_use_blocks(), Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.     DeepSeek часто выдаёт, Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.     DeepSeek часто выдаёт, Limit parallel tool_use blocks to MAX_PARALLEL_TOOLS.     DeepSeek часто выдаёт
+Nodes (4): _is_tool_only(), True if message is exclusively tool_result/tool_use blocks., True if message is exclusively tool_result/tool_use blocks., True if message is exclusively tool_result/tool_use blocks.
 
 ### Community 46 - "Community 46"
 Cohesion: 0.5
-Nodes (4): _classify_tool(), _filter_tools_lazy(), Вернуть prefix MCP-сервера или None для core-инструмента., Lazy-load MCP инструменты: только если контекст их подразумевает.      Анализиру
+Nodes (4): _compact_json_text(), Compact pretty-printed JSON. Zero risk — identical data, fewer tokens., Compact pretty-printed JSON. Zero risk — identical data, fewer tokens., Compact pretty-printed JSON. Zero risk — identical data, fewer tokens.
 
 ### Community 47 - "Community 47"
+Cohesion: 0.5
+Nodes (4): _auto_route(), _classify_task(), Classify user message into task type. Returns (category, confidence, reason)., If message matches a task profile, spawn sub-agent. Returns (routed, result_dict
+
+### Community 48 - "Community 48"
+Cohesion: 0.5
+Nodes (4): _auto_route(), _classify_task(), Classify user message into task type. Returns (category, confidence, reason)., If message matches a task profile, spawn sub-agent. Returns (routed, result_dict
+
+### Community 49 - "Community 49"
+Cohesion: 0.67
+Nodes (3): _filter_domains(), Filter results by allowed/blocked domains., tool_web_search()
+
+### Community 50 - "Community 50"
 Cohesion: 0.67
 Nodes (3): _filter_domains(), Filter results by allowed/blocked domains., tool_web_search()
 
 ## Knowledge Gaps
 - **379 isolated node(s):** `Определить: flash (дёшево) или pro (полно).      Смотрит ТОЛЬКО сообщения user,`, `Append one usage record to JSONL (единый с deepseek_api.py).`, `Describe image via Groq vision API.`, `OCR image via tesseract.`, `Token count via tiktoken cl100k_base (shared by Claude & DeepSeek BPE).` (+374 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **146 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **148 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `save()` connect `Community 30` to `Community 33`, `Community 40`, `Community 9`, `Community 10`, `Community 41`, `Community 42`, `Community 43`, `Community 44`, `Community 17`, `Community 20`, `Community 23`, `Community 24`?**
+- **Why does `save()` connect `Community 34` to `Community 40`, `Community 9`, `Community 10`, `Community 41`, `Community 42`, `Community 43`, `Community 44`, `Community 15`, `Community 18`, `Community 22`, `Community 24`, `Community 29`?**
   _High betweenness centrality (0.079) - this node is a cross-community bridge._
-- **Why does `SessionManager` connect `Community 12` to `Community 0`, `Community 3`, `Community 4`, `Community 9`, `Community 50`, `Community 19`, `Community 21`, `Community 22`, `Community 23`, `Community 27`, `Community 30`?**
+- **Why does `SessionManager` connect `Community 12` to `Community 34`, `Community 3`, `Community 6`, `Community 9`, `Community 15`, `Community 48`, `Community 50`, `Community 55`, `Community 21`, `Community 23`, `Community 27`, `Community 30`?**
   _High betweenness centrality (0.055) - this node is a cross-community bridge._
-- **Why does `SessionManager` connect `Community 3` to `Community 8`, `Community 16`?**
+- **Why does `SessionManager` connect `Community 3` to `Community 5`, `Community 7`?**
   _High betweenness centrality (0.036) - this node is a cross-community bridge._
 - **Are the 30 inferred relationships involving `SessionManager` (e.g. with `Handler` and `Streaming call with tool support.`) actually correct?**
   _`SessionManager` has 30 INFERRED edges - model-reasoned connections that need verification._

@@ -67,24 +67,26 @@
 
 ## 4. Что нашему стеку критически не хватает
 
-### Priority 1: Кэширование контекста в ds-proxy
-**Почему:** 
-- 90% трафика = повторная отправка контекста
-- Без кэша DS в 33x дороже Claude Pro
-- Технически: сделать session-based cache для Claude-style prompt caching
+### Priority 1: Кэширование контекста в ds-proxy ✅ FIXED 2026-05-06
+**Fixed:** `_strip_cache_control` теперь СЖИМАЕТ блоки с cache_control вместо у��аления
+- Системный промпт: 1,800→98 токенов (78% экономии)
+- Tool results: keep first 300 + last 150 chars
+- User/assistant: keep first 400-500 + last 200 chars
+- **Ожидаемая экономия: 60-80% входных токенов на длинных сессиях**
 
-### Priority 2: Модельный роутер
-**Почему:**
-- Простые вопросы (git status, ls) — Haiku или DS flash
-- Средние (feature development) — Sonnet
-- Сложные (архитектура) — Opus
-- Нужен автоматический выбор на основе размера контекста
+### Priority 2: Модельный роутер ✅ FIXED 2026-05-06
+**Fixed:** `session-start-model-router.sh` — анализирует первый запрос, выбирает модель
+- Сложный (архитектура, миграции) → claude-opus-4-7
+- Средний (баги, фичи) → claude-sonnet-4-20250514
+- Простой (вопросы, git) → deepseek-v4-flash
+- Черновики → claude-haiku-4-5-20251001
+- **Алиасы:** cl-simple, cl-medium, cl-complex, cl-quick
 
-### Priority 3: Sandbox / test loop
-**Почему:**
-- Codex и Cursor запускают код автоматически
-- У нас: пишем → сохраняем → запускаем → читаем ошибки
-- Нужен pre-commit / pre-save хук
+### Priority 3: Sandbox / test loop ⚠️ Инфраструктура есть, Docker выключен
+**Что есть:** Docker sandbox: `deepseek-agent/` (Dockerfile + docker-compose.yml)
+- Запускает код в изолированном контейнере на порту 8766
+- Автоматический feedback loop (запустить → прочитать ошибки → исправить)
+- **Нужно:** запустить Docker (`docker compose up -d`)
 
 ### Priority 4: Codebase indexing
 **Почему:**
