@@ -1,15 +1,47 @@
 {
   "/Users/evgenijgrudev/personal/claude-code-setup/ds-proxy.py": {
-    "mtime": 1778054332.3928347,
-    "hash": "150767554bc9e95ee211e5db7a44202a"
+    "mtime": 1778055129.0190241,
+    "hash": "db86e8c33a2c7663bdc820a81a5cf324"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/safe_access.py": {
+    "mtime": 1778055741.0084765,
+    "hash": "8c92102f1f7df0705949d40940a85826"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/metrics.py": {
+    "mtime": 1778055879.6536303,
+    "hash": "319fa2b5a549ab00a681b1a910426f09"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/plugin_loader.py": {
+    "mtime": 1778055793.513983,
+    "hash": "1bb16164abfb52185d69bcbbb917cf48"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/background_tasks.py": {
+    "mtime": 1778055740.975081,
+    "hash": "118ed3a1d2470eeb71eb8a132bf0a3ae"
   },
   "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/session_manager.py": {
     "mtime": 1777543671.3311758,
     "hash": "54a7157bda8c153ae167fdd497265add"
   },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/cron_manager.py": {
+    "mtime": 1778055741.0025358,
+    "hash": "77f5982dc0de285089c16fdf9dc30e98"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/deepseek_api.py": {
+    "mtime": 1778055639.7825038,
+    "hash": "c37dadacac43834cd59a7e78e3b337fe"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/hook_loader.py": {
+    "mtime": 1778055740.9958057,
+    "hash": "5d447c944fb5b48da6caa99e02e9a82f"
+  },
   "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/agent.py": {
     "mtime": 1777543663.350852,
     "hash": "e4c62f80308383f97cb6fdb2084af35f"
+  },
+  "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/mcp_client.py": {
+    "mtime": 1778055740.980375,
+    "hash": "df4fe4ed129958493ed9e06ea3584290"
   },
   "/Users/evgenijgrudev/personal/claude-code-setup/patches/fix_agent_gap_2.py": {
     "mtime": 1777436298.824596,
@@ -32,8 +64,8 @@
     "hash": "90373ac91ce898e7b80a7633ae376e38"
   },
   "/Users/evgenijgrudev/personal/claude-code-setup/deepseek/deepseek_api.py": {
-    "mtime": 1777610002.4222445,
-    "hash": "7f9231848e9b418acef3e5792f8d2e41"
+    "mtime": 1778055630.1655762,
+    "hash": "c37dadacac43834cd59a7e78e3b337fe"
   },
   "/Users/evgenijgrudev/personal/scripts/save-session-memory.py": {
     "mtime": 1777311931.933025,
@@ -400,8 +432,8 @@
     "hash": "fcc718c5f9e218a1d0174c38c284d332"
   },
   "/Users/evgenijgrudev/personal/claude-code-setup/deepseek-agent/docker-compose.yml": {
-    "mtime": 1777319311.9661903,
-    "hash": "e1c318ed7611bd3eef037787e7d079b9"
+    "mtime": 1778055835.2661448,
+    "hash": "2d1efee427f50fe2f4e630d1b9795ba8"
   },
   "/Users/evgenijgrudev/personal/database/database-mongodb-expert.md": {
     "mtime": 1777311931.910394,
