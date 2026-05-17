@@ -33,7 +33,27 @@
 - Рассмотреть настройку resource limits для searchd
 - Безопасно перезапускать через `kill -9`, так как сервисы автоматически восстанавливаются
 
+## Grafana Recovery (18:15-18:18)
+**Problem**: При попытке восстановления Grafana потребляла 100-117% CPU  
+**Root Cause**: Конфликт портов - Grafana пыталась использовать порт 3000, занятый strategy-dashboard  
+**Error**: `"failed to open listener on address 0.0.0.0:3000: bind: address already in use"`
+
+**Solution**:
+1. **Диагностика**: `lsof -i :3000` показал Node.js (strategy-dashboard) на PID 795
+2. **Изменение конфигурации**: `/etc/grafana/grafana.ini` → `http_port = 8889`  
+3. **Перезапуск**: `systemctl restart grafana-server`
+
+**Result**: Grafana стабильно работает на порту 8889, CPU idle 66.4%
+
+## Final System Status (18:18)
+- **Load average**: 8.15 (стабилизирован)
+- **searchd**: 15% CPU (восстановлен после автоматического перезапуска)
+- **Grafana**: работает на :8889, нормальное потребление CPU
+- **strategy-dashboard**: продолжает работать на :3000  
+- **MySQL**: 36.8% CPU (в норме)
+
 ## Related Services
 - **yandex_bot**: контейнер был остановлен во время инцидента
-- **MySQL**: нормально работал, 36.8% → 11.1% CPU после исправления
+- **MySQL**: нормально работал, 71.4% → 36.8% CPU после исправления
 - **Docker containers**: работали стабильно
+- **Port conflict resolved**: strategy-dashboard :3000, Grafana :8889
