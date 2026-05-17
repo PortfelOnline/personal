@@ -1,7 +1,14 @@
 # Load Average Optimization & supervisord Fix (2026-05-17)
 
 ## Summary
-**✅ Critical performance issue resolved: Load Average reduced from 18+ to 8.20**
+**✅ Critical performance issue resolved and MySQL/systemd state normalized**
+
+Final verified state after the follow-up audit:
+- `kadastrmap.info` homepage responds with HTTP 200.
+- `mysql.service` is `active (exited)` through a systemd drop-in that manages the Docker MariaDB container.
+- Host TCP MySQL works on `127.0.0.1:3306` for root and the application user.
+- Container-local MySQL socket inside `kad` works and is managed by the container's supervisord.
+- The earlier conclusion that supervisord should be disabled was incorrect for the `kad` container.
 
 ## Problem Statement
 - **High Load Average**: 12.89+ → 18.38+ (критично для 6-CPU системы)
@@ -10,11 +17,13 @@
 - **Website issues**: kadastrmap.info возвращал HTTP 500/502 ошибки
 
 ## Root Cause Analysis
-**supervisord** автоматически запускал множественные PHP-FPM pools через неправильную конфигурацию:
-- **Process spawning**: supervisord (PID 3471) создавал waves of PHP processes
-- **Socket mismatch**: nginx использовал `/run/php/php-fpm.sock`, PHP-FPM — `/run/php/php7.4-fpm.sock`  
-- **Pool misconfiguration**: `pm.max_children = 50` (слишком много для системы)
-- **Auto-respawn**: killed процессы автоматически перезапускались
+The incident had two overlapping causes:
+- **PHP-FPM/nginx socket mismatch**: nginx expected `/run/php/php-fpm.sock`, while the PHP-FPM socket path was inconsistent during the incident.
+- **Misidentified MySQL ownership**: host `mysql.service` was trying to start `/usr/sbin/mysqld` with a missing `/var/lib/mysql`, while the actual production DB paths were containerized:
+  - `kad` container: local MySQL for the application, managed by container supervisord.
+  - `mariadb-wordpress` container: host-exposed MariaDB on `127.0.0.1:3306`.
+
+Earlier investigation incorrectly treated the `kad` container's supervisord as a host-level process that should be disabled. That was wrong: it manages required container services (`mysqld`, `php-fpm7.4`, `nginx`, Redis, Manticore).
 
 ## Resolution Steps
 
@@ -28,27 +37,33 @@
 - ❌ Killed processes manually: auto-respawned by supervisord
 - ❌ Disabled multiple PHP versions: supervisord kept respawning
 
-### 3. supervisord Discovery & Resolution  
-- **Found culprit**: supervisord (PID 3471) managing PHP-FPM автоматически
-- **Stopped supervisord**: `kill -9 3471`  
-- **Fixed PHP socket**: `/run/php/php7.4-fpm.sock` → `/run/php/php-fpm.sock`
-- **Cleaned configs**: removed duplicate/conflicting pool configurations
+### 3. supervisord Discovery & Correction
+- Found that the visible supervisord process belongs to the Docker `kad` container.
+- Confirmed it is expected to manage container-local `mysqld`, `php-fpm7.4`, `nginx`, Redis, and Manticore.
+- Corrected the operational decision: do not disable `kad` supervisord.
+- Fixed PHP socket routing through `/run/php/php-fpm.sock`.
 
-### 4. System Stabilization
-- **PHP processes**: 56+ → 2 (minimal configuration)  
-- **Load Average**: 18.38 → 8.20 (↓55% improvement)
-- **Website restored**: kadastrmap.info returning proper HTML
-- **Permanently disabled supervisord**: moved configs to .disabled
+### 4. MySQL/systemd Stabilization
+- Stopped host `mysql.service` from repeatedly trying to start a missing host datadir.
+- Added `/etc/systemd/system/mysql.service.d/override.conf` so `mysql.service` manages `mariadb-wordpress` via Docker.
+- Verified `mysql.service`: `active (exited)`.
+- Verified host TCP DB access:
+  - `mysqladmin -h127.0.0.1 -uroot ... ping` → `mysqld is alive`
+  - `mysql -h127.0.0.1 -ugen_user admin_kadas_f -e 'SELECT 1'` → OK
+- Verified container socket DB access inside `kad`:
+  - `docker exec kad mysqladmin ping` → `mysqld is alive`
+  - `docker exec kad mysql -e 'SELECT 1'` → OK
 
 ## Results
 
 | Metric | Before | After | Improvement |
 |--------|---------|-------|-------------|
-| Load Average | 18.38 | 8.20 | ↓55% |
-| PHP Processes | 56+ | 2 | ↓96% |  
-| CPU Idle | 20.9% | ~60%+ | ↑3x |
-| Website Status | HTTP 500 | ✅ Working | Fixed |
-| System Stability | Unstable | ✅ Stable | Resolved |
+| Load Average | 18.38 | ~9-13 during audit | Improved, still watch |
+| PHP Processes | 56+ | Container-managed | Under supervisord |
+| MySQL systemd | activating / flapping | active (exited) | Fixed |
+| Host MySQL TCP | Access failed | OK | Fixed |
+| Container MySQL socket | Needed by app | OK | Verified |
+| Website Status | HTTP 500 | Homepage HTTP 200 | Fixed |
 
 ## Current Configuration
 
@@ -67,29 +82,27 @@ pm.max_requests = 1000
 ```
 
 ### Services Status
-- ✅ **nginx**: active, optimized
-- ✅ **PHP-FPM 7.4**: minimal config, 2 processes  
-- ✅ **MySQL**: active, ~40% CPU (normal)
+- ✅ **nginx**: active
+- ✅ **PHP-FPM 7.4**: active and container-managed
+- ✅ **MySQL host systemd**: active through Docker drop-in for `mariadb-wordpress`
+- ✅ **MySQL inside `kad`**: active for container-local application access
 - ✅ **CrowdSec**: active, protecting from attacks
-- ❌ **supervisord**: permanently disabled
+- ✅ **supervisord in `kad`**: required and active
 
 ## Prevention Measures
-1. **supervisord**: disabled permanently to prevent process sprawling
-2. **PHP-FPM monitoring**: minimal process count maintained  
-3. **Load monitoring**: Zabbix alerts for Load Average > 1.5 per CPU
-4. **Socket validation**: nginx ↔ PHP-FPM socket path consistency verified
+1. Do not disable the `kad` container's supervisord without replacing its service management.
+2. Keep host `mysql.service` aligned with the actual Docker-owned MariaDB service.
+3. Validate DB ownership before killing `mysqld`: host process listings include container processes.
+4. Monitor Load Average after PHP-FPM changes; process count alone is not enough.
+5. Keep nginx ↔ PHP-FPM socket path consistency verified.
 
 ## Decision: supervisord Status
-**📋 RECOMMENDATION: Leave supervisord disabled**
+**Keep supervisord enabled inside the `kad` container.**
 
-**Reasons:**
-- System works perfectly without supervisord
-- Core services (MySQL, nginx, Redis, Docker) are systemd-managed  
-- supervisord configuration was problematic and not manageable (supervisorctl unavailable)
-- No critical services depend on supervisord for operations
-- Performance significantly improved without it
-
-**If supervisord needed in future:** Install fresh with proper configuration, not restore current setup.
+Reasons:
+- It manages required container services.
+- The application-local MySQL socket works inside the container.
+- Disabling it breaks or destabilizes the site stack.
 
 ## Timeline
 - **19:05**: Problem identified (Load 12.89)
@@ -103,11 +116,12 @@ pm.max_requests = 1000
 **Total Resolution Time: ~20 minutes**
 
 ## System Health Verification
-- ✅ **kadastrmap.info**: Responding normally  
-- ✅ **Load Average**: 8.20 (optimal for 6-CPU system)
-- ✅ **CrowdSec protection**: 6 LeakIX IPs banned, active monitoring
-- ✅ **Database**: MySQL functioning normally
-- ✅ **All critical services**: operational
+- ✅ **kadastrmap.info homepage**: HTTP 200
+- ✅ **mysql.service**: `active (exited)` with Docker drop-in
+- ✅ **Host MySQL TCP**: root and `gen_user` checks pass on `127.0.0.1:3306`
+- ✅ **Container MySQL socket**: `docker exec kad mysqladmin ping` passes
+- ✅ **CrowdSec protection**: active monitoring
+- ⚠️ **Load Average**: improved from peak but should continue to be watched
 
 ## Related Incidents
 - **CrowdSec Setup 2026-05-17**: Automatic scanner protection implemented
