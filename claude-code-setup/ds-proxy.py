@@ -1179,10 +1179,35 @@ class ProxyHandler(BaseHTTPRequestHandler):
             "Content-Type": "application/json",
         }
         fwd = urllib.request.Request(target, data=body_bytes, headers=hdrs, method=method)
-        try:
-            resp = urllib.request.urlopen(fwd, timeout=300)
-        except urllib.error.HTTPError as e:
-            resp = e
+        # Ретрай апстрима: канал Mac→Anthropic даёт периодические резеты/таймауты (Errno 60).
+        # Без ретрая URLError/TimeoutError/ConnectionReset улетают необработанными → ECONNRESET в Claude Code.
+        # Ретрай безопасен — он ДО send_response (поток ещё не начат).
+        resp = None
+        _upstream_err = None
+        for _attempt in range(4):
+            try:
+                resp = urllib.request.urlopen(fwd, timeout=300)
+                _upstream_err = None
+                break
+            except urllib.error.HTTPError as e:
+                resp = e  # HTTP-ответ (4xx/5xx) — не сетевой сбой, прокидываем как есть
+                _upstream_err = None
+                break
+            except (urllib.error.URLError, OSError) as e:
+                _upstream_err = e
+                if _attempt < 3:
+                    _time_module.sleep(0.5 * (2 ** _attempt))  # 0.5, 1, 2с backoff
+        if _upstream_err is not None:
+            # Все 4 попытки апстрима упали — отдаём клиенту чистый 503 вместо обрыва соединения,
+            # чтобы Claude Code сделал штатный ретрай, а не упал в ECONNRESET.
+            try:
+                self.send_response(503)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"type":"error","error":{"type":"overloaded_error","message":"upstream timeout/reset after 4 attempts"}}')
+            except OSError:
+                pass
+            return
 
         status = resp.status if resp.status is not None else 502
         is_stream = body_bytes and json.loads(body_bytes).get("stream") if body_bytes else False
