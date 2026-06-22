@@ -1184,7 +1184,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         # Ретрай безопасен — он ДО send_response (поток ещё не начат).
         resp = None
         _upstream_err = None
-        for _attempt in range(4):
+        _MAX_CONNECT_ATTEMPTS = 6
+        for _attempt in range(_MAX_CONNECT_ATTEMPTS):
             try:
                 resp = urllib.request.urlopen(fwd, timeout=300)
                 _upstream_err = None
@@ -1195,8 +1196,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 break
             except (urllib.error.URLError, OSError) as e:
                 _upstream_err = e
-                if _attempt < 3:
-                    _time_module.sleep(0.5 * (2 ** _attempt))  # 0.5, 1, 2с backoff
+                if _attempt < _MAX_CONNECT_ATTEMPTS - 1:
+                    # cap-backoff: 0.5,1,2,4,8 (макс 8с) — переживаем затяжной провал канала
+                    # Mac→Anthropic (Errno 60) ВНУТРИ одного запроса, не доводя до 503 клиенту.
+                    _time_module.sleep(min(0.5 * (2 ** _attempt), 8))
         if _upstream_err is not None:
             # Все 4 попытки апстрима упали — отдаём клиенту чистый 503 вместо обрыва соединения,
             # чтобы Claude Code сделал штатный ретрай, а не упал в ECONNRESET.
@@ -1223,37 +1226,50 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 # Track tool_use block indices to limit parallel tools in streaming SSE
                 tool_use_indices = set()
                 skip_indices = set()
-                for chunk in iter(lambda: resp.read(4096), b""):
-                    if b"data: " in chunk:
-                        decoded = chunk.decode("utf-8", errors="replace")
-                        lines = decoded.split("\n")
-                        filtered = []
-                        for line in lines:
-                            if line.startswith("data: "):
-                                payload = line[6:]
-                                try:
-                                    ev = json.loads(payload)
-                                    ev_type = ev.get("type")
-                                    ev_idx = ev.get("index")
-                                    if ev_type == "content_block_start":
-                                        cb = ev.get("content_block", {})
-                                        if cb.get("type") == "tool_use":
-                                            tool_use_indices.add(ev_idx)
-                                            if len(tool_use_indices) > MAX_PARALLEL_TOOLS:
-                                                skip_indices.add(ev_idx)
+                # Обрыв канала Mac→Anthropic ПОСЕРЕДИНЕ стрима (resp.read бросает OSError/
+                # ConnectionReset) раньше всплывал необработанным → рвал соединение с Claude Code
+                # трейсбеком → «API error». Стрим уже начат, прозрачный ретрай невозможен (часть
+                # данных ушла клиенту), поэтому корректно завершаем SSE error-событием — Claude Code
+                # сделает штатный ретрай вместо ECONNRESET.
+                try:
+                    for chunk in iter(lambda: resp.read(4096), b""):
+                        if b"data: " in chunk:
+                            decoded = chunk.decode("utf-8", errors="replace")
+                            lines = decoded.split("\n")
+                            filtered = []
+                            for line in lines:
+                                if line.startswith("data: "):
+                                    payload = line[6:]
+                                    try:
+                                        ev = json.loads(payload)
+                                        ev_type = ev.get("type")
+                                        ev_idx = ev.get("index")
+                                        if ev_type == "content_block_start":
+                                            cb = ev.get("content_block", {})
+                                            if cb.get("type") == "tool_use":
+                                                tool_use_indices.add(ev_idx)
+                                                if len(tool_use_indices) > MAX_PARALLEL_TOOLS:
+                                                    skip_indices.add(ev_idx)
+                                                    continue
+                                            # text blocks are always kept
+                                        elif ev_type in ("content_block_delta", "content_block_stop"):
+                                            if ev_idx in skip_indices:
                                                 continue
-                                        # text blocks are always kept
-                                    elif ev_type in ("content_block_delta", "content_block_stop"):
-                                        if ev_idx in skip_indices:
-                                            continue
-                                except (json.JSONDecodeError, TypeError):
-                                    pass
-                            filtered.append(line)
-                        if filtered:
-                            self.wfile.write("\n".join(filtered).encode("utf-8"))
-                    else:
-                        self.wfile.write(chunk)
-                    self.wfile.flush()
+                                    except (json.JSONDecodeError, TypeError):
+                                        pass
+                                filtered.append(line)
+                            if filtered:
+                                self.wfile.write("\n".join(filtered).encode("utf-8"))
+                        else:
+                            self.wfile.write(chunk)
+                        self.wfile.flush()
+                except (OSError, urllib.error.URLError) as _stream_err:
+                    print(f"  [stream] upstream обрыв посередине: {_stream_err}", file=sys.stderr)
+                    try:
+                        self.wfile.write(b'event: error\ndata: {"type":"error","error":{"type":"overloaded_error","message":"upstream stream interrupted"}}\n\n')
+                        self.wfile.flush()
+                    except OSError:
+                        pass
             else:
                 self.wfile.write(resp.read())
         else:
