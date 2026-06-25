@@ -10,6 +10,11 @@
 - **personal** = `~/personal` (github.com/PortfelOnline/personal) — заметки, принципы, документы
 - **kadmap** = `~/kadmap` (github.com/PortfelOnline/kadmap) — kadastrmap.info
 
+# Правка файлов на сервере / через SSH
+- **🚨 Heredoc по SSH ИЗБЕГАТЬ** — даёт много ошибок экранирования (особенно с HTML/кавычками/`$`).
+  Вместо этого: писать Python-скрипт ЛОКАЛЬНО (Write), `scp` на сервер, `python3 /tmp/script.py`.
+  Python-скрипт делает str.replace с assert — надёжнее, чем sed/heredoc.
+
 # DeepSeek Conciseness (70% rule)
 - Output на 70% короче инстинкта. Удаляй воду (первый/последний абзац). Булеты > абзацы.
 - TRIVIAL: 0 объяснений. LOW: 1 предложение. MEDIUM: 2-3.
