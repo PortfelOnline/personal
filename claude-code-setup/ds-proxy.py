@@ -1201,13 +1201,13 @@ class ProxyHandler(BaseHTTPRequestHandler):
                     # Mac→Anthropic (Errno 60) ВНУТРИ одного запроса, не доводя до 503 клиенту.
                     _time_module.sleep(min(0.5 * (2 ** _attempt), 8))
         if _upstream_err is not None:
-            # Все 4 попытки апстрима упали — отдаём клиенту чистый 503 вместо обрыва соединения,
+            # Все 6 попыток апстрима упали — отдаём клиенту чистый 503 вместо обрыва соединения,
             # чтобы Claude Code сделал штатный ретрай, а не упал в ECONNRESET.
             try:
                 self.send_response(503)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(b'{"type":"error","error":{"type":"overloaded_error","message":"upstream timeout/reset after 4 attempts"}}')
+                self.wfile.write(b'{"type":"error","error":{"type":"overloaded_error","message":"upstream timeout/reset after 6 attempts"}}')
             except OSError:
                 pass
             return
