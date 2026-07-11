@@ -27,6 +27,7 @@
 - `/home` — reestr, public_html, parse, share, ikarelin/parse (Parse cloud_functions)
 - `/var/www` — test.brain-skill.ru, ai-uploads, widget
 - `/usr/local` — кастомные bin/скрипты
+- `/var/spool/cron` — crontab'ы (root, parse)
 
 `/application` = симлинк на volume `kad-app` (не дублируется).
 

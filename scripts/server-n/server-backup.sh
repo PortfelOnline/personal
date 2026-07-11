@@ -38,6 +38,7 @@ $NICE borg create \
   /home \
   /var/www \
   /usr/local \
+  /var/spool/cron \
   >> "$LOG" 2>&1
 RC=$?
 log "borg create rc=$RC"
