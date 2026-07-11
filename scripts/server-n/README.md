@@ -19,12 +19,22 @@
 
 ## Что в бэкапе
 
-**Включено:** все docker volumes + `/root` (со свежими дампами БД) + `/etc`
+**Включено:**
+- `/var/lib/docker/volumes` — все docker volumes (БД, данные контейнеров)
+- `/root` — скрипты, compose-файлы, свежие дампы БД
+- `/etc` — системные конфиги
+- `/opt` — веб-код всех сайтов и приложений через bind-mount: `easyrenty-stacks` (Parse-мобилка, не в git!), `n/apps/*` (strategy-dashboard, get-my-agent, viralcraft, aitrading), `timeweb-stacks/*` (bankrupt.rf, brain-skill, mobile4u, shared-brains, easyrenty.com, lanka.rent)
+- `/home` — reestr, public_html, parse, share, ikarelin/parse (Parse cloud_functions)
+- `/var/www` — test.brain-skill.ru, ai-uploads, widget
+- `/usr/local` — кастомные bin/скрипты
+
 `/application` = симлинк на volume `kad-app` (не дублируется).
 
-**Исключено (derived/кеш, восстановимо):** `kad-cache` (18G), `kad-manticore` (17G, реиндексируется из БД), `kad-logs`, `*_logs`, `*caddy*`, `node_modules`, `*.log`, сам borg-репозиторий.
+**Исключено (derived/кеш/софт, восстановимо):** `kad-cache` (18G), `kad-manticore` (17G, реиндексируется из БД), `kad-logs`, `*_logs`, `*caddy*` (docker volumes); `/opt/brave.com`, `/opt/google` (браузеры), `/opt/prometheus` (метрики); `*/node_modules`, `*/.cache`, `*.log`, сам borg-репозиторий.
 
 `kad-db` (38G, включая ReestrBD 34G Росреестра) берётся **файлово целиком** — полный откат «как есть».
+
+> **Аудит покрытия (2026-07-11):** проверены все bind-mount'ы контейнеров + крупные каталоги вне `/root|/etc|/volumes`. Изначальная версия упускала `/opt` (12G веб-кода), `/home`, `/var/www`, `/usr/local` — добавлены. БД проектов и так были покрыты через named volumes.
 
 ## Восстановление
 

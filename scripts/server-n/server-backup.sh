@@ -24,13 +24,20 @@ $NICE borg create \
   --exclude '/var/lib/docker/volumes/kad-logs' \
   --exclude '/var/lib/docker/volumes/*_logs' \
   --exclude '/var/lib/docker/volumes/*caddy*' \
+  --exclude '/opt/brave.com' \
+  --exclude '/opt/google' \
+  --exclude '/opt/prometheus' \
   --exclude '*/node_modules' \
+  --exclude '*/.cache' \
   --exclude '*.log' \
-  --exclude '/root/.cache' \
   "::${HOST}-${TS}" \
   /var/lib/docker/volumes \
   /root \
   /etc \
+  /opt \
+  /home \
+  /var/www \
+  /usr/local \
   >> "$LOG" 2>&1
 RC=$?
 log "borg create rc=$RC"
