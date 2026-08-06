@@ -14,6 +14,12 @@
 - **personal** = `~/personal` (github.com/PortfelOnline/personal) — заметки, принципы, документы
 - **kadmap** = `~/kadmap` (github.com/PortfelOnline/kadmap) — kadastrmap.info
 
+# 🚨🚨 Пересоздание/рестарт контейнеров на проде
+- **НИКОГДА** не запускать вслепую `docker compose up -d`, `--force-recreate`, `docker rm`, `docker compose down`. 06.08.2026 такой запуск уронил `100zem.ru` на 25 минут.
+- Для `kad`: только `ssh n '/root/kad-recreate.sh --check'`, затем `/root/kad-recreate.sh`. Разбор — `~/kadmap/infra/container-ops/RUNBOOK.md`.
+- **Перед любым recreate проверить:** тег образа из compose существует локально; что НЕ смонтировано (вернётся из образа — правки внутри контейнера пропадут, `overlay2` в borg не бэкапится); есть свежий дамп `/root/backups/container-configs/`; какие настройки заданы рантаймом (`SET GLOBAL`) — рестарт их сбросит.
+- **После** — проверять оба `Host` (расхождение 301/200 = потерян `server_name`), имя контейнера и `supervisorctl status`.
+
 # Правка файлов на сервере / через SSH
 - **🚨 Heredoc по SSH ИЗБЕГАТЬ** — даёт много ошибок экранирования (особенно с HTML/кавычками/`$`).
   Вместо этого: писать Python-скрипт ЛОКАЛЬНО (Write), `scp` на сервер, `python3 /tmp/script.py`.
