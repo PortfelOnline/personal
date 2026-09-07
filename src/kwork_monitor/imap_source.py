@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import imaplib
+import ssl
 from dataclasses import dataclass
 from email import policy
 from email.header import decode_header
@@ -55,10 +56,14 @@ class ImapSource:
         settings: Settings,
         secrets: SecretSettings,
         *,
-        client_factory: Callable[[str], Any] = imaplib.IMAP4_SSL,
+        client_factory: Callable[..., Any] | None = None,
     ) -> "ImapSource":
         """Authenticate and select the configured mailbox in read-only mode."""
-        client = client_factory(settings.imap.host)
+        factory = client_factory or imaplib.IMAP4_SSL
+        client = factory(
+            settings.imap.host,
+            ssl_context=ssl.create_default_context(),
+        )
         _imap_ok(client.login(secrets.imap_username, secrets.imap_password), "login")
         _imap_ok(
             client.select(settings.imap.mailbox, readonly=True),
@@ -96,7 +101,8 @@ class ImapSource:
             ):
                 continue
 
-            status, data = self.client.uid("FETCH", str(candidate_uid), "(RFC822)")
+            status, data = self.client.uid(
+                "FETCH", str(candidate_uid), "(BODY.PEEK[])")
             _imap_ok((status, data), "UID FETCH message")
             items.append(
                 MailItem(
