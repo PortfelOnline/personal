@@ -67,8 +67,9 @@ def extract_body_text(message: EmailMessage) -> str:
         elif part.get_content_type() == "text/html":
             html_parts.append(_html_to_text(_part_text(part)))
 
-    if plain_parts:
-        return "\n".join(plain_parts).strip()
+    plain_text = "\n".join(plain_parts).strip()
+    if plain_text:
+        return plain_text
     return " ".join(html_parts).strip()
 
 
@@ -76,7 +77,10 @@ def extract_kwork_project_url(text: str) -> str | None:
     """Return the first HTTPS URL whose hostname is exactly kwork.ru."""
     for candidate in _URL_PATTERN.findall(text):
         url = candidate.rstrip(_TRAILING_URL_PUNCTUATION)
-        parsed = urlsplit(url)
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            continue
         if parsed.scheme.lower() == "https" and parsed.hostname == "kwork.ru":
             return url
     return None
@@ -112,7 +116,13 @@ def _decode_header(value: object | None) -> str:
 
 def _part_text(part: EmailMessage) -> str:
     """Decode one textual MIME part using the email package's declared charset."""
-    content = part.get_content()
+    try:
+        content = part.get_content()
+    except (LookupError, UnicodeError):
+        payload = part.get_payload(decode=True)
+        if payload is None:
+            return ""
+        return payload.decode("utf-8", errors="replace")
     return content if isinstance(content, str) else str(content)
 
 
