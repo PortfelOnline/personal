@@ -1,0 +1,1 @@
+"""Kwork email monitor package."""

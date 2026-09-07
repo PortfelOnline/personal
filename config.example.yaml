@@ -1,0 +1,13 @@
+# Non-secret configuration. Keep credentials and API tokens in .env only.
+imap:
+  host: imap.example.com
+  mailbox: INBOX
+
+filters:
+  senders:
+    - noreply@kwork.ru
+  subject_patterns:
+    - Новый проект
+  keywords:
+    - python
+    - telegram-бот
