@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from html import escape
-import re
+from urllib.parse import urlparse
 
 import requests
 
@@ -16,6 +16,8 @@ class TelegramError(RuntimeError):
 
 
 _MESSAGE_LIMIT = 3_800
+_FIELD_LIMIT = 512
+_URL_LIMIT = 1_024
 
 
 class TelegramNotifier:
@@ -33,36 +35,39 @@ class TelegramNotifier:
     ) -> DeliveryResult:
         """Deliver a project link and generated draft or generation fallback."""
         draft = proposal or f"⚠️ черновик не сгенерирован: {generation_error or 'неизвестная ошибка'}"
-        text = "\n".join(
+        header = "\n".join(
             (
                 "<b>Новый проект Kwork</b>",
-                f"<b>Тема:</b> {escape(project.subject)}",
-                f"<b>Бюджет:</b> {escape(project.budget or 'не указан')}",
-                f'<a href="{escape(project.project_url or "", quote=True)}">Открыть проект вручную</a>',
+                f"<b>Тема:</b> {_escape_limited(project.subject, _FIELD_LIMIT, quote=True)}",
+                f"<b>Бюджет:</b> {_escape_limited(project.budget or 'не указан', _FIELD_LIMIT, quote=True)}",
+                f'<a href="{_project_url(project.project_url)}">Открыть проект вручную</a>',
                 "",
                 "<b>Черновик отклика</b>",
-                escape(draft),
             )
         )
-        return self._send_text(text)
+        return self._send_text(
+            f"{header}\n{_escape_limited(draft, _MESSAGE_LIMIT - len(header) - 1, quote=True)}"
+        )
 
     def send_parse_error_alert(
         self, message_id: str | None, reason: str
     ) -> DeliveryResult:
         """Deliver a bounded alert for one email that could not be parsed."""
-        text = "\n".join(
+        header = "\n".join(
             (
                 "<b>Не удалось разобрать уведомление Kwork</b>",
-                f"<b>Message-ID:</b> {escape(message_id or 'не указан')}",
-                f"<b>Причина:</b> {escape(reason)}",
+                f"<b>Message-ID:</b> {_escape_limited(message_id or 'не указан', _FIELD_LIMIT, quote=True)}",
+                "<b>Причина:</b>",
             )
         )
-        return self._send_text(text)
+        return self._send_text(
+            f"{header}\n{_escape_limited(reason, _MESSAGE_LIMIT - len(header) - 1, quote=True)}"
+        )
 
     def _send_text(self, text: str) -> DeliveryResult:
         payload = {
             "chat_id": self._chat_id,
-            "text": _truncate_html(text),
+            "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
@@ -70,8 +75,8 @@ class TelegramNotifier:
             response = requests.post(self._url, json=payload, timeout=15)
             response.raise_for_status()
             body = response.json()
-        except (requests.RequestException, ValueError) as error:
-            raise TelegramError("Telegram delivery failed") from error
+        except (requests.RequestException, ValueError):
+            raise TelegramError("Telegram delivery failed") from None
 
         message_id = _delivery_message_id(body)
         if message_id is None:
@@ -91,9 +96,24 @@ def _delivery_message_id(body: object) -> int | None:
     return message_id
 
 
-def _truncate_html(text: str) -> str:
-    """Keep the Telegram limit without cutting an escaped character entity."""
-    truncated = text[:_MESSAGE_LIMIT]
-    while re.search(r"&(?:[a-zA-Z]{0,3})?$", truncated):
-        truncated = truncated[:-1]
-    return truncated
+def _project_url(value: str | None) -> str:
+    """Return a bounded escaped http(s) URL suitable for an HTML attribute."""
+    if not value:
+        return ""
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return _escape_limited(value[:_URL_LIMIT], _URL_LIMIT, quote=True)
+
+
+def _escape_limited(value: str, limit: int, *, quote: bool = False) -> str:
+    """Escape one input field without splitting an HTML entity at ``limit``."""
+    escaped: list[str] = []
+    size = 0
+    for character in value:
+        entity = escape(character, quote=quote)
+        if size + len(entity) > limit:
+            break
+        escaped.append(entity)
+        size += len(entity)
+    return "".join(escaped)
