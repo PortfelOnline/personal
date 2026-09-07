@@ -3,12 +3,35 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
 from unittest.mock import MagicMock
 
 from kwork_monitor import cli
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "kwork_project_valid.eml"
+
+
+def test_cli_dry_run_with_fixture_succeeds_without_secrets(tmp_path: Path) -> None:
+    """Fixture-only preview reports its notification without loading config."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "kwork_monitor.cli",
+            "--dry-run",
+            "--fixture",
+            str(FIXTURE),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "would notify" in result.stdout
 
 
 def test_configured_dry_run_does_not_create_sqlite_files(

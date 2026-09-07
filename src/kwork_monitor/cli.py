@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import logging
 import os
 from pathlib import Path
+import sys
 
 from .config import ConfigurationError, load_settings
 from .imap_source import ImapSource, ImapSourceError, MailItem
@@ -24,7 +25,11 @@ LOGGER = logging.getLogger(__name__)
 def main(argv: Sequence[str] | None = None) -> int:
     """Build adapters for a single monitored tick and return its exit status."""
     arguments = _parser().parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s %(message)s",
+        stream=sys.stdout,
+    )
     if arguments.fixture is not None:
         if not arguments.dry_run:
             LOGGER.error("--fixture is only allowed with --dry-run")
