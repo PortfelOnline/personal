@@ -30,6 +30,7 @@
 |---|---|
 | `pyproject.toml` | Версия Python, runtime/test-зависимости и pytest configuration. |
 | `config.example.yaml` | Несекретные настройки IMAP-папки, разрешённых отправителей/тем, ключевых слов и порогов. |
+| `PROFILE.example.md` | Проверяемый стартовый бриф для генерации; рабочий `PROFILE.md` создаётся оператором и не попадает в Git. |
 | `.gitignore` | Исключает `config.yaml`, `.env`, SQLite и логи. |
 | `src/kwork_monitor/models.py` | Неизменяемые модели сообщения, настроек и результата доставки. |
 | `src/kwork_monitor/config.py` | Загружает YAML и обязательные секреты окружения, валидирует конфигурацию. |
@@ -51,6 +52,7 @@
 - Create: `pyproject.toml`
 - Create: `.gitignore`
 - Create: `config.example.yaml`
+- Create: `PROFILE.example.md`
 - Create: `src/kwork_monitor/__init__.py`
 - Create: `src/kwork_monitor/models.py`
 - Create: `src/kwork_monitor/config.py`
@@ -135,7 +137,7 @@ class SecretSettings:
     codeassist_base_url: str
 ```
 
-The loader must reject an absent YAML file, absent required environment variable, empty sender/subject/keyword list, and an `http://` or `https://` URL that does not end in `/v1`. Do not log secret values.
+The loader must reject an absent YAML file, absent required environment variable, empty sender/subject/keyword list, and an `http://` or `https://` URL that does not end in `/v1`. Do not log secret values. `.gitignore` must exclude `.env`, `config.yaml`, `PROFILE.md`, `seen_orders.db`, `*.log`, and `kwork-monitor.lock`. `PROFILE.example.md` must contain only the verified skills from the specification (Python/PHP/Node.js, Telegram/WhatsApp bots, n8n automation, APIs, LLM integrations, parsing and VPS deployment) and instruct the model not to state a price, deadline, portfolio item, or experience claim not present in the profile or email.
 
 - [ ] **Step 4: Run the focused tests**
 
@@ -274,7 +276,7 @@ CREATE TABLE IF NOT EXISTS processed_messages (
 );
 ```
 
-`ImapSource` must use `UID SEARCH` and `UID FETCH (RFC822.HEADER RFC822)` only, authenticate using `imaplib.IMAP4_SSL`, and never call `STORE`, `EXPUNGE`, `DELETE`, or set the `\\Seen` flag. It must reject a mail before downloading its body unless its normalized `From` and decoded `Subject` match `config.yaml`. The runner advances the cursor only after an item has been recorded as `notified`, `ignored`, or `parse_error`.
+`ImapSource` must use `UID SEARCH`, then `UID FETCH (RFC822.HEADER)` for each candidate, and fetch `RFC822` only after its normalized `From` and decoded `Subject` match `config.yaml`. Authenticate using `imaplib.IMAP4_SSL`, and never call `STORE`, `EXPUNGE`, `DELETE`, or set the `\\Seen` flag. The runner advances the cursor only after an item has been recorded as `notified`, `ignored`, or `parse_error`.
 
 - [ ] **Step 4: Run storage and IMAP tests**
 
@@ -479,10 +481,11 @@ python3.11 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 install -m 600 /dev/null /root/kwork-monitor/.env
 install -m 600 config.example.yaml /root/kwork-monitor/config.yaml
+install -m 600 PROFILE.example.md /root/kwork-monitor/PROFILE.md
 .venv/bin/python -m kwork_monitor.cli --dry-run --fixture tests/fixtures/kwork_project_valid.eml
 ```
 
-It must also state: enable email notifications on the Kwork Биржа page manually, select relevant rubrics, use a dedicated mailbox/app password, set the `.env` variables, check the first real notification by dry-run, and only then add this cron line:
+It must also state: enable email notifications on the Kwork Биржа page manually, select relevant rubrics, use a dedicated mailbox/app password, set the `.env` variables, edit `PROFILE.md` to retain only accurate claims, check the first real notification by dry-run, and only then add this cron line:
 
 ```cron
 17 * * * * cd /root/kwork-monitor && set -a && . ./.env && set +a && ./.venv/bin/python -m kwork_monitor.cli --config ./config.yaml >> ./kwork-monitor.log 2>&1
@@ -508,5 +511,5 @@ git commit -m "docs: add Kwork monitor setup and operations guide"
 - **Spec coverage:** IMAP-only source and no Kwork automation are enforced by Global Constraints, Tasks 2–3, and Task 6. Filtering, SQLite deduplication, proposal fallback, Telegram delivery, dry-run, error paths, secrets, and hourly cron each have implementation and test tasks.
 - **Deliberate MVP boundary:** Email contents may omit part of the project brief; the implementation labels an incomplete draft and provides a manual project link rather than fetching that page.
 - **Failure safety:** Telegram failure prevents state mutation and cursor movement; parse failures receive one alert then persist as `parse_error`; IMAP and configuration failures return non-zero for cron logs.
-- **Type consistency:** `ProjectEmail`, `Settings`, `SecretSettings`, `DeliveryResult`, `StateStore`, and `run_once` are introduced before consumers use them. No task refers to an undefined runtime component.
+- **Type consistency:** `ProjectEmail`, `Settings`, `SecretSettings`, `DeliveryResult`, `StateStore`, `mail_key`, and `run_once` are introduced before consumers use them. No task refers to an undefined runtime component.
 - **Placeholder scan:** No empty implementation markers, deferred work, or generic test instruction remains.
