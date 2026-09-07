@@ -17,7 +17,7 @@ RAW_OTHER = "From: other@example.test\r\nSubject: Новый проект: C\r\n
 @dataclass
 class FakeImapClient:
     messages: dict[int, bytes]
-    calls: list[tuple[str, str, str]] = field(default_factory=list)
+    calls: list[tuple[str, ...]] = field(default_factory=list)
     search_status: str = "OK"
     fetch_status: str = "OK"
     seen: bool = False
@@ -45,6 +45,36 @@ class FakeImapClient:
         elif arguments[1] == "(RFC822)":
             self.seen = True
         return "OK", [(b"metadata", item), b")"]
+
+
+class GapAwareFakeImapClient(FakeImapClient):
+    """Model a mailbox whose sequence numbers differ from its UIDs."""
+
+    def uid(self, command: str, *arguments: str):
+        if command == "SEARCH":
+            self.calls.append((command, *(str(argument) for argument in arguments)))
+            if tuple(str(argument) for argument in arguments) == (
+                "None",
+                "UID",
+                "11:*",
+            ):
+                return "OK", [b"12 99"]
+            return "OK", [b""]
+        return super().uid(command, *arguments)
+
+
+def test_source_uses_uid_search_for_real_uids_after_sequence_gaps() -> None:
+    client = GapAwareFakeImapClient(messages={12: RAW_A, 99: RAW_B})
+    source = ImapSource(
+        client,
+        allowed_senders={"noreply@kwork.ru"},
+        subject_patterns=("Новый проект",),
+    )
+
+    items = source.fetch_after(10)
+
+    assert [item.uid for item in items] == [12, 99]
+    assert ("SEARCH", "None", "UID", "11:*") in client.calls
 
 
 def test_source_returns_only_uids_after_cursor_and_never_marks_seen() -> None:

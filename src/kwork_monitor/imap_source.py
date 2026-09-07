@@ -82,7 +82,7 @@ class ImapSource:
         """Search by UID, inspect headers, then download only allow-listed bodies."""
         if uid < 0:
             raise ValueError("UID must be non-negative")
-        status, data = self.client.uid("SEARCH", None, f"{uid + 1}:*")
+        status, data = self.client.uid("SEARCH", None, "UID", f"{uid + 1}:*")
         _imap_ok((status, data), "UID SEARCH")
         candidates = [candidate for candidate in _search_uids(data) if candidate > uid]
         items: list[MailItem] = []
