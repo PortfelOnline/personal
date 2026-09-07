@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -10,6 +11,7 @@ import pytest
 
 from kwork_monitor.imap_source import MailItem
 from kwork_monitor.models import DeliveryResult, FilterSettings, ImapSettings, Settings
+from kwork_monitor.proposal import ProposalError
 from kwork_monitor.runner import Dependencies, run_once
 from kwork_monitor.telegram import TelegramError
 
@@ -61,6 +63,21 @@ def test_runner_does_not_advance_cursor_when_telegram_fails(deps: Dependencies) 
     assert summary.delivery_failures == 1
     assert summary.exit_code == 1
     deps.store.record.assert_not_called()
+    deps.store.advance_cursor.assert_not_called()
+
+
+def test_runner_does_not_skip_failed_uid_when_a_later_notification_succeeds(
+    deps: Dependencies,
+) -> None:
+    """Advancing through UID 102 after UID 101 fails would lose its retry."""
+    deps.mail_source.fetch_after.return_value = [_item(101), _item(102)]
+    deps.notifier.send.side_effect = [TelegramError("offline"), DeliveryResult(message_id=9)]
+
+    summary = run_once(deps, dry_run=False, with_generation=True)
+
+    assert summary.delivery_failures == 1
+    assert summary.notified == 1
+    assert [call.args[1] for call in deps.store.record.call_args_list] == [102]
     deps.store.advance_cursor.assert_not_called()
 
 
@@ -123,6 +140,50 @@ def test_live_run_generates_a_draft_without_the_dry_run_opt_in_flag(
     deps.proposal_client.generate.assert_called_once()
 
 
+def test_runner_ignores_irrelevant_project_as_a_terminal_state(deps: Dependencies) -> None:
+    """A non-matching project must be recorded before its cursor can move."""
+    deps = replace(
+        deps,
+        settings=replace(
+            deps.settings,
+            filters=replace(deps.settings.filters, keywords=("design",)),
+        ),
+    )
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.ignored == 1
+    assert deps.store.record.call_args.args[2] == "ignored"
+    assert deps.store.advance_cursor.call_args.args[0] == 101
+    deps.notifier.send.assert_not_called()
+
+
+def test_runner_delivers_fallback_when_proposal_generation_fails(deps: Dependencies) -> None:
+    """Code Assist unavailability must not suppress a manually actionable alert."""
+    deps.proposal_client.generate.side_effect = ProposalError("offline")
+    deps.notifier.send.return_value = DeliveryResult(message_id=9)
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.generation_failures == 1
+    assert deps.notifier.send.call_args.args[1:] == (None, "proposal generation failed")
+    assert deps.store.record.call_args.args[2] == "notified"
+
+
+def test_runner_returns_success_without_processing_when_lock_is_contended(
+    deps: Dependencies,
+) -> None:
+    """A cron overlap is normal and must not race state or delivery side effects."""
+    deps = replace(deps, lock_acquirer=_contended_lock)
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.lock_unavailable is True
+    assert summary.exit_code == 0
+    deps.mail_source.fetch_after.assert_not_called()
+    deps.store.record.assert_not_called()
+
+
 def _item(uid: int) -> MailItem:
     return MailItem(
         uid=uid,
@@ -142,3 +203,8 @@ def _settings() -> Settings:
             keywords=("telegram",),
         ),
     )
+
+
+@contextmanager
+def _contended_lock():
+    yield False

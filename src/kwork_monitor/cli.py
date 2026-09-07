@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Iterable, Sequence
+from contextlib import contextmanager
 import logging
 import os
 from pathlib import Path
@@ -37,7 +38,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         profile = _read_profile(arguments.config.parent / "PROFILE.md")
         dependencies = Dependencies(
             mail_source=ImapSource.from_settings(settings, secrets),
-            store=StateStore(arguments.config.parent / "seen_orders.db"),
+            store=(
+                _DryRunStore()
+                if arguments.dry_run
+                else StateStore(arguments.config.parent / "seen_orders.db")
+            ),
             proposal_client=ProposalClient(secrets.codeassist_base_url),
             notifier=TelegramNotifier(
                 secrets.telegram_bot_token, secrets.telegram_chat_id
@@ -60,10 +65,15 @@ def _run_fixture(arguments: argparse.Namespace) -> int:
     if arguments.with_generation:
         LOGGER.error("--with-generation with a fixture requires configured services")
         return 2
+    try:
+        fixture_bytes = arguments.fixture.read_bytes()
+    except OSError:
+        LOGGER.error("fixture could not be read")
+        return 2
     fixture_item = MailItem(
         uid=1,
         message_id=None,
-        raw=arguments.fixture.read_bytes(),
+        raw=fixture_bytes,
         from_address="",
         subject="",
     )
@@ -74,7 +84,7 @@ def _run_fixture(arguments: argparse.Namespace) -> int:
         notifier=_NoExternalServices(),
         settings=_fixture_settings(),
         profile="",
-        lock_path=arguments.fixture.parent / "kwork-monitor.fixture.lock",
+        lock_acquirer=_unlocked,
     )
     return run_once(dependencies, dry_run=True, with_generation=False).exit_code
 
@@ -140,6 +150,11 @@ class _NoExternalServices:
 
     def send_parse_error_alert(self, message_id: str | None, reason: str) -> object:
         raise AssertionError("fixture dry-run must not send Telegram")
+
+
+@contextmanager
+def _unlocked():
+    yield True
 
 
 if __name__ == "__main__":

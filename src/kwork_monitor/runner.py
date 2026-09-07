@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 import fcntl
 import logging
@@ -64,6 +64,7 @@ class Notifier(Protocol):
 
 Parser = Callable[[bytes, int], ProjectEmail]
 LockFileOpener = Callable[[Path], TextIO]
+LockAcquirer = Callable[[], AbstractContextManager[bool]]
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,7 @@ class Dependencies:
     parser: Parser = parse_project_email
     lock_path: Path = LOCK_PATH
     lock_file_opener: LockFileOpener | None = None
+    lock_acquirer: LockAcquirer | None = None
 
 
 @dataclass
@@ -133,48 +135,68 @@ def _run_tick(
 ) -> None:
     cursor = dependencies.store.get_cursor()
     items = sorted(dependencies.mail_source.fetch_after(cursor), key=lambda item: item.uid)
+    advance_allowed = True
     for item in items:
         summary.inspected += 1
         key = mail_key(item.message_id, item.uid)
         if dependencies.store.is_recorded(key):
             summary.duplicates += 1
-            _finish_terminal_item(
-                dependencies, item.uid, dry_run=dry_run, status="already recorded"
-            )
-            continue
-
-        try:
-            project = dependencies.parser(item.raw, item.uid)
-        except EmailParseError as error:
-            _handle_parse_error(
+            terminal = True
+        else:
+            terminal = _process_item(
                 dependencies,
                 summary,
                 item,
                 key,
-                error.reason,
                 dry_run=dry_run,
+                with_generation=with_generation,
             )
-            continue
 
-        project_key = mail_key(project.message_id, item.uid)
-        if not is_relevant(project, dependencies.settings.filters.keywords):
-            summary.ignored += 1
-            if dry_run:
-                LOGGER.info("dry-run: would ignore UID %s", item.uid)
-            else:
-                dependencies.store.record(project_key, item.uid, "ignored")
-                dependencies.store.advance_cursor(item.uid)
-            continue
+        if terminal and not dry_run and advance_allowed:
+            dependencies.store.advance_cursor(item.uid)
+        if not terminal:
+            advance_allowed = False
 
-        _handle_relevant_project(
+
+def _process_item(
+    dependencies: Dependencies,
+    summary: RunSummary,
+    item: MailItem,
+    key: str,
+    *,
+    dry_run: bool,
+    with_generation: bool,
+) -> bool:
+    try:
+        project = dependencies.parser(item.raw, item.uid)
+    except EmailParseError as error:
+        return _handle_parse_error(
             dependencies,
             summary,
-            project,
-            project_key,
-            item.uid,
+            item,
+            key,
+            error.reason,
             dry_run=dry_run,
-            with_generation=with_generation,
         )
+
+    project_key = mail_key(project.message_id, item.uid)
+    if not is_relevant(project, dependencies.settings.filters.keywords):
+        summary.ignored += 1
+        if dry_run:
+            LOGGER.info("dry-run: would ignore UID %s", item.uid)
+        else:
+            dependencies.store.record(project_key, item.uid, "ignored")
+        return True
+
+    return _handle_relevant_project(
+        dependencies,
+        summary,
+        project,
+        project_key,
+        item.uid,
+        dry_run=dry_run,
+        with_generation=with_generation,
+    )
 
 
 def _handle_parse_error(
@@ -185,19 +207,19 @@ def _handle_parse_error(
     reason: str,
     *,
     dry_run: bool,
-) -> None:
+) -> bool:
     summary.parse_errors += 1
     if dry_run:
         LOGGER.info("dry-run: would alert and record parse error for UID %s", item.uid)
-        return
+        return True
     try:
         dependencies.notifier.send_parse_error_alert(item.message_id, reason)
     except TelegramError:
         summary.delivery_failures += 1
         LOGGER.error("Telegram parse-error alert failed for UID %s", item.uid)
-        return
+        return False
     dependencies.store.record(key, item.uid, "parse_error", reason)
-    dependencies.store.advance_cursor(item.uid)
+    return True
 
 
 def _handle_relevant_project(
@@ -209,7 +231,7 @@ def _handle_relevant_project(
     *,
     dry_run: bool,
     with_generation: bool,
-) -> None:
+) -> bool:
     proposal, generation_error = _generate_or_none(
         dependencies,
         summary,
@@ -218,16 +240,16 @@ def _handle_relevant_project(
     )
     if dry_run:
         LOGGER.info("dry-run: would notify and record project UID %s", uid)
-        return
+        return True
     try:
         dependencies.notifier.send(project, proposal, generation_error)
     except TelegramError:
         summary.delivery_failures += 1
         LOGGER.error("Telegram project notification failed for UID %s", uid)
-        return
+        return False
     dependencies.store.record(key, uid, "notified")
-    dependencies.store.advance_cursor(uid)
     summary.notified += 1
+    return True
 
 
 def _generate_or_none(
@@ -247,17 +269,12 @@ def _generate_or_none(
         return None, "proposal generation failed"
 
 
-def _finish_terminal_item(
-    dependencies: Dependencies, uid: int, *, dry_run: bool, status: str
-) -> None:
-    if dry_run:
-        LOGGER.info("dry-run: would advance UID %s (%s)", uid, status)
-        return
-    dependencies.store.advance_cursor(uid)
-
-
 @contextmanager
 def _acquire_lock(dependencies: Dependencies) -> Iterable[bool]:
+    if dependencies.lock_acquirer is not None:
+        with dependencies.lock_acquirer() as acquired:
+            yield acquired
+        return
     opener = dependencies.lock_file_opener or _open_lock_file
     lock_file = opener(dependencies.lock_path)
     try:
