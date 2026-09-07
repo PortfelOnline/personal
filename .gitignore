@@ -1,5 +1,6 @@
 .DS_Store
 .agents/
+.worktrees/
 __pycache__/
 *.pyc
 graphify-out/cache/
