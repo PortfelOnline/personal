@@ -1,0 +1,18 @@
+# Non-secret configuration. Keep credentials and API tokens in .env only.
+# Required .env keys: KWORK_IMAP_USERNAME, KWORK_IMAP_PASSWORD,
+# KWORK_TELEGRAM_BOT_TOKEN, KWORK_TELEGRAM_CHAT_ID, and
+# KWORK_CODEASSIST_BASE_URL. Never commit config.yaml or .env.
+imap:
+  # Use the dedicated mailbox's provider hostname.
+  host: imap.example.com
+  mailbox: INBOX
+
+filters:
+  # Match only the sender, subjects, and skills you want to receive.
+  senders:
+    - noreply@kwork.ru
+  subject_patterns:
+    - Новый проект
+  keywords:
+    - python
+    - telegram-бот

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kwork-monitor"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6,<7", "requests>=2.32,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9", "requests-mock>=1.12,<2", "build>=1,<2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

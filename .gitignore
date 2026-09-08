@@ -1,6 +1,17 @@
 .DS_Store
 .agents/
+.worktrees/
+.env
+config.yaml
+PROFILE.md
+seen_orders.db
+*.log
+kwork-monitor.lock
+.pytest_cache/
 __pycache__/
 *.pyc
+dist/
+build/
+*.egg-info/
 graphify-out/cache/
 graphify-out/.graphify_labels.json
