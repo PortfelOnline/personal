@@ -1,4 +1,4 @@
-"""Durable cursor and idempotency state for one monitor mailbox."""
+"""Durable cursor, idempotency, pending-proposal, and Telegram offset state for one monitor mailbox."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def project_key(project_url: str) -> str:
 
 
 class StateStore:
-    """Persist the IMAP cursor and processing result in a local SQLite file."""
+    """Persist the IMAP cursor, processing results, pending proposals, and Telegram offset in a local SQLite file."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -109,7 +109,8 @@ class StateStore:
                     datetime.now(timezone.utc).isoformat(),
                 ),
             )
-        return int(cursor.lastrowid)
+            pending_id = cursor.lastrowid
+        return int(pending_id)
 
     def get_pending(self, pending_id: int) -> PendingProposal | None:
         with self._connection() as connection:
