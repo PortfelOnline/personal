@@ -103,7 +103,10 @@ def _project_chunks(message: EmailMessage) -> list[tuple[str, str]]:
         if part.is_multipart() or part.get_content_disposition() == "attachment":
             continue
         if part.get_content_type() == "text/plain":
-            candidates.append((0, _chunks_from_text(_part_text(part), links_first=False)))
+            text = _part_text(part)
+            candidates.append(
+                (0, _chunks_from_text(text, links_first=_plain_links_first(text)))
+            )
         elif part.get_content_type() == "text/html":
             candidates.append(
                 (1, _chunks_from_text(_html_to_text(_part_text(part)), links_first=True))
@@ -113,6 +116,23 @@ def _project_chunks(message: EmailMessage) -> list[tuple[str, str]]:
         return []
     _, chunks = max(candidates, key=lambda candidate: (len(candidate[1]), candidate[0]))
     return chunks
+
+
+def _plain_links_first(text: str) -> bool:
+    """Infer whether plain-text rows put their project link before their data."""
+    matches = list(_project_url_matches(text, with_spans=True))
+    if len(matches) < 2:
+        return False
+
+    before_budgets = 0
+    after_budgets = 0
+    previous_end = 0
+    for index, (_, start, end) in enumerate(matches):
+        next_start = matches[index + 1][1] if index + 1 < len(matches) else len(text)
+        before_budgets += int(extract_budget(text[previous_end:start]) is not None)
+        after_budgets += int(extract_budget(text[end:next_start]) is not None)
+        previous_end = end
+    return after_budgets > before_budgets
 
 
 def _chunks_from_text(text: str, *, links_first: bool) -> list[tuple[str, str]]:

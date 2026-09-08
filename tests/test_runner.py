@@ -151,6 +151,23 @@ def test_runner_records_parse_error_only_after_parse_alert_delivery(
     deps.store.advance_cursor.assert_not_called()
 
 
+def test_runner_does_not_repeat_a_recorded_parse_error_while_cursor_is_held(
+    deps: Dependencies,
+) -> None:
+    """A later recorded parse error must not alert again after an earlier UID fails."""
+    deps.mail_source.fetch_after.return_value = [
+        replace(_item(101), raw=b"Message-ID: <bad@example.test>\r\n\r\nno project")
+    ]
+    deps.store.is_recorded.return_value = True
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.duplicates == 1
+    deps.notifier.send_parse_error_alert.assert_not_called()
+    deps.store.record.assert_not_called()
+    assert deps.store.advance_cursor.call_args.args[0] == 101
+
+
 def test_dry_run_generation_requires_the_explicit_generation_flag(
     deps: Dependencies,
 ) -> None:

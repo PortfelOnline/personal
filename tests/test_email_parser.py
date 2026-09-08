@@ -117,6 +117,37 @@ def test_parser_returns_each_project_from_kwork_new_offer_links() -> None:
     ]
 
 
+def test_parser_keeps_plain_text_data_with_its_leading_new_offer_link() -> None:
+    """A plain digest with links first must not attach one row to the next URL."""
+    raw = b"\n".join(
+        (
+            b"Message-ID: <digest-204@example.kwork.ru>",
+            b"Subject: New Kwork projects",
+            b"Content-Type: text/plain; charset=utf-8",
+            b"",
+            b"https://kwork.ru/new_offer?offer=204",
+            b"Telegram bot",
+            b"Budget: 5 000 RUB",
+            b"https://kwork.ru/new_offer?offer=205",
+            b"Logo design",
+            b"Budget: 3 000 RUB",
+        )
+    )
+
+    projects = parse_project_emails(raw, uid=54)
+
+    assert [(project.project_url, project.budget) for project in projects] == [
+        ("https://kwork.ru/new_offer?offer=204", "5 000 RUB"),
+        ("https://kwork.ru/new_offer?offer=205", "3 000 RUB"),
+    ]
+    assert projects[0].description is not None
+    assert "Telegram bot" in projects[0].description
+    assert "Logo design" not in projects[0].description
+    assert projects[1].description is not None
+    assert "Logo design" in projects[1].description
+    assert "Telegram bot" not in projects[1].description
+
+
 def test_parser_rejects_subdomain_project_url() -> None:
     """A lookalike Kwork hostname cannot be treated as an official project URL."""
     raw = b"\n".join(

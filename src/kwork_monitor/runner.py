@@ -138,14 +138,19 @@ def _run_tick(
     advance_allowed = True
     for item in items:
         summary.inspected += 1
-        terminal = _process_item(
-            dependencies,
-            summary,
-            item,
-            mail_key(item.message_id, item.uid),
-            dry_run=dry_run,
-            with_generation=with_generation,
-        )
+        key = mail_key(item.message_id, item.uid)
+        if dependencies.store.is_recorded(key):
+            summary.duplicates += 1
+            terminal = True
+        else:
+            terminal = _process_item(
+                dependencies,
+                summary,
+                item,
+                key,
+                dry_run=dry_run,
+                with_generation=with_generation,
+            )
 
         if terminal and not dry_run and advance_allowed:
             dependencies.store.advance_cursor(item.uid)
