@@ -31,27 +31,34 @@ class EmailParseError(ValueError):
         super().__init__(reason)
 
 
-def parse_project_email(raw: bytes, uid: int) -> ProjectEmail:
-    """Convert raw IMAP message bytes into a bounded project notification."""
+def parse_project_emails(raw: bytes, uid: int) -> tuple[ProjectEmail, ...]:
+    """Convert one notification or digest into bounded per-project values."""
     message = BytesParser(policy=policy.default).parsebytes(raw)
     message_id = _decode_header(message.get("Message-ID"))
     subject = _decode_header(message.get("Subject"))
-    text = extract_body_text(message)
-    project_url = extract_kwork_project_url(text)
+    chunks = _project_chunks(message)
 
-    if not message_id or not subject or not project_url:
+    if not message_id or not subject or not chunks:
         raise EmailParseError(
             message_id, "missing Message-ID, subject, or project URL"
         )
 
-    return ProjectEmail(
-        message_id=message_id,
-        uid=uid,
-        subject=subject,
-        project_url=project_url,
-        budget=extract_budget(text),
-        description=truncate(text, 6_000),
+    return tuple(
+        ProjectEmail(
+            message_id=message_id,
+            uid=uid,
+            subject=subject,
+            project_url=project_url,
+            budget=extract_budget(chunk),
+            description=truncate(chunk, 6_000),
+        )
+        for project_url, chunk in chunks
     )
+
+
+def parse_project_email(raw: bytes, uid: int) -> ProjectEmail:
+    """Return the first project for backwards-compatible single-mail consumers."""
+    return parse_project_emails(raw, uid)[0]
 
 
 def extract_body_text(message: EmailMessage) -> str:
@@ -75,15 +82,7 @@ def extract_body_text(message: EmailMessage) -> str:
 
 def extract_kwork_project_url(text: str) -> str | None:
     """Return the first HTTPS URL whose hostname is exactly kwork.ru."""
-    for candidate in _URL_PATTERN.findall(text):
-        url = candidate.rstrip(_TRAILING_URL_PUNCTUATION)
-        try:
-            parsed = urlsplit(url)
-        except ValueError:
-            continue
-        if parsed.scheme.lower() == "https" and parsed.hostname == "kwork.ru":
-            return url
-    return None
+    return next(iter(_project_url_matches(text)), None)
 
 
 def extract_budget(text: str) -> str | None:
@@ -95,6 +94,76 @@ def extract_budget(text: str) -> str | None:
 def truncate(text: str, maximum_length: int) -> str:
     """Keep untrusted email text within the downstream prompt budget."""
     return text[:maximum_length]
+
+
+def _project_chunks(message: EmailMessage) -> list[tuple[str, str]]:
+    """Select the mail representation that contains the most project rows."""
+    candidates: list[tuple[int, list[tuple[str, str]]]] = []
+    for part in message.walk():
+        if part.is_multipart() or part.get_content_disposition() == "attachment":
+            continue
+        if part.get_content_type() == "text/plain":
+            candidates.append((0, _chunks_from_text(_part_text(part), links_first=False)))
+        elif part.get_content_type() == "text/html":
+            candidates.append(
+                (1, _chunks_from_text(_html_to_text(_part_text(part)), links_first=True))
+            )
+
+    if not candidates:
+        return []
+    _, chunks = max(candidates, key=lambda candidate: (len(candidate[1]), candidate[0]))
+    return chunks
+
+
+def _chunks_from_text(text: str, *, links_first: bool) -> list[tuple[str, str]]:
+    """Split a rendered mail body into local text around each project link."""
+    matches = list(_project_url_matches(text, with_spans=True))
+    chunks: list[tuple[str, str]] = []
+    previous_end = 0
+    for index, (project_url, start, end) in enumerate(matches):
+        next_start = matches[index + 1][1] if index + 1 < len(matches) else len(text)
+        if len(matches) == 1:
+            chunk = text
+        elif links_first:
+            chunk = text[0:next_start] if index == 0 else text[start:next_start]
+        else:
+            chunk = text[previous_end:end]
+        chunks.append((project_url, chunk.strip()))
+        previous_end = end
+    return chunks
+
+
+def _project_url_matches(
+    text: str, *, with_spans: bool = False
+) -> list[str] | list[tuple[str, int, int]]:
+    """Find unique official Kwork project links, preserving their body positions."""
+    results: list[str] | list[tuple[str, int, int]] = []
+    seen: set[str] = set()
+    for candidate in _URL_PATTERN.finditer(text):
+        url = candidate.group().rstrip(_TRAILING_URL_PUNCTUATION)
+        try:
+            parsed = urlsplit(url)
+        except ValueError:
+            continue
+        if (
+            parsed.scheme.lower() != "https"
+            or parsed.hostname != "kwork.ru"
+            or not _is_project_link_path(parsed.path)
+            or url in seen
+        ):
+            continue
+        seen.add(url)
+        end = candidate.start() + len(url)
+        if with_spans:
+            results.append((url, candidate.start(), end))
+        else:
+            results.append(url)
+    return results
+
+
+def _is_project_link_path(path: str) -> bool:
+    """Accept official direct project URLs and per-row digest offer URLs."""
+    return path.startswith("/projects/") or path == "/new_offer"
 
 
 def _decode_header(value: object | None) -> str:

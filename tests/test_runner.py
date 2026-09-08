@@ -54,6 +54,40 @@ def test_runner_records_and_advances_only_after_successful_telegram_delivery(
     assert deps.store.advance_cursor.call_args.args[0] == 101
 
 
+def test_runner_notifies_each_relevant_project_in_a_single_digest(
+    deps: Dependencies,
+) -> None:
+    """A digest must filter and deliver every row before its mail UID is completed."""
+    digest = b"\n".join(
+        (
+            b"Message-ID: <digest-300@example.kwork.ru>",
+            b"Subject: New Kwork projects",
+            b"MIME-Version: 1.0",
+            b"Content-Type: text/html; charset=utf-8",
+            b"",
+            b"<table>",
+            b'<tr><td><a href="https://kwork.ru/projects/300">Telegram bot</a></td><td>Budget: 5 000 RUB</td></tr>',
+            b'<tr><td><a href="https://kwork.ru/projects/301">Telegram integration</a></td><td>Budget: 7 000 RUB</td></tr>',
+            b"</table>",
+        )
+    )
+    deps.mail_source.fetch_after.return_value = [replace(_item(101), raw=digest)]
+    deps.notifier.send.return_value = DeliveryResult(message_id=9)
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.notified == 2
+    assert [call.args[0].project_url for call in deps.notifier.send.call_args_list] == [
+        "https://kwork.ru/projects/300",
+        "https://kwork.ru/projects/301",
+    ]
+    assert [call.args[0] for call in deps.store.record.call_args_list] == [
+        "project:https://kwork.ru/projects/300",
+        "project:https://kwork.ru/projects/301",
+    ]
+    assert deps.store.advance_cursor.call_args.args[0] == 101
+
+
 def test_runner_does_not_advance_cursor_when_telegram_fails(deps: Dependencies) -> None:
     """A failed delivery must be retried instead of being made durable."""
     deps.notifier.send.side_effect = TelegramError("offline")

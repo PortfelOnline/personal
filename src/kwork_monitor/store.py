@@ -16,6 +16,11 @@ def mail_key(message_id: str | None, uid: int) -> str:
     return normalized or f"uid:{uid}"
 
 
+def project_key(project_url: str) -> str:
+    """Return the durable identity for a project repeated across digest emails."""
+    return f"project:{project_url}"
+
+
 class StateStore:
     """Persist the IMAP cursor and processing result in a local SQLite file."""
 

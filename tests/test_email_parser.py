@@ -6,7 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from kwork_monitor.email_parser import EmailParseError, parse_project_email
+from kwork_monitor.email_parser import (
+    EmailParseError,
+    parse_project_email,
+    parse_project_emails,
+)
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -57,6 +61,60 @@ def test_parser_uses_html_when_no_plain_text_part_exists() -> None:
     assert project.project_url == "https://kwork.ru/projects/102"
     assert project.description is not None
     assert "Telegram-бот" in project.description
+
+
+def test_parser_returns_each_project_from_an_html_digest() -> None:
+    """A Kwork digest produces separate project records rather than just its first link."""
+    raw = b"\n".join(
+        (
+            b"Message-ID: <digest-200@example.kwork.ru>",
+            b"Subject: New Kwork projects",
+            b"MIME-Version: 1.0",
+            b"Content-Type: text/html; charset=utf-8",
+            b"",
+            b"<table>",
+            b'<tr><td><a href="https://kwork.ru/projects/200">Telegram bot</a></td><td>Budget: 5 000 RUB</td></tr>',
+            b'<tr><td><a href="https://kwork.ru/projects/201">Logo design</a></td><td>Budget: 3 000 RUB</td></tr>',
+            b"</table>",
+        )
+    )
+
+    projects = parse_project_emails(raw, uid=50)
+
+    assert [(project.project_url, project.budget) for project in projects] == [
+        ("https://kwork.ru/projects/200", "5 000 RUB"),
+        ("https://kwork.ru/projects/201", "3 000 RUB"),
+    ]
+    assert projects[0].description is not None
+    assert "Telegram bot" in projects[0].description
+    assert "Logo design" not in projects[0].description
+    assert projects[1].description is not None
+    assert "Logo design" in projects[1].description
+    assert "Telegram bot" not in projects[1].description
+
+
+def test_parser_returns_each_project_from_kwork_new_offer_links() -> None:
+    """Current Kwork digests use one unique ``/new_offer`` link per listed row."""
+    raw = b"\n".join(
+        (
+            b"Message-ID: <digest-202@example.kwork.ru>",
+            b"Subject: New Kwork projects",
+            b"MIME-Version: 1.0",
+            b"Content-Type: text/html; charset=utf-8",
+            b"",
+            b"<table>",
+            b'<tr><td><a href="https://kwork.ru/new_offer?offer=202">Telegram bot</a></td><td>Budget: 5 000 RUB</td></tr>',
+            b'<tr><td><a href="https://kwork.ru/new_offer?offer=203">Telegram integration</a></td><td>Budget: 7 000 RUB</td></tr>',
+            b"</table>",
+        )
+    )
+
+    projects = parse_project_emails(raw, uid=52)
+
+    assert [project.project_url for project in projects] == [
+        "https://kwork.ru/new_offer?offer=202",
+        "https://kwork.ru/new_offer?offer=203",
+    ]
 
 
 def test_parser_rejects_subdomain_project_url() -> None:
