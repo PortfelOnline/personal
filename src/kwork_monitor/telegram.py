@@ -39,20 +39,17 @@ class TelegramNotifier:
         separator = "\n\n<b>Черновик отклика</b>\n"
         budget = _MESSAGE_LIMIT - len(header) - len(separator)
         text = f"{header}{separator}{_escape_limited(draft, budget, quote=True)}"
-        return self._deliver({"chat_id": self._chat_id, "text": text})
+        return self._deliver(text)
 
     def send_with_button(self, project: ProjectEmail, pending_id: int) -> DeliveryResult:
         """Deliver a project link with a button to request a drafted response."""
         return self._deliver(
-            {
-                "chat_id": self._chat_id,
-                "text": _project_header(project),
-                "reply_markup": {
-                    "inline_keyboard": [
-                        [{"text": "Сгенерировать отклик", "callback_data": f"gen:{pending_id}"}]
-                    ]
-                },
-            }
+            _project_header(project),
+            reply_markup={
+                "inline_keyboard": [
+                    [{"text": "Сгенерировать отклик", "callback_data": f"gen:{pending_id}"}]
+                ]
+            },
         )
 
     def send_parse_error_alert(
@@ -66,16 +63,17 @@ class TelegramNotifier:
                 "<b>Причина:</b>",
             )
         )
-        return self._deliver(
-            {
-                "chat_id": self._chat_id,
-                "text": f"{header}\n{_escape_limited(reason, _MESSAGE_LIMIT - len(header) - 1, quote=True)}",
-            }
-        )
+        return self._deliver(f"{header}\n{_escape_limited(reason, _MESSAGE_LIMIT - len(header) - 1, quote=True)}")
 
-    def _deliver(self, payload: dict[str, object]) -> DeliveryResult:
-        payload.setdefault("parse_mode", "HTML")
-        payload.setdefault("disable_web_page_preview", True)
+    def _deliver(self, text: str, *, reply_markup: dict | None = None) -> DeliveryResult:
+        payload: dict[str, object] = {
+            "chat_id": self._chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        }
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
         try:
             response = requests.post(f"{self._url}/sendMessage", json=payload, timeout=15)
             response.raise_for_status()
