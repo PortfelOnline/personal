@@ -40,6 +40,10 @@ class Store(Protocol):
 
     def advance_cursor(self, uid: int) -> None: ...
 
+    def create_pending(self, project: ProjectEmail) -> int: ...
+
+    def delete_pending(self, pending_id: int) -> None: ...
+
 
 class ProposalGenerator(Protocol):
     """Generate an optional proposal draft."""
@@ -56,6 +60,8 @@ class Notifier(Protocol):
         proposal: str | None,
         generation_error: str | None = None,
     ) -> DeliveryResult: ...
+
+    def send_with_button(self, project: ProjectEmail, pending_id: int) -> DeliveryResult: ...
 
     def send_parse_error_alert(
         self, message_id: str | None, reason: str
@@ -239,19 +245,47 @@ def _handle_relevant_project(
     dry_run: bool,
     with_generation: bool,
 ) -> bool:
-    proposal, generation_error = _generate_or_none(
-        dependencies,
-        summary,
-        project,
-        enabled=not dry_run or with_generation,
-    )
     if dry_run:
+        _generate_or_none(dependencies, summary, project, enabled=with_generation)
         LOGGER.info("dry-run: would notify and record project UID %s", uid)
         return True
+    if with_generation:
+        return _notify_with_draft(dependencies, summary, project, key, uid)
+    return _notify_with_button(dependencies, summary, project, key, uid)
+
+
+def _notify_with_draft(
+    dependencies: Dependencies,
+    summary: RunSummary,
+    project: ProjectEmail,
+    key: str,
+    uid: int,
+) -> bool:
+    proposal, generation_error = _generate_or_none(dependencies, summary, project, enabled=True)
     try:
         dependencies.notifier.send(project, proposal, generation_error)
     except TelegramError:
         summary.delivery_failures += 1
+        LOGGER.error("Telegram project notification failed for UID %s", uid)
+        return False
+    dependencies.store.record(key, uid, "notified")
+    summary.notified += 1
+    return True
+
+
+def _notify_with_button(
+    dependencies: Dependencies,
+    summary: RunSummary,
+    project: ProjectEmail,
+    key: str,
+    uid: int,
+) -> bool:
+    pending_id = dependencies.store.create_pending(project)
+    try:
+        dependencies.notifier.send_with_button(project, pending_id)
+    except TelegramError:
+        summary.delivery_failures += 1
+        dependencies.store.delete_pending(pending_id)
         LOGGER.error("Telegram project notification failed for UID %s", uid)
         return False
     dependencies.store.record(key, uid, "notified")

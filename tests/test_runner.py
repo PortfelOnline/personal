@@ -72,12 +72,14 @@ def test_runner_notifies_each_relevant_project_in_a_single_digest(
         )
     )
     deps.mail_source.fetch_after.return_value = [replace(_item(101), raw=digest)]
-    deps.notifier.send.return_value = DeliveryResult(message_id=9)
+    deps.notifier.send_with_button.return_value = DeliveryResult(message_id=9)
 
     summary = run_once(deps, dry_run=False, with_generation=False)
 
     assert summary.notified == 2
-    assert [call.args[0].project_url for call in deps.notifier.send.call_args_list] == [
+    assert [
+        call.args[0].project_url for call in deps.notifier.send_with_button.call_args_list
+    ] == [
         "https://kwork.ru/projects/300",
         "https://kwork.ru/projects/301",
     ]
@@ -122,13 +124,14 @@ def test_dry_run_neither_writes_state_nor_sends_telegram(deps: Dependencies) -> 
     deps.store.record.assert_not_called()
     deps.store.advance_cursor.assert_not_called()
     deps.notifier.send.assert_not_called()
+    deps.notifier.send_with_button.assert_not_called()
     deps.proposal_client.generate.assert_not_called()
 
 
 def test_runner_processes_unsorted_mail_items_by_ascending_uid(deps: Dependencies) -> None:
     """A reordered source must not advance the cursor past an older message."""
     deps.mail_source.fetch_after.return_value = [_item(102), _item(101)]
-    deps.notifier.send.return_value = DeliveryResult(message_id=9)
+    deps.notifier.send_with_button.return_value = DeliveryResult(message_id=9)
 
     run_once(deps, dry_run=False, with_generation=False)
 
@@ -180,15 +183,19 @@ def test_dry_run_generation_requires_the_explicit_generation_flag(
     deps.store.advance_cursor.assert_not_called()
 
 
-def test_live_run_generates_a_draft_without_the_dry_run_opt_in_flag(
+def test_live_run_without_with_generation_sends_a_button_instead_of_a_draft(
     deps: Dependencies,
 ) -> None:
-    """The generation flag guards previews; live project alerts retain a draft."""
-    deps.notifier.send.return_value = DeliveryResult(message_id=9)
+    """The default production tick must not call an external service per project."""
+    deps.store.create_pending.return_value = 42
+    deps.notifier.send_with_button.return_value = DeliveryResult(message_id=9)
 
     run_once(deps, dry_run=False, with_generation=False)
 
-    deps.proposal_client.generate.assert_called_once()
+    deps.proposal_client.generate.assert_not_called()
+    deps.store.create_pending.assert_called_once()
+    deps.notifier.send_with_button.assert_called_once()
+    assert deps.notifier.send_with_button.call_args.args[1] == 42
 
 
 def test_runner_ignores_irrelevant_project_as_a_terminal_state(deps: Dependencies) -> None:
@@ -209,16 +216,44 @@ def test_runner_ignores_irrelevant_project_as_a_terminal_state(deps: Dependencie
     deps.notifier.send.assert_not_called()
 
 
-def test_runner_delivers_fallback_when_proposal_generation_fails(deps: Dependencies) -> None:
-    """Code Assist unavailability must not suppress a manually actionable alert."""
+def test_manual_with_generation_delivers_fallback_when_proposal_generation_fails(
+    deps: Dependencies,
+) -> None:
+    """--with-generation must still notify manually even if the bridge is down."""
     deps.proposal_client.generate.side_effect = ProposalError("offline")
     deps.notifier.send.return_value = DeliveryResult(message_id=9)
 
-    summary = run_once(deps, dry_run=False, with_generation=False)
+    summary = run_once(deps, dry_run=False, with_generation=True)
 
     assert summary.generation_failures == 1
     assert deps.notifier.send.call_args.args[1:] == (None, "proposal generation failed")
     assert deps.store.record.call_args.args[2] == "notified"
+
+
+def test_button_notification_creates_pending_row_before_sending(deps: Dependencies) -> None:
+    """The callback_data must reference a row that already exists when the click arrives."""
+    deps.store.create_pending.return_value = 7
+    deps.notifier.send_with_button.return_value = DeliveryResult(message_id=9)
+
+    run_once(deps, dry_run=False, with_generation=False)
+
+    created_project = deps.store.create_pending.call_args.args[0]
+    assert created_project.project_url == "https://kwork.ru/projects/100"
+    assert deps.notifier.send_with_button.call_args.args == (created_project, 7)
+
+
+def test_button_notification_deletes_pending_row_when_delivery_fails(
+    deps: Dependencies,
+) -> None:
+    """An undelivered button message must not leave an unreachable pending row behind."""
+    deps.store.create_pending.return_value = 7
+    deps.notifier.send_with_button.side_effect = TelegramError("offline")
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.delivery_failures == 1
+    deps.store.delete_pending.assert_called_once_with(7)
+    deps.store.record.assert_not_called()
 
 
 def test_runner_returns_success_without_processing_when_lock_is_contended(
