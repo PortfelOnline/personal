@@ -256,6 +256,16 @@ def test_button_notification_deletes_pending_row_when_delivery_fails(
     deps.store.record.assert_not_called()
 
 
+def test_button_notification_is_fatal_when_pending_row_creation_fails(deps: Dependencies) -> None:
+    """A local store failure creating the pending row is treated as fatal, like other store errors."""
+    deps.store.create_pending.side_effect = RuntimeError("disk full")
+
+    summary = run_once(deps, dry_run=False, with_generation=False)
+
+    assert summary.fatal_failures == 1
+    deps.notifier.send_with_button.assert_not_called()
+
+
 def test_runner_returns_success_without_processing_when_lock_is_contended(
     deps: Dependencies,
 ) -> None:
