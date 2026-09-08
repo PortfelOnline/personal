@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from kwork_monitor.config import ConfigurationError, load_settings
+from kwork_monitor.config import ConfigurationError, load_settings, read_profile
 
 
 def valid_test_environ() -> dict[str, str]:
@@ -102,3 +102,15 @@ def test_load_settings_rejects_http_base_url_without_v1(tmp_path: Path, base_url
 
     with pytest.raises(ConfigurationError, match="KWORK_CODEASSIST_BASE_URL"):
         load_settings(path, environ)
+
+
+def test_read_profile_returns_file_contents(tmp_path: Path) -> None:
+    profile_path = tmp_path / "PROFILE.md"
+    profile_path.write_text("Опыт: Python", encoding="utf-8")
+
+    assert read_profile(profile_path) == "Опыт: Python"
+
+
+def test_read_profile_wraps_missing_file(tmp_path: Path) -> None:
+    with pytest.raises(ConfigurationError, match="PROFILE.md could not be read"):
+        read_profile(tmp_path / "missing.md")
