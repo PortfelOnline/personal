@@ -33,7 +33,7 @@ providing the real values in its `.env` file:
 
 ```bash
 cd /root/kwork-monitor
-python3.11 -m venv .venv
+python3 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 install -m 600 /dev/null /root/kwork-monitor/.env
 install -m 600 config.example.yaml /root/kwork-monitor/config.yaml
