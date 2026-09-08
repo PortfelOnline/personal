@@ -35,10 +35,7 @@ class TelegramNotifier:
     ) -> DeliveryResult:
         """Deliver a project link and generated draft or generation fallback."""
         draft = proposal or f"⚠️ черновик не сгенерирован: {generation_error or 'неизвестная ошибка'}"
-        header = _project_header(project)
-        separator = "\n\n<b>Черновик отклика</b>\n"
-        budget = _MESSAGE_LIMIT - len(header) - len(separator)
-        text = f"{header}{separator}{_escape_limited(draft, budget, quote=True)}"
+        text = _bounded_message(_project_header(project), "\n\n<b>Черновик отклика</b>\n", draft, _MESSAGE_LIMIT)
         return self._deliver(text)
 
     def send_with_button(self, project: ProjectEmail, pending_id: int) -> DeliveryResult:
@@ -97,6 +94,12 @@ def _project_header(project: ProjectEmail) -> str:
             f'<a href="{_project_url(project.project_url)}">Открыть проект вручную</a>',
         )
     )
+
+
+def _bounded_message(header: str, separator: str, body: str, limit: int) -> str:
+    """Join header + separator + body, truncating body to fit the total under limit."""
+    budget = limit - len(header) - len(separator)
+    return f"{header}{separator}{_escape_limited(body, budget, quote=True)}"
 
 
 def _delivery_message_id(body: object) -> int | None:

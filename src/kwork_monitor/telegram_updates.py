@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import json
+import logging
 
 import requests
 
 from .models import ProjectEmail
-from .telegram import _escape_limited, _project_header
+from .telegram import _bounded_message, _project_header
+
+LOGGER = logging.getLogger(__name__)
 
 
 class TelegramUpdatesError(RuntimeError):
@@ -34,7 +37,7 @@ class TelegramUpdatesClient:
                 "timeout": 25,
                 "allowed_updates": json.dumps(["callback_query"]),
             },
-            timeout=30,
+            timeout=40,
         )
         try:
             response.raise_for_status()
@@ -48,20 +51,22 @@ class TelegramUpdatesClient:
 
     def answer_callback_query(self, callback_query_id: str) -> None:
         """Stop the button's loading spinner; Telegram requires a prompt reply."""
-        requests.post(
-            f"{self._url}/answerCallbackQuery",
-            json={"callback_query_id": callback_query_id},
-            timeout=15,
-        )
+        try:
+            requests.post(
+                f"{self._url}/answerCallbackQuery",
+                json={"callback_query_id": callback_query_id},
+                timeout=15,
+            )
+        except requests.RequestException:
+            LOGGER.debug("answerCallbackQuery failed, ignoring (best-effort)")
 
     def edit_with_draft(
         self, chat_id: str, message_id: int, project: ProjectEmail, draft: str
     ) -> None:
         """Replace the button with the generated draft, appended to the header."""
-        header = _project_header(project)
-        separator = "\n\n<b>Черновик отклика</b>\n"
-        budget = _EDIT_MESSAGE_LIMIT - len(header) - len(separator)
-        text = f"{header}{separator}{_escape_limited(draft, budget, quote=True)}"
+        text = _bounded_message(
+            _project_header(project), "\n\n<b>Черновик отклика</b>\n", draft, _EDIT_MESSAGE_LIMIT
+        )
         self._edit(chat_id, message_id, text, keyboard=None)
 
     def edit_with_retry(
@@ -73,10 +78,9 @@ class TelegramUpdatesClient:
         reason: str,
     ) -> None:
         """Report a generation failure and restore the button so the user can retry."""
-        header = _project_header(project)
-        separator = "\n\n⚠️ черновик не сгенерирован: "
-        budget = _EDIT_MESSAGE_LIMIT - len(header) - len(separator)
-        text = f"{header}{separator}{_escape_limited(reason, budget, quote=True)}"
+        text = _bounded_message(
+            _project_header(project), "\n\n⚠️ черновик не сгенерирован: ", reason, _EDIT_MESSAGE_LIMIT
+        )
         self._edit(chat_id, message_id, text, keyboard=_generate_button(pending_id))
 
     def edit_expired(self, chat_id: str, message_id: int) -> None:
