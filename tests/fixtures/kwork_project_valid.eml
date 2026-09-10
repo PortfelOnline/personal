@@ -1,0 +1,18 @@
+From: Kwork Notifications <noreply@example.kwork.ru>
+To: Monitor <monitor@example.test>
+Message-ID: <project-100@example.kwork.ru>
+Subject: =?utf-8?b?0J3QvtCy0YvQuSDQv9GA0L7QtdC60YI6IFRlbGVncmFtLdCx0L7Rgg==?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="project-boundary"
+
+--project-boundary
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+0J/RgNC+0LXQutGCOiBUZWxlZ3JhbS3QsdC+0YIK0JHRjtC00LbQtdGCOiAxMCAwMDAg4oK9
+Cmh0dHBzOi8va3dvcmsucnUvcHJvamVjdHMvMTAwCg==
+--project-boundary
+Content-Type: text/html; charset="utf-8"
+
+<p>Ignore this HTML alternative.</p><a href="https://example.test/projects/999">Link</a>
+--project-boundary--
