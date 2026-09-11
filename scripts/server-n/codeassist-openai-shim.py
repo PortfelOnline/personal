@@ -96,6 +96,63 @@ def breaker_record_success(model: str):
         del state[model]
         _breaker_save(state)
 
+
+# 11.09.2026: reactive breaker (выше) срабатывает ПОСЛЕ первого 429 — этого
+# просили дополнить проактивным потолком, чтобы конвейер статей/новостей САМ
+# останавливался заранее, не дожидаясь исчерпания. Точного числа RPD от Google
+# нет, поэтому бюджет — оценка по факту: 10.09.2026 квота у gemini-3.1-pro
+# кончилась после ~552 запросов с этого моста за день (единственный calling-IP
+# конвейера статей/новостей, соцсети через этот мост не ходят — проверено,
+# в коде ViralCraft нет ссылок на :4400/:4405). 70% от этого — ~386, округлено
+# до 380 с запасом. Актуализировать при появлении точного числа лимита.
+DAILY_BUDGET_PER_MODEL = {
+    "gemini-3.1-pro": 380,
+}
+DAILY_USAGE_PATH = "/root/.codeassist-daily-usage.json"
+
+
+def _daily_load() -> dict:
+    try:
+        with open(DAILY_USAGE_PATH, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def _daily_save(data: dict):
+    try:
+        with open(DAILY_USAGE_PATH, "w", encoding="utf-8") as fh:
+            json.dump(data, fh)
+    except OSError as exc:
+        log.warning("не удалось сохранить дневной счётчик: %s", exc)
+
+
+def _today_key() -> str:
+    return time.strftime("%Y-%m-%d")  # локальная дата сервера (МСК) — сброс в полночь
+
+
+def daily_check(model: str):
+    """Бросает RuntimeError('daily_cap:...'), если модель уже выбрала свой дневной бюджет."""
+    budget = DAILY_BUDGET_PER_MODEL.get(model)
+    if budget is None:
+        return
+    today = _today_key()
+    count = _daily_load().get(today, {}).get(model, 0)
+    if count >= budget:
+        raise RuntimeError(f"daily_cap:{model}:{budget}")
+
+
+def daily_record(model: str):
+    """Считаем КАЖДУЮ попытку до Google (включая те, что вернут 429) — они тоже жгут лимит."""
+    if model not in DAILY_BUDGET_PER_MODEL:
+        return
+    today = _today_key()
+    data = _daily_load()
+    day_bucket = data.get(today, {})
+    day_bucket[model] = day_bucket.get(model, 0) + 1
+    # держим в файле только сегодняшний день — не растим бесконечно
+    _daily_save({today: day_bucket})
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
@@ -272,6 +329,8 @@ def _post(base: str, model: str, body: dict) -> dict:
 def call_bridge(model: str, body: dict, want_tools: bool = False) -> tuple[str, list]:
     """Вернуть (текст, вызовы инструментов). Вызовы приходят только с маршрута /genai-tools."""
     breaker_check(model)
+    daily_check(model)
+    daily_record(model)
 
     data = None
     try:
@@ -425,6 +484,11 @@ class Handler(BaseHTTPRequestHandler):
                 _, brk_model, remaining = str(exc).split(":", 2)
                 log.info("отклонён локально (breaker open): model=%s осталось=%sс", brk_model, remaining)
                 self._error(429, f"quota exhausted for {brk_model}, waiting for weekly reset, retry in {remaining}s")
+                return
+            if str(exc).startswith("daily_cap:"):
+                _, cap_model, budget = str(exc).split(":", 2)
+                log.info("отклонён локально (дневной потолок %s/%s исчерпан): model=%s", budget, budget, cap_model)
+                self._error(429, f"daily self-imposed cap reached for {cap_model} ({budget}/day), resets at midnight")
                 return
             log.error("bridge failure: %s", exc)
             self._error(502, f"bridge unavailable: {exc}")
