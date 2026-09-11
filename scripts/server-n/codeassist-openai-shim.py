@@ -97,61 +97,61 @@ def breaker_record_success(model: str):
         _breaker_save(state)
 
 
-# 11.09.2026: reactive breaker (выше) срабатывает ПОСЛЕ первого 429 — этого
-# просили дополнить проактивным потолком, чтобы конвейер статей/новостей САМ
-# останавливался заранее, не дожидаясь исчерпания. Точного числа RPD от Google
-# нет, поэтому бюджет — оценка по факту: 10.09.2026 квота у gemini-3.1-pro
-# кончилась после ~552 запросов с этого моста за день (единственный calling-IP
-# конвейера статей/новостей, соцсети через этот мост не ходят — проверено,
-# в коде ViralCraft нет ссылок на :4400/:4405). 70% от этого — ~386, округлено
-# до 380 с запасом. Актуализировать при появлении точного числа лимита.
-DAILY_BUDGET_PER_MODEL = {
-    "gemini-3.1-pro": 380,
-}
-DAILY_USAGE_PATH = "/root/.codeassist-daily-usage.json"
+# 11.09.2026: ПЕРЕДЕЛАНО с суточного потолка на пула-недельный — обнаружены две
+# ошибки исходной калибровки:
+#  1) 7-дневный cooldown breaker'а (см. выше) подразумевает НЕДЕЛЬНЫЙ сброс квоты
+#     у Google, а не суточный — суточный сброс счётчика позволял конвейеру статей
+#     набрать до 7×380 запросов за неделю, что не держит 70%-потолок вообще.
+#  2) квота оказалась ОБЩАЯ на Google-аккаунт, а не по имени модели: помимо
+#     gemini-3.1-pro через этот мост реально ходят gemini-3.5-pro, gemini-flash,
+#     gemini-auto-agent/flash-agent/pro-agent (nightly-конвейер статей
+#     strategy-dashboard/scripts/bridge-llm.ts, ai-разбор aitrading) — все они
+#     садятся в один и тот же пул. Копившийся по одной модели счётчик не видел
+#     остальные ~1300 запросов/неделю через другие имена моделей.
+# Синхронизировано с /root/.codeassist-weekly-usage.json — bridge-llm.ts (реальный
+# nightly-конвейер статей, бьёт в :4400 напрямую, МИМО этого шима) пишет/читает
+# ТОТ ЖЕ файл, поэтому 70%-потолок держится по факту, а не только для трафика
+# через :4405. Бюджет 386 = ~70% от 552 запросов gemini-3.1-pro, которые
+# 10.09.2026 исчерпали общую квоту за день (оценка, не точный лимит Google).
+WEEKLY_BUDGET_POOLED = 386
+WEEKLY_USAGE_PATH = "/root/.codeassist-weekly-usage.json"
 
 
-def _daily_load() -> dict:
+def _weekly_load() -> dict:
     try:
-        with open(DAILY_USAGE_PATH, "r", encoding="utf-8") as fh:
+        with open(WEEKLY_USAGE_PATH, "r", encoding="utf-8") as fh:
             return json.load(fh)
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
 
 
-def _daily_save(data: dict):
+def _weekly_save(data: dict):
     try:
-        with open(DAILY_USAGE_PATH, "w", encoding="utf-8") as fh:
+        with open(WEEKLY_USAGE_PATH, "w", encoding="utf-8") as fh:
             json.dump(data, fh)
     except OSError as exc:
-        log.warning("не удалось сохранить дневной счётчик: %s", exc)
+        log.warning("не удалось сохранить недельный счётчик: %s", exc)
 
 
-def _today_key() -> str:
-    return time.strftime("%Y-%m-%d")  # локальная дата сервера (МСК) — сброс в полночь
+def _week_key() -> str:
+    return time.strftime("%G-W%V")  # ISO-неделя, локальное время сервера — сброс раз в неделю
 
 
 def daily_check(model: str):
-    """Бросает RuntimeError('daily_cap:...'), если модель уже выбрала свой дневной бюджет."""
-    budget = DAILY_BUDGET_PER_MODEL.get(model)
-    if budget is None:
-        return
-    today = _today_key()
-    count = _daily_load().get(today, {}).get(model, 0)
-    if count >= budget:
-        raise RuntimeError(f"daily_cap:{model}:{budget}")
+    """Бросает RuntimeError('daily_cap:...'), если ОБЩИЙ (все модели) пул уже выбрал недельный бюджет."""
+    week = _week_key()
+    count = _weekly_load().get(week, 0)
+    if count >= WEEKLY_BUDGET_POOLED:
+        raise RuntimeError(f"daily_cap:{model}:{WEEKLY_BUDGET_POOLED}")
 
 
 def daily_record(model: str):
     """Считаем КАЖДУЮ попытку до Google (включая те, что вернут 429) — они тоже жгут лимит."""
-    if model not in DAILY_BUDGET_PER_MODEL:
-        return
-    today = _today_key()
-    data = _daily_load()
-    day_bucket = data.get(today, {})
-    day_bucket[model] = day_bucket.get(model, 0) + 1
-    # держим в файле только сегодняшний день — не растим бесконечно
-    _daily_save({today: day_bucket})
+    week = _week_key()
+    data = _weekly_load()
+    count = data.get(week, 0) + 1
+    # держим в файле только текущую неделю — не растим бесконечно
+    _weekly_save({week: count})
 
 logging.basicConfig(
     level=logging.INFO,
