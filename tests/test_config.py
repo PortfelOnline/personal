@@ -34,7 +34,8 @@ def write_valid_config(path: Path) -> None:
         "filters:\n"
         "  senders: [noreply@kwork.ru]\n"
         "  subject_patterns: ['Новый проект']\n"
-        "  keywords: [python, бот]\n",
+        "  keywords: [python, бот]\n"
+        "  minimum_budget_rub: 20000\n",
         encoding="utf-8",
     )
 
@@ -51,6 +52,7 @@ def test_load_settings_reads_non_secret_yaml_and_secret_environment(tmp_path: Pa
     assert settings.filters.senders == ("noreply@kwork.ru",)
     assert settings.filters.subject_patterns == ("Новый проект",)
     assert settings.filters.keywords == ("python", "бот")
+    assert settings.filters.minimum_budget_rub == 20_000
     assert secrets.telegram_chat_id == "123"
 
 
@@ -71,13 +73,27 @@ def test_load_settings_rejects_missing_required_secret(tmp_path: Path) -> None:
         load_settings(path, environ)
 
 
+@pytest.mark.parametrize("value", ("0", "-1", "'20000'", "null"))
+def test_load_settings_rejects_invalid_minimum_budget(tmp_path: Path, value: str) -> None:
+    path = tmp_path / "config.yaml"
+    write_valid_config(path)
+    text = path.read_text(encoding="utf-8")
+    path.write_text(
+        text.replace("minimum_budget_rub: 20000", f"minimum_budget_rub: {value}"),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigurationError, match="minimum_budget_rub"):
+        load_settings(path, valid_test_environ())
+
+
 @pytest.mark.parametrize("field", ("senders", "subject_patterns", "keywords"))
 def test_load_settings_rejects_empty_filter_list(tmp_path: Path, field: str) -> None:
     """Each filter must retain an allowlist rather than widening to all email."""
     path = tmp_path / "config.yaml"
     path.write_text(
         "imap: {host: imap.example.test, mailbox: INBOX}\n"
-        f"filters: {{senders: [noreply@kwork.ru], subject_patterns: ['Новый проект'], keywords: [python], {field}: []}}\n",
+        f"filters: {{senders: [noreply@kwork.ru], subject_patterns: ['Новый проект'], keywords: [python], minimum_budget_rub: 20000, {field}: []}}\n",
         encoding="utf-8",
     )
 

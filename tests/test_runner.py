@@ -71,6 +71,13 @@ def test_runner_notifies_each_relevant_project_in_a_single_digest(
             b"</table>",
         )
     )
+    deps = replace(
+        deps,
+        settings=replace(
+            deps.settings,
+            filters=replace(deps.settings.filters, minimum_budget_rub=1_000),
+        ),
+    )
     deps.mail_source.fetch_after.return_value = [replace(_item(101), raw=digest)]
     deps.notifier.send_with_button.return_value = DeliveryResult(message_id=9)
 
@@ -266,6 +273,23 @@ def test_button_notification_is_fatal_when_pending_row_creation_fails(deps: Depe
     deps.notifier.send_with_button.assert_not_called()
 
 
+def test_runner_ignores_project_below_minimum_budget(deps: Dependencies) -> None:
+    """A matching skill alone must not alert on projects below the configured floor."""
+    deps = replace(
+        deps,
+        settings=replace(
+            deps.settings,
+            filters=replace(deps.settings.filters, minimum_budget_rub=20_000),
+        ),
+    )
+
+    summary = run_once(deps, dry_run=False, with_generation=True)
+
+    assert summary.ignored == 1
+    deps.proposal_client.generate.assert_not_called()
+    deps.notifier.send.assert_not_called()
+
+
 def test_runner_returns_success_without_processing_when_lock_is_contended(
     deps: Dependencies,
 ) -> None:
@@ -297,6 +321,7 @@ def _settings() -> Settings:
             senders=("noreply@kwork.ru",),
             subject_patterns=("Новый проект",),
             keywords=("telegram",),
+            minimum_budget_rub=10_000,
         ),
     )
 

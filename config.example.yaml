@@ -14,12 +14,12 @@ filters:
   subject_patterns:
     - Новые проекты на бирже Kwork
   keywords:
-    - python
-    - telegram
-    - бот
-    - автоматизац
-    - интеграц
-    - парсинг
+    - telegram-бот
+    - ai-агент
     - llm
-    - ai
     - n8n
+    - парсинг
+    - api
+    - интеграц
+  # Only notify on projects with a confirmed budget at or above this amount.
+  minimum_budget_rub: 20000
