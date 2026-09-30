@@ -33,7 +33,7 @@ providing the real values in its `.env` file:
 
 ```bash
 cd /root/kwork-monitor
-python3.11 -m venv .venv
+python3 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 install -m 600 /dev/null /root/kwork-monitor/.env
 install -m 600 config.example.yaml /root/kwork-monitor/config.yaml
@@ -59,6 +59,22 @@ line manually:
 17 * * * * cd /root/kwork-monitor && set -a && . ./.env && set +a && ./.venv/bin/python -m kwork_monitor.cli --config ./config.yaml >> ./kwork-monitor.log 2>&1
 ```
 
+The cron tick sends each relevant project with a **"Сгенерировать отклик"**
+button instead of immediately using the generation bridge. Install the separate
+long-polling daemon to process button clicks:
+
+```bash
+install -m 644 ops/kwork-monitor-bot.service /etc/systemd/system/kwork-monitor-bot.service
+systemctl daemon-reload
+systemctl enable --now kwork-monitor-bot
+systemctl status kwork-monitor-bot --no-pager
+```
+
+Use `journalctl -u kwork-monitor-bot -f` to inspect the daemon. The manual
+`--with-generation` override (`--config ./config.yaml --with-generation`) still
+creates drafts immediately for all relevant projects in that tick and does not
+create proposal buttons.
+
 ## Operations and recovery
 
 If an app password or Telegram token leaks, revoke it and create a replacement,
@@ -77,7 +93,7 @@ operator action after inspecting the email.
 
 ## Local verification
 
-With Python 3.11 and the test dependencies installed:
+With Python 3.10+ and the test dependencies installed:
 
 ```bash
 python -m pytest -v

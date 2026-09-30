@@ -4,15 +4,22 @@
 # KWORK_CODEASSIST_BASE_URL. Never commit config.yaml or .env.
 imap:
   # Use the dedicated mailbox's provider hostname.
-  host: imap.example.com
+  host: imap.gmail.com
   mailbox: INBOX
 
 filters:
   # Match only the sender, subjects, and skills you want to receive.
   senders:
-    - noreply@kwork.ru
+    - news@kwork.ru
   subject_patterns:
-    - Новый проект
+    - Новые проекты на бирже Kwork
   keywords:
     - python
-    - telegram-бот
+    - telegram
+    - бот
+    - автоматизац
+    - интеграц
+    - парсинг
+    - llm
+    - ai
+    - n8n

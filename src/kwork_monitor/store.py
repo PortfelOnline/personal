@@ -1,13 +1,27 @@
-"""Durable cursor and idempotency state for one monitor mailbox."""
+"""Durable cursor, idempotency, pending-proposal, and Telegram offset state for one monitor mailbox."""
 
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .models import ProjectEmail
+
 
 _STATUSES = frozenset({"notified", "ignored", "parse_error"})
+
+
+@dataclass(frozen=True)
+class PendingProposal:
+    """A project awaiting an on-demand generated proposal draft."""
+
+    id: int
+    project_url: str
+    subject: str
+    budget: str | None
+    description: str | None
 
 
 def mail_key(message_id: str | None, uid: int) -> str:
@@ -16,8 +30,13 @@ def mail_key(message_id: str | None, uid: int) -> str:
     return normalized or f"uid:{uid}"
 
 
+def project_key(project_url: str) -> str:
+    """Return the durable identity for a project repeated across digest emails."""
+    return f"project:{project_url}"
+
+
 class StateStore:
-    """Persist the IMAP cursor and processing result in a local SQLite file."""
+    """Persist the IMAP cursor, processing results, pending proposals, and Telegram offset in a local SQLite file."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -74,6 +93,61 @@ class StateStore:
                 ),
             )
 
+    def create_pending(self, project: ProjectEmail) -> int:
+        with self._connection() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO pending_proposals
+                    (project_url, subject, budget, description, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    project.project_url or "",
+                    project.subject,
+                    project.budget,
+                    project.description,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+            pending_id = cursor.lastrowid
+        return int(pending_id)
+
+    def get_pending(self, pending_id: int) -> PendingProposal | None:
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT id, project_url, subject, budget, description
+                FROM pending_proposals WHERE id = ?
+                """,
+                (pending_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return PendingProposal(
+            id=row[0], project_url=row[1], subject=row[2], budget=row[3], description=row[4]
+        )
+
+    def delete_pending(self, pending_id: int) -> None:
+        with self._connection() as connection:
+            connection.execute("DELETE FROM pending_proposals WHERE id = ?", (pending_id,))
+
+    def get_telegram_offset(self) -> int:
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT value FROM monitor_state WHERE key = ?", ("telegram_offset",)
+            ).fetchone()
+        return int(row[0]) if row is not None else 0
+
+    def set_telegram_offset(self, offset: int) -> None:
+        with self._connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO monitor_state(key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                ("telegram_offset", str(offset)),
+            )
+
     def _connection(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path)
         connection.execute("PRAGMA journal_mode = WAL")
@@ -93,6 +167,14 @@ class StateStore:
                     uid INTEGER NOT NULL,
                     status TEXT NOT NULL CHECK (status IN ('notified', 'ignored', 'parse_error')),
                     error TEXT,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS pending_proposals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_url TEXT NOT NULL,
+                    subject TEXT NOT NULL,
+                    budget TEXT,
+                    description TEXT,
                     created_at TEXT NOT NULL
                 );
                 """

@@ -10,12 +10,12 @@ import logging
 from pathlib import Path
 from typing import Protocol, TextIO
 
-from .email_parser import EmailParseError, parse_project_email
+from .email_parser import EmailParseError, parse_project_emails
 from .imap_source import MailItem
 from .models import DeliveryResult, ProjectEmail, Settings
 from .proposal import ProposalError
 from .relevance import is_relevant
-from .store import mail_key
+from .store import mail_key, project_key
 from .telegram import TelegramError
 
 
@@ -40,6 +40,10 @@ class Store(Protocol):
 
     def advance_cursor(self, uid: int) -> None: ...
 
+    def create_pending(self, project: ProjectEmail) -> int: ...
+
+    def delete_pending(self, pending_id: int) -> None: ...
+
 
 class ProposalGenerator(Protocol):
     """Generate an optional proposal draft."""
@@ -57,12 +61,14 @@ class Notifier(Protocol):
         generation_error: str | None = None,
     ) -> DeliveryResult: ...
 
+    def send_with_button(self, project: ProjectEmail, pending_id: int) -> DeliveryResult: ...
+
     def send_parse_error_alert(
         self, message_id: str | None, reason: str
     ) -> DeliveryResult: ...
 
 
-Parser = Callable[[bytes, int], ProjectEmail]
+Parser = Callable[[bytes, int], tuple[ProjectEmail, ...]]
 LockFileOpener = Callable[[Path], TextIO]
 LockAcquirer = Callable[[], AbstractContextManager[bool]]
 
@@ -77,7 +83,7 @@ class Dependencies:
     notifier: Notifier
     settings: Settings
     profile: str
-    parser: Parser = parse_project_email
+    parser: Parser = parse_project_emails
     lock_path: Path = LOCK_PATH
     lock_file_opener: LockFileOpener | None = None
     lock_acquirer: LockAcquirer | None = None
@@ -168,7 +174,7 @@ def _process_item(
     with_generation: bool,
 ) -> bool:
     try:
-        project = dependencies.parser(item.raw, item.uid)
+        projects = dependencies.parser(item.raw, item.uid)
     except EmailParseError as error:
         return _handle_parse_error(
             dependencies,
@@ -179,24 +185,31 @@ def _process_item(
             dry_run=dry_run,
         )
 
-    project_key = mail_key(project.message_id, item.uid)
-    if not is_relevant(project, dependencies.settings.filters.keywords):
-        summary.ignored += 1
-        if dry_run:
-            LOGGER.info("dry-run: would ignore UID %s", item.uid)
-        else:
-            dependencies.store.record(project_key, item.uid, "ignored")
-        return True
+    terminal = True
+    for project in projects:
+        key = project_key(project.project_url or "")
+        if dependencies.store.is_recorded(key):
+            summary.duplicates += 1
+            continue
+        if not is_relevant(project, dependencies.settings.filters.keywords):
+            summary.ignored += 1
+            if dry_run:
+                LOGGER.info("dry-run: would ignore project UID %s", item.uid)
+            else:
+                dependencies.store.record(key, item.uid, "ignored")
+            continue
 
-    return _handle_relevant_project(
-        dependencies,
-        summary,
-        project,
-        project_key,
-        item.uid,
-        dry_run=dry_run,
-        with_generation=with_generation,
-    )
+        if not _handle_relevant_project(
+            dependencies,
+            summary,
+            project,
+            key,
+            item.uid,
+            dry_run=dry_run,
+            with_generation=with_generation,
+        ):
+            terminal = False
+    return terminal
 
 
 def _handle_parse_error(
@@ -232,19 +245,47 @@ def _handle_relevant_project(
     dry_run: bool,
     with_generation: bool,
 ) -> bool:
-    proposal, generation_error = _generate_or_none(
-        dependencies,
-        summary,
-        project,
-        enabled=not dry_run or with_generation,
-    )
     if dry_run:
+        _generate_or_none(dependencies, summary, project, enabled=with_generation)
         LOGGER.info("dry-run: would notify and record project UID %s", uid)
         return True
+    if with_generation:
+        return _notify_with_draft(dependencies, summary, project, key, uid)
+    return _notify_with_button(dependencies, summary, project, key, uid)
+
+
+def _notify_with_draft(
+    dependencies: Dependencies,
+    summary: RunSummary,
+    project: ProjectEmail,
+    key: str,
+    uid: int,
+) -> bool:
+    proposal, generation_error = _generate_or_none(dependencies, summary, project, enabled=True)
     try:
         dependencies.notifier.send(project, proposal, generation_error)
     except TelegramError:
         summary.delivery_failures += 1
+        LOGGER.error("Telegram project notification failed for UID %s", uid)
+        return False
+    dependencies.store.record(key, uid, "notified")
+    summary.notified += 1
+    return True
+
+
+def _notify_with_button(
+    dependencies: Dependencies,
+    summary: RunSummary,
+    project: ProjectEmail,
+    key: str,
+    uid: int,
+) -> bool:
+    pending_id = dependencies.store.create_pending(project)
+    try:
+        dependencies.notifier.send_with_button(project, pending_id)
+    except TelegramError:
+        summary.delivery_failures += 1
+        dependencies.store.delete_pending(pending_id)
         LOGGER.error("Telegram project notification failed for UID %s", uid)
         return False
     dependencies.store.record(key, uid, "notified")

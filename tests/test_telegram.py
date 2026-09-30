@@ -145,6 +145,23 @@ def test_parse_error_alert_escapes_untrusted_reason_and_message_id(requests_mock
     assert "bad &lt;markup&gt;" in text
 
 
+def test_send_with_button_omits_draft_and_attaches_generate_callback(requests_mock) -> None:
+    """The button variant must not contain a draft section and must carry the pending id."""
+    requests_mock.post(
+        "https://api.telegram.org/bottoken/sendMessage",
+        json={"ok": True, "result": {"message_id": 81}},
+    )
+
+    result = TelegramNotifier("token", "123").send_with_button(_project(), 42)
+
+    assert result.message_id == 81
+    payload = requests_mock.last_request.json()
+    assert "Черновик отклика" not in payload["text"]
+    assert payload["reply_markup"] == {
+        "inline_keyboard": [[{"text": "Сгенерировать отклик", "callback_data": "gen:42"}]]
+    }
+
+
 class _TagTracker(HTMLParser):
     def __init__(self) -> None:
         super().__init__()

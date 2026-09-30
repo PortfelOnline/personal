@@ -24,7 +24,7 @@ class TelegramNotifier:
     """Deliver HTML-escaped monitor notifications to one Telegram chat."""
 
     def __init__(self, bot_token: str, chat_id: str) -> None:
-        self._url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        self._url = f"https://api.telegram.org/bot{bot_token}"
         self._chat_id = chat_id
 
     def send(
@@ -35,18 +35,18 @@ class TelegramNotifier:
     ) -> DeliveryResult:
         """Deliver a project link and generated draft or generation fallback."""
         draft = proposal or f"⚠️ черновик не сгенерирован: {generation_error or 'неизвестная ошибка'}"
-        header = "\n".join(
-            (
-                "<b>Новый проект Kwork</b>",
-                f"<b>Тема:</b> {_escape_limited(project.subject, _FIELD_LIMIT, quote=True)}",
-                f"<b>Бюджет:</b> {_escape_limited(project.budget or 'не указан', _FIELD_LIMIT, quote=True)}",
-                f'<a href="{_project_url(project.project_url)}">Открыть проект вручную</a>',
-                "",
-                "<b>Черновик отклика</b>",
-            )
-        )
-        return self._send_text(
-            f"{header}\n{_escape_limited(draft, _MESSAGE_LIMIT - len(header) - 1, quote=True)}"
+        text = _bounded_message(_project_header(project), "\n\n<b>Черновик отклика</b>\n", draft, _MESSAGE_LIMIT)
+        return self._deliver(text)
+
+    def send_with_button(self, project: ProjectEmail, pending_id: int) -> DeliveryResult:
+        """Deliver a project link with a button to request a drafted response."""
+        return self._deliver(
+            _project_header(project),
+            reply_markup={
+                "inline_keyboard": [
+                    [{"text": "Сгенерировать отклик", "callback_data": f"gen:{pending_id}"}]
+                ]
+            },
         )
 
     def send_parse_error_alert(
@@ -60,19 +60,19 @@ class TelegramNotifier:
                 "<b>Причина:</b>",
             )
         )
-        return self._send_text(
-            f"{header}\n{_escape_limited(reason, _MESSAGE_LIMIT - len(header) - 1, quote=True)}"
-        )
+        return self._deliver(f"{header}\n{_escape_limited(reason, _MESSAGE_LIMIT - len(header) - 1, quote=True)}")
 
-    def _send_text(self, text: str) -> DeliveryResult:
-        payload = {
+    def _deliver(self, text: str, *, reply_markup: dict | None = None) -> DeliveryResult:
+        payload: dict[str, object] = {
             "chat_id": self._chat_id,
             "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
+        if reply_markup is not None:
+            payload["reply_markup"] = reply_markup
         try:
-            response = requests.post(self._url, json=payload, timeout=15)
+            response = requests.post(f"{self._url}/sendMessage", json=payload, timeout=15)
             response.raise_for_status()
             body = response.json()
         except (requests.RequestException, ValueError):
@@ -82,6 +82,24 @@ class TelegramNotifier:
         if message_id is None:
             raise TelegramError("Telegram delivery was not confirmed")
         return DeliveryResult(message_id=message_id)
+
+
+def _project_header(project: ProjectEmail) -> str:
+    """Return the shared subject/budget/link block used by every notification variant."""
+    return "\n".join(
+        (
+            "<b>Новый проект Kwork</b>",
+            f"<b>Тема:</b> {_escape_limited(project.subject, _FIELD_LIMIT, quote=True)}",
+            f"<b>Бюджет:</b> {_escape_limited(project.budget or 'не указан', _FIELD_LIMIT, quote=True)}",
+            f'<a href="{_project_url(project.project_url)}">Открыть проект вручную</a>',
+        )
+    )
+
+
+def _bounded_message(header: str, separator: str, body: str, limit: int) -> str:
+    """Join header + separator + body, truncating body to fit the total under limit."""
+    budget = limit - len(header) - len(separator)
+    return f"{header}{separator}{_escape_limited(body, budget, quote=True)}"
 
 
 def _delivery_message_id(body: object) -> int | None:

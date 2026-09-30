@@ -50,6 +50,14 @@ def load_settings(
     return settings, secrets
 
 
+def read_profile(path: Path) -> str:
+    """Return the freelancer brief used to constrain proposal generation."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ConfigurationError("PROFILE.md could not be read") from error
+
+
 def _load_yaml(config_path: Path) -> Mapping[str, object]:
     if not config_path.is_file():
         raise ConfigurationError(f"configuration file does not exist: {config_path}")

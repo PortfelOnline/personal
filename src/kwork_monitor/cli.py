@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 import sys
 
-from .config import ConfigurationError, load_settings
+from .config import ConfigurationError, load_settings, read_profile
 from .imap_source import ImapSource, ImapSourceError, MailItem
 from .models import FilterSettings, ImapSettings, ProjectEmail, Settings
 from .proposal import ProposalClient
@@ -40,7 +40,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     try:
         settings, secrets = load_settings(arguments.config, os.environ)
-        profile = _read_profile(arguments.config.parent / "PROFILE.md")
+        profile = read_profile(arguments.config.parent / "PROFILE.md")
         dependencies = Dependencies(
             mail_source=ImapSource.from_settings(settings, secrets),
             store=(
@@ -101,13 +101,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--fixture", type=Path)
     parser.add_argument("--with-generation", action="store_true")
     return parser
-
-
-def _read_profile(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except OSError as error:
-        raise ConfigurationError("PROFILE.md could not be read") from error
 
 
 def _fixture_settings() -> Settings:

@@ -1,0 +1,15 @@
+[Unit]
+Description=Kwork monitor interactive proposal button daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/kwork-monitor
+EnvironmentFile=/root/kwork-monitor/.env
+ExecStart=/root/kwork-monitor/.venv/bin/python -m kwork_monitor.bot_daemon --config /root/kwork-monitor/config.yaml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
