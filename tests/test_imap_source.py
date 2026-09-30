@@ -57,6 +57,8 @@ class GapAwareFakeImapClient(FakeImapClient):
                 "None",
                 "UID",
                 "11:*",
+                "FROM",
+                "noreply@kwork.ru",
             ):
                 return "OK", [b"12 99"]
             return "OK", [b""]
@@ -74,7 +76,7 @@ def test_source_uses_uid_search_for_real_uids_after_sequence_gaps() -> None:
     items = source.fetch_after(10)
 
     assert [item.uid for item in items] == [12, 99]
-    assert ("SEARCH", "None", "UID", "11:*") in client.calls
+    assert ("SEARCH", "None", "UID", "11:*", "FROM", "noreply@kwork.ru") in client.calls
 
 
 def test_source_returns_only_uids_after_cursor_and_never_marks_seen() -> None:
@@ -141,9 +143,10 @@ def test_from_settings_authenticates_with_safe_tls_and_readonly_mailbox() -> Non
     client = FakeImapClient(messages={})
     captured: dict[str, object] = {}
 
-    def factory(host: str, *, ssl_context: ssl.SSLContext):
+    def factory(host: str, *, ssl_context: ssl.SSLContext, timeout: float):
         captured["host"] = host
         captured["ssl_context"] = ssl_context
+        captured["timeout"] = timeout
         return client
 
     settings = Settings(
@@ -166,6 +169,7 @@ def test_from_settings_authenticates_with_safe_tls_and_readonly_mailbox() -> Non
 
     assert source.client is client
     assert captured["host"] == "imap.example.test"
+    assert captured["timeout"] == 30
     context = captured["ssl_context"]
     assert isinstance(context, ssl.SSLContext)
     assert context.verify_mode == ssl.CERT_REQUIRED

@@ -33,6 +33,8 @@ class ImapSourceError(RuntimeError):
 class ImapSource:
     """Fetch matching messages without changing mailbox flags or messages."""
 
+    _CONNECTION_TIMEOUT_SECONDS = 30
+
     def __init__(
         self,
         client: Any,
@@ -63,6 +65,7 @@ class ImapSource:
         client = factory(
             settings.imap.host,
             ssl_context=ssl.create_default_context(),
+            timeout=cls._CONNECTION_TIMEOUT_SECONDS,
         )
         _imap_ok(client.login(secrets.imap_username, secrets.imap_password), "login")
         _imap_ok(
@@ -82,9 +85,7 @@ class ImapSource:
         """Search by UID, inspect headers, then download only allow-listed bodies."""
         if uid < 0:
             raise ValueError("UID must be non-negative")
-        status, data = self.client.uid("SEARCH", None, "UID", f"{uid + 1}:*")
-        _imap_ok((status, data), "UID SEARCH")
-        candidates = [candidate for candidate in _search_uids(data) if candidate > uid]
+        candidates = _search_allowed_sender_uids(self.client, self.allowed_senders, uid)
         items: list[MailItem] = []
         for candidate_uid in candidates:
             status, data = self.client.uid(
@@ -114,6 +115,25 @@ class ImapSource:
                 )
             )
         return items
+
+
+def _search_allowed_sender_uids(
+    client: Any, allowed_senders: frozenset[str], after_uid: int
+) -> list[int]:
+    """Ask IMAP for allow-listed senders before inspecting message headers.
+
+    Starting from a zero cursor must not force an hourly cron job to download
+    headers for an entire long-lived mailbox. Searching each sender separately
+    keeps the server-side filter compatible with configured sender allowlists.
+    """
+    candidates: set[int] = set()
+    for sender in sorted(allowed_senders):
+        status, data = client.uid(
+            "SEARCH", None, "UID", f"{after_uid + 1}:*", "FROM", sender
+        )
+        _imap_ok((status, data), "UID SEARCH")
+        candidates.update(candidate for candidate in _search_uids(data) if candidate > after_uid)
+    return sorted(candidates)
 
 
 def _imap_ok(response: tuple[Any, Any], operation: str) -> None:
