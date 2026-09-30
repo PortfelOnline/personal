@@ -20,6 +20,7 @@ class FilterSettings:
     senders: tuple[str, ...]
     subject_patterns: tuple[str, ...]
     keywords: tuple[str, ...]
+    minimum_budget_rub: int
 
 
 @dataclass(frozen=True)

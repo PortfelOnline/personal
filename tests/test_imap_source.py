@@ -155,6 +155,7 @@ def test_from_settings_authenticates_with_safe_tls_and_readonly_mailbox() -> Non
             senders=("noreply@kwork.ru",),
             subject_patterns=("Новый проект",),
             keywords=("python",),
+            minimum_budget_rub=20_000,
         ),
     )
     secrets = SecretSettings(

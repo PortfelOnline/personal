@@ -107,7 +107,7 @@ def _fixture_settings() -> Settings:
     return Settings(
         imap=ImapSettings(host="fixture", mailbox="fixture"),
         filters=FilterSettings(
-            senders=(), subject_patterns=(), keywords=("telegram",)
+            senders=(), subject_patterns=(), keywords=("telegram",), minimum_budget_rub=1
         ),
     )
 

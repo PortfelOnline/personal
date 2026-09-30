@@ -44,6 +44,9 @@ def load_settings(
                 _section(data, "filters"), "subject_patterns"
             ),
             keywords=_required_text_list(_section(data, "filters"), "keywords"),
+            minimum_budget_rub=_required_positive_int(
+                _section(data, "filters"), "minimum_budget_rub", "filters"
+            ),
         ),
     )
     secrets = _load_secrets(environ)
@@ -94,6 +97,15 @@ def _required_text_list(section: Mapping[str, object], name: str) -> tuple[str, 
 
     values = tuple(_list_item(item, name) for item in value)
     return values
+
+
+def _required_positive_int(
+    section: Mapping[str, object], name: str, section_name: str
+) -> int:
+    value = section.get(name)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ConfigurationError(f"{section_name}.{name} must be a positive integer")
+    return value
 
 
 def _list_item(value: object, name: str) -> str:

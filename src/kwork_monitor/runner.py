@@ -191,7 +191,11 @@ def _process_item(
         if dependencies.store.is_recorded(key):
             summary.duplicates += 1
             continue
-        if not is_relevant(project, dependencies.settings.filters.keywords):
+        if not is_relevant(
+            project,
+            dependencies.settings.filters.keywords,
+            dependencies.settings.filters.minimum_budget_rub,
+        ):
             summary.ignored += 1
             if dry_run:
                 LOGGER.info("dry-run: would ignore project UID %s", item.uid)

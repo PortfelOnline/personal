@@ -41,7 +41,7 @@ def test_configured_dry_run_does_not_create_sqlite_files(
     config = tmp_path / "config.yaml"
     config.write_text(
         "imap: {host: imap.example.test, mailbox: INBOX}\n"
-        "filters: {senders: [noreply@kwork.ru], subject_patterns: [Новый], keywords: [telegram]}\n",
+        "filters: {senders: [noreply@kwork.ru], subject_patterns: [Новый], keywords: [telegram], minimum_budget_rub: 20000}\n",
         encoding="utf-8",
     )
     (tmp_path / "PROFILE.md").write_text("Test profile", encoding="utf-8")
